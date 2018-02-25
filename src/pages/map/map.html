@@ -1,0 +1,26 @@
+<ion-header>
+
+  <ion-navbar>
+    <ion-title>Map Page</ion-title>
+  </ion-navbar>
+
+</ion-header>
+
+
+<ion-content padding>
+
+    
+
+  <agm-map [latitude]="lat" [longitude]="lng" [zoom]="17">
+
+    <!-- marks a vector of pins -->
+      <div *ngFor="let pos of pinVector"> 
+        <agm-marker [latitude]="pos.lat" [longitude]="pos.lng"></agm-marker> 
+      </div>
+
+    <!-- mark the central pin -->
+    <agm-marker [latitude]="lat" [longitude]="lng"></agm-marker>
+    <agm-info-window>Local</agm-info-window>
+  </agm-map>
+
+</ion-content>

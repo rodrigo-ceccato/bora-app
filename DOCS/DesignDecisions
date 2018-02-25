@@ -1,0 +1,18 @@
+we here and along thte proect are calling the events MEETING
+to distinguish hfrom tthe ionic servicce EVENTS, witch we we are also using
+
+GENERAL
+-> all the LOADING will be inside the PROVIDERS
+
+THE PEOPLE PROVIDER 
+-> get people login/info/locatiton
+-> create new meeting
+-> get all the meetings from one perosn
+
+THE MEETING PROVITER
+-> get all people in one meeting
+-> get/edit meeting info > location, date/time
+-> get list of meeting (or OPEN-meetings) in one region
+-> push updates from meettings change
+
+ALL SENTENCES ARE IN THE CONST FILES, INCLUDIND THE API IP
