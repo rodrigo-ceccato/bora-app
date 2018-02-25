@@ -12,24 +12,28 @@
 
     <ion-list>
       <ion-item>
-        <ion-label color="primary" fixed>Username </ion-label>
+        <ion-label color="primary" fixed>{{TEXT.USERNAME_FIELD}}</ion-label>
         <ion-input [(ngModel)]="person.username"></ion-input>
       </ion-item>
       <ion-item>
-        <ion-label color="primary" fixed>Senha </ion-label>
-        <ion-input [(ngModel)]="person.senha"></ion-input>
+        <ion-label color="primary" fixed>{{TEXT.PASSWORD_FIELD}}</ion-label>
+        <ion-input type="password" [(ngModel)]="person.senha"></ion-input>
       </ion-item>
     </ion-list>
 
-    <button ion-button (click)="logar()" block>Entrar</button>
-    <button ion-button (click)="cadastrar()" block>Cadastrar</button>
+    <button ion-button (click)="logar()" block>{{TEXT.LOGIN_BUTTON}}</button>
+    <button ion-button (click)="cadastrar()" block>{{TEXT.REGISTER_BUTTON}}</button>
 
 
     <!-- REMOVE THIS -- DEBUG PURPOSES -->
     =============DEBUG AREA==================
-    <button ion-button (click)="openPageTabs()" block>testTabs</button>
+    <button ion-button (click)="openPageTabs()" block>test Tabs</button>
     <button ion-button (click)="openPp()" block>testpeopleProv</button>
     <button ion-button (click)="openMp()" block>testMap</button>
+
+    <button ion-button (click)="openSP()" block>MeetingSchedulePage</button>
+    <button ion-button (click)="openDP()" block>MeetingDelayPage</button>
+    <button ion-button (click)="openIP()" block>MeetingInfoPage</button>
     <!-- END OF REMOVAL AREA -->
   </ion-content>
 
