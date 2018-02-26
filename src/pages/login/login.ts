@@ -48,12 +48,13 @@ export class LoginPage {
 
     this.http.post('http://159.203.45.167/login', {'login': this.person.login, 'senha' : this.person.senha}).subscribe((data) => {
       console.log(data);
-      loading.dismiss();
+      
       
 
-      if (data) {
+      if (data.hasOwnProperty('login') === true) {
         this.navCtrl.push(TabsPage);
         this.status = true;
+        loading.dismiss();
       }
       
       
