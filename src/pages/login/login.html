@@ -1,3 +1,4 @@
+<link href="https://fonts.googleapis.com/css?family=Farsan" rel="stylesheet">
 <ion-header>
   <ion-navbar hideBackButton *navbar>
     <ion-title>Login</ion-title>
@@ -6,27 +7,32 @@
 
 <ion-content padding>
   <ion-content padding>
-    <h1>
-      Login
-    </h1>
+   <ion-label class="login-text"> Login </ion-label>
 
     <ion-list>
       <ion-item>
-        <ion-label color="primary" fixed>{{TEXT.USERNAME_FIELD}}</ion-label>
-        <ion-input [(ngModel)]="person.username"></ion-input>
+      
+        <ion-label color="black" fixed><ion-icon name="ios-person"></ion-icon></ion-label>
+        <ion-input placeholder="Usuario"[(ngModel)]="person.username"></ion-input>
+    
       </ion-item>
       <ion-item>
-        <ion-label color="primary" fixed>{{TEXT.PASSWORD_FIELD}}</ion-label>
-        <ion-input type="password" [(ngModel)]="person.senha"></ion-input>
+        <ion-label color="black" fixed><ion-icon name="md-key"></ion-icon></ion-label>
+        <ion-input placeholder="Senha" type="password" [(ngModel)]="person.senha"></ion-input>
       </ion-item>
     </ion-list>
-
-    <button ion-button (click)="logar()" block>{{TEXT.LOGIN_BUTTON}}</button>
-    <button ion-button (click)="cadastrar()" block>{{TEXT.REGISTER_BUTTON}}</button>
-
+    <ion-grid>
+      <ion-row>
+          <button class="login-button" round ion-button (click)="logar()" block>{{TEXT.LOGIN_BUTTON}}</button>
+          <button class="sign-up-button" round ion-button (click)="cadastrar()" block>{{TEXT.REGISTER_BUTTON}}</button>
+      </ion-row>
+    </ion-grid>
+   
+  
+ 
 
     <!-- REMOVE THIS -- DEBUG PURPOSES -->
-    =============DEBUG AREA==================
+    ===============DEBUG AREA==============
     <button ion-button (click)="openPageTabs()" block>test Tabs</button>
     <button ion-button (click)="openPp()" block>testpeopleProv</button>
     <button ion-button (click)="openMp()" block>testMap</button>
