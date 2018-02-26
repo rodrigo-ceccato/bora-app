@@ -12,12 +12,23 @@ export class PeopleProvider {
     
     console.log('Hello PeopleProvider Provider');
   }
+
   
-  login(loginData){
+  // sign up function to add user to the database
+  signUp(loginData){
     
     // this.http.post(API_ENDPOINT +'/login', loginData).subscribe((data) => {
     //   console.log(data);
     // });
+
+    let status = false;
+
+    this.http.post('http://159.203.45.167/users', loginData).subscribe((data) => {
+      console.log(data);
+      loading.dismiss();
+      status = true;
+      
+    });
 
 
     // LOADING + ALERT SAMPLE
@@ -34,8 +45,40 @@ export class PeopleProvider {
     });
 
     setTimeout(() => {
+      if(!status){
       loading.dismiss();
       alert.present();
+      }
+    }, 5000);
+
+  }
+
+  login (loginData) {
+
+    this.http.post('http://159.203.45.167/login', loginData).subscribe((data) => {
+      console.log(data);
+      loading.dismiss();
+      
+      
+    });
+
+    let loading = this.loadingCtrl.create({
+      content: 'Please wait...'
+    });
+
+    loading.present();
+
+    let alert = this.alertCtrl.create({
+      title: 'Erro ao logar',
+      subTitle: 'Login não encontrado!',
+      buttons: ['Okay']
+    });
+
+    setTimeout(() => {
+      
+      loading.dismiss();
+      alert.present();
+      
     }, 5000);
   }
 
