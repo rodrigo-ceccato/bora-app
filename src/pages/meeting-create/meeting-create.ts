@@ -3,6 +3,7 @@ import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { MeetingSchedulePage } from '../meeting-schedule/meeting-schedule';
 import { BoraagoraPage } from '../boraagora/boraagora';
 import { BoraHojePage } from '../bora-hoje/bora-hoje';
+import { MeetingDelayPage } from '../meeting-delay/meeting-delay';
 
 
 /**
@@ -32,5 +33,8 @@ export class MeetingCreatePage {
 
   openPageBoraHoje(){
     this.navCtrl.push(BoraHojePage);
+  }
+  openDP(){
+    this.navCtrl.push(MeetingSchedulePage);
   }
 }

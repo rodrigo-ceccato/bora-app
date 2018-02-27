@@ -7,7 +7,29 @@
 
 <ion-content padding>
 
-  <button class="bora-hoje-button" round ion-button  (click)="openPageBoraAgora()" block>Bora agora!</button>
-  <button class="bora-marcar-button" round ion-button  block>Bora depois!</button>
+    <ion-content padding>
+        <ion-title>Nome do Evento </ion-title>
+        <ion-item>
+           <ion-input class="nomeEvento" placeholder="Digite o nome do evento!"[(ngModel)]="textbox"></ion-input>
+        </ion-item>
+        <BR>
+        <BR>
+          <ion-title>Quando? </ion-title>
+          <ion-item>
+              <ion-datetime class="time_display" placeholder="ex:14:01" displayFormat="HH : mm" [(ngModel)]="myDate"></ion-datetime>
+          </ion-item>
+          <BR>
+          <BR>
+      
+        <ion-title>Local do Evento</ion-title>
+        <ion-item>
+         <ion-input id="enderecoEvento" placeholder="Digite a rota do evento!"[(ngModel)]="textbox"></ion-input>
+        </ion-item>
+        <BR>
+        <BR>
+
+  
+  <button class="bora-hoje-button" color="secondary" round ion-button  (click)="openPageBoraAgora()" block>Marcar evento!</button>
+
   
 </ion-content>
