@@ -11,13 +11,18 @@ import { SCHEDULER_TEXT } from '../../models/consts';
 })
 export class MeetingSchedulePage {
   public TEXT = SCHEDULER_TEXT;
-  meeting   = <any>{};
-  fixDate   = <any>{};
+  meeting = <any>{};
+  fixDate = <any>{};
   unfixDate = <any>{};
   scheduleType = 'defineDate';
 
   constructor(public navCtrl: NavController, public navParams: NavParams,
     private alertCtrl: AlertController) {
+     this.fixDate.start   = new Date().toISOString();
+     this.fixDate.end     = new Date(Date.now() + (1000 /*sec*/ * 60 /*min*/ * 60 /*hour*/ * 2)).toISOString();
+
+     this.unfixDate.start = new Date().toISOString();
+     this.unfixDate.end   = new Date(Date.now() + (1000 /*sec*/ * 60 /*min*/ * 60 /*hour*/ * 24 /*days*/ * 2)).toISOString();
   }
 
   ionViewDidLoad() {
@@ -29,19 +34,20 @@ export class MeetingSchedulePage {
     console.log(this.meeting.local);
 
     // check if fields are okay
-    if(!this.meeting.name)  return false;
-    if(!this.meeting.local) return false;
+    if (!this.meeting.name)  return false;
+    if (!this.meeting.local) return false;
 
-    if(this.scheduleType == 'fixedDate') {
-      // is the date ok?
-      console.log(this.fixDate.start);
-      console.log(this.fixDate.end);
-
-    } else {
+    if (this.scheduleType == 'defineDate') {
       // is the interval set?
+      console.log("Unfixed dates: ");
       console.log(this.unfixDate.start);
       console.log(this.unfixDate.end);
 
+    } else {
+      // is the date ok?
+      console.log('FixedDate dates: ');
+      console.log(this.fixDate.start);
+      console.log(this.fixDate.end);
     }
 
     return true;
@@ -54,37 +60,37 @@ export class MeetingSchedulePage {
     let valid = this.checkMeetingInput();
 
     if (valid) {
+      console.log('Checking if event ends on the next day...');
+      
+      if (this.scheduleType == 'defineDate') {
+        //TODO allow to go to next year
 
-      let alert = this.alertCtrl.create({
-        title: 'Confirm purchase',
-        message: 'Do you want to buy this book?',
-        buttons: [
-          {
-            text: 'Cancel',
-            role: 'cancel',
-            handler: () => {
-              console.log('Cancel clicked');
-            }
-          },
-          {
-            text: 'Buy',
-            handler: () => {
-              console.log('Buy clicked');
-            }
-          }
-        ]
-      });
-      alert.present();
+      } else {
+        // correts if the events ends on the next day
+        let fixDateStart = new Date(this.fixDate.start);
+        let fixDateEnd = new Date(this.fixDate.end);
+
+        if(fixDateStart > fixDateEnd) {
+          console.log("Nois vai madrugar");
+
+          // solves the madrugador
+          fixDateEnd = new Date (fixDateEnd.getTime() + 1000*60*60*24);
+          this.fixDate.end = fixDateEnd.toISOString();
+          console.log(this.fixDate.end);
+
+        }
+
+      }
+
     }
 
     // invalid input
     else {
-      let alert = this.alertCtrl.create({
+      this.alertCtrl.create({
         title: this.TEXT.INVALID_INPUT,
         subTitle: this.TEXT.INVALID_INPUT_DESC,
         buttons: [this.TEXT.CLOSE]
-      });
-      alert.present();
+      }).present();
 
     }
 
