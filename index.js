@@ -13,15 +13,26 @@ app.use(cors());
 
 app.get('/users', (req, res) => {
 
-    user = {
-        login: req.body.login,
-        senha: req.body.senha
-    }
+    
 
     req.db.collection('users')
     .find({})
     .toArray((err, data) => {
         res.send(data);
+    });
+});
+app.post('/search', (req, res) => {
+
+    search = {
+        login: req.body.login      
+    }
+
+    req.db.collection('users')
+    .findOne(search, (err, data) => {
+
+        res.send(data);
+
+        
     });
 });
 
@@ -36,12 +47,13 @@ app.post('/login', (req, res) => {
 
     let busca = {
         login: req.body.login,
-        senha: req.body.senha
+        senha: req.body.senha,
     }
 
     req.db.collection('users')
         .findOne(busca, (err, data) => {
             if (data) {
+                console.log("vtnc: ", data);
                 res.send(data);
             } else {
                 // TODO: use status, but this didnt work
@@ -62,7 +74,8 @@ app.post('/users', (req, res) => {
 
     user = {
         login: req.body.login,
-        senha: req.body.senha
+        senha: req.body.senha,
+        amigos: []
     }
 
 
@@ -79,28 +92,31 @@ app.post('/users', (req, res) => {
 
 });
 
-// app.post('/update', (req, res) => {
+app.post('/addFriend', (req, res) => {
 
-//     busca = {
-//         ne: Number(req.body.ne)
-//     }
-//     novoPreco = req.body.preco;
-
-
-//     req.db.collection('users')
-//     .findOne(busca, (err, data) => {
-//         req.db.collection('users')
-//         .update(busca,  {"ne": data.ne, "nome": data.nome, "endereco": data.endereco, "preco": novoPreco, "foto": data.foto, "comentarios": data.comentarios},  (err, data) => {
+    busca = {
+        login: (req.body.login)
+    }
+    newFriend = req.body.newFriend;
 
 
-//         });
+    req.db.collection('users')
+    .findOne(busca, (err, data) => {
 
-//         res.send(data);
-//     });
+        
+        data.amigos.push(newFriend);
+        req.db.collection('users')
+        .update(busca, data,  (err, data) => {
 
 
-// });
+        });
+
+        res.send(data);
+    });
+
+
+});
 
 app.listen(3000, () => {
-    console.log('Servidor rodando na 3000');
+    console.log('Servidor local rodando na 3000');
 });
