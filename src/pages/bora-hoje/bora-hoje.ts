@@ -18,9 +18,12 @@ export class BoraHojePage {
 
   constructor(public navCtrl: NavController, public navParams: NavParams) {
   }
-
+Evento = {
+  nomeEvento : "",
+  enderecoEvento : "",
+}
   ionViewDidLoad() {
-    console.log('ionViewDidLoad BorahojePage');
+    console.log('ionViewDidLoad BoraHojePage');
   }
   openPageBoraAgora(){
     this.navCtrl.push(BoraagoraPage);
