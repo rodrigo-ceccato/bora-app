@@ -5,6 +5,7 @@ import { HttpClientModule} from '@angular/common/http';
 
 import { Geolocation } from '@ionic-native/geolocation';
 import { AgmCoreModule } from '@agm/core';
+import { DatePicker } from '@ionic-native/date-picker';
 
 import { MyApp } from './app.component';
 
@@ -25,9 +26,13 @@ import { SplashScreen } from '@ionic-native/splash-screen';
 import { MeetingProvider } from '../providers/meeting/meeting';
 import { PeopleProvider } from '../providers/people/people';
 import { GOOGLE_MAPS_API_KEY } from '../models/consts';
+import { BoraagoraPage } from '../pages/boraagora/boraagora';
+import { BoraHojePage } from '../pages/bora-hoje/bora-hoje';
 
 @NgModule({
   declarations: [
+    BoraHojePage,
+    BoraagoraPage,
     MyApp,
     TabsPage,
     LoginPage,
@@ -47,6 +52,8 @@ import { GOOGLE_MAPS_API_KEY } from '../models/consts';
   ],
   bootstrap: [IonicApp],
   entryComponents: [
+    BoraHojePage,
+    BoraagoraPage,
     MyApp,
     TabsPage,
     LoginPage,
@@ -64,7 +71,8 @@ import { GOOGLE_MAPS_API_KEY } from '../models/consts';
     {provide: ErrorHandler, useClass: IonicErrorHandler},
     MeetingProvider,
     PeopleProvider,
-    Geolocation
+    Geolocation,
+    DatePicker
   ]
 })
 export class AppModule {}

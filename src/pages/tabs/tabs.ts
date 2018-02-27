@@ -17,4 +17,5 @@ export class TabsPage {
   tab3Root = UserProfilePage;
 
   constructor() { }
+  
 }

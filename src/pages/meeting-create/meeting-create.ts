@@ -1,5 +1,10 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
+import { MeetingSchedulePage } from '../meeting-schedule/meeting-schedule';
+import { BoraagoraPage } from '../boraagora/boraagora';
+import { BoraHojePage } from '../bora-hoje/bora-hoje';
+import { MeetingDelayPage } from '../meeting-delay/meeting-delay';
+
 
 /**
  * Generated class for the MeetingCreatePage page.
@@ -22,4 +27,14 @@ export class MeetingCreatePage {
     console.log('ionViewDidLoad MeetingCreatePage');
   }
 
+  openMeetingScheduler(){
+    this.navCtrl.push(MeetingSchedulePage);
+  }
+
+  openPageBoraHoje(){
+    this.navCtrl.push(BoraHojePage);
+  }
+  openDP(){
+    this.navCtrl.push(MeetingSchedulePage);
+  }
 }
