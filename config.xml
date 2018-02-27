@@ -84,4 +84,6 @@
     <plugin name="cordova-plugin-geolocation" spec="^4.0.1">
         <variable name="GEOLOCATION_USAGE_DESCRIPTION" value="To locate you" />
     </plugin>
+    <plugin name="cordova-plugin-datepicker" spec="^0.9.3" />
+    <engine name="browser" spec="~5.0.3" />
 </widget>

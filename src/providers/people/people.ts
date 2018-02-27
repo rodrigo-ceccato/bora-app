@@ -6,7 +6,7 @@ import { API_ENDPOINT } from '../../models/consts';
 
 @Injectable()
 export class PeopleProvider {
-
+  
   constructor(public http: HttpClient, public events: Events,  
     private alertCtrl: AlertController, public loadingCtrl: LoadingController) {
     
@@ -23,7 +23,7 @@ export class PeopleProvider {
 
     let status = false;
 
-    this.http.post('http://159.203.45.167/users', loginData).subscribe((data) => {
+    this.http.post(API_ENDPOINT + '/users', loginData).subscribe((data) => {
       console.log(data);
       loading.dismiss();
       status = true;
@@ -55,7 +55,7 @@ export class PeopleProvider {
 
   login (loginData) {
 
-    this.http.post('http://159.203.45.167/login', loginData).subscribe((data) => {
+    this.http.post(API_ENDPOINT + '/login', loginData).subscribe((data) => {
       console.log(data);
       loading.dismiss();
       

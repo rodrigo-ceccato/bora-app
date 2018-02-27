@@ -1,12 +1,6 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
-
-/**
- * Generated class for the MeetingCreatePage page.
- *
- * See https://ionicframework.com/docs/components/#navigation for more info on
- * Ionic pages and navigation.
- */
+import { MeetingSchedulePage } from '../meeting-schedule/meeting-schedule';
 
 @IonicPage()
 @Component({
@@ -20,6 +14,10 @@ export class MeetingCreatePage {
 
   ionViewDidLoad() {
     console.log('ionViewDidLoad MeetingCreatePage');
+  }
+
+  openMeetingScheduler(){
+    this.navCtrl.push(MeetingSchedulePage);
   }
 
 }

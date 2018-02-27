@@ -5,6 +5,7 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 
 import { Geolocation } from '@ionic-native/geolocation';
 import { AgmCoreModule } from '@agm/core';
+import { DatePicker } from '@ionic-native/date-picker';
 
 import { MyApp } from './app.component';
 
@@ -64,7 +65,8 @@ import { GOOGLE_MAPS_API_KEY } from '../models/consts';
     {provide: ErrorHandler, useClass: IonicErrorHandler},
     MeetingProvider,
     PeopleProvider,
-    Geolocation
+    Geolocation,
+    DatePicker
   ]
 })
 export class AppModule {}
