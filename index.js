@@ -25,11 +25,14 @@ app.get('/users', (req, res) => {
     });
 });
 
+// endpoint to log in the app
 app.post('/login', (req, res) => {
-  if (!req.body.login || !req.body.senha) {
+    if (!req.body.login || !req.body.senha) {
         res.status(400).send({ 'error': 'Preencha todos os campos obrigatorios' });
         return;
     }
+
+    
 
     let busca = {
         login: req.body.login,
@@ -43,22 +46,37 @@ app.post('/login', (req, res) => {
             } else {
                 // TODO: use status, but this didnt work
                 // res.status(400).send({});
+                res.send({});
             }
         });
 });
 
+// endpoint to sign up the user
 app.post('/users', (req, res) => {
     console.log("insert");
+
+    if (!req.body.login || !req.body.senha) {
+        res.status(400).send({ 'error': 'Preencha todos os campos obrigatorios' });
+        return;
+    }
 
     user = {
         login: req.body.login,
         senha: req.body.senha
     }
 
+
+
     req.db.collection('users')
     .insert(user, (err, data) => {
-        res.send(data);
+        if (!err) {
+            res.send(data);
+        } else {
+            res.send(err);
+        }
     });
+
+
 });
 
 // app.post('/update', (req, res) => {

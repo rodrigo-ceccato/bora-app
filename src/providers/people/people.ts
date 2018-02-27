@@ -23,8 +23,16 @@ export class PeopleProvider {
 
     let status = false;
 
-    this.http.post('http://159.203.45.167/users', loginData).subscribe((data) => {
+    this.http.post(API_ENDPOINT + '/users', loginData).subscribe((data) => {
       console.log(data);
+      if (data.hasOwnProperty('code') == true) {
+        let alert = this.alertCtrl.create({
+          title: 'Erro ao registrar',
+          subTitle: 'Usuario ja existe',
+          buttons: ['Okay']
+        });
+        alert.present();
+      }
       loading.dismiss();
       status = true;
       

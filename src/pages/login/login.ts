@@ -4,7 +4,7 @@ import { TabsPage } from '../../pages/tabs/tabs';
 import { PeopleProvider } from '../../providers/people/people';
 import { HttpClient } from '@angular/common/http';
 import { AlertController, LoadingController } from 'ionic-angular';
-import { LOGIN_TEXT } from '../../models/consts';
+import { LOGIN_TEXT, API_ENDPOINT } from '../../models/consts';
 
 // TEST PAGE IMPORT - REMOVE THIS debug purpose
 import { MapPage } from '../map/map';
@@ -46,7 +46,7 @@ export class LoginPage {
 
     this.status = false;
 
-    this.http.post('http://159.203.45.167/login', {'login': this.person.login, 'senha' : this.person.senha}).subscribe((data) => {
+    this.http.post(API_ENDPOINT + '/login', {'login': this.person.login, 'senha' : this.person.senha}).subscribe((data) => {
       console.log(data);
       
       
