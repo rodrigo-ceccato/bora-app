@@ -1,11 +1,9 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { BoraagoraPage } from '../boraagora/boraagora';
-import { BoraHojePage } from '../bora-hoje/bora-hoje';
-
 
 /**
- * Generated class for the MeetingCreatePage page.
+ * Generated class for the BoraHojePage page.
  *
  * See https://ionicframework.com/docs/components/#navigation for more info on
  * Ionic pages and navigation.
@@ -13,19 +11,20 @@ import { BoraHojePage } from '../bora-hoje/bora-hoje';
 
 @IonicPage()
 @Component({
-  selector: 'page-meeting-create',
-  templateUrl: 'meeting-create.html',
+  selector: 'page-bora-hoje',
+  templateUrl: 'bora-hoje.html',
 })
-export class MeetingCreatePage {
+export class BoraHojePage {
 
   constructor(public navCtrl: NavController, public navParams: NavParams) {
   }
 
   ionViewDidLoad() {
-    console.log('ionViewDidLoad MeetingCreatePage');
+    console.log('ionViewDidLoad BorahojePage');
   }
-
-  openPageBoraHoje(){
-    this.navCtrl.push(BoraHojePage);
+  openPageBoraAgora(){
+    this.navCtrl.push(BoraagoraPage);
   }
 }
+
+
