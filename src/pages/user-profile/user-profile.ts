@@ -20,9 +20,9 @@ export class UserProfilePage {
   friends;
 
   constructor(public navCtrl: NavController, public navParams: NavParams, public provider: PeopleProvider, public events: Events) {
-    this.friends = this.provider.currentUser.amigos;
+    this.friends = this.provider.currentUser.friends;
     events.subscribe('friend added', (data) => {
-      this.friends = this.provider.currentUser.amigos;
+      this.friends = this.provider.currentUser.friends;
       console.log(data.login);
     });
     

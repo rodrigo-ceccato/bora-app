@@ -14,6 +14,7 @@ import { MeetingInfoPage } from '../../pages/meeting-info/meeting-info';
 import { MeetingListPage } from '../../pages/meeting-list/meeting-list';
 import { MeetingSchedulePage } from '../../pages/meeting-schedule/meeting-schedule';
 import { UserProfilePage } from '../../pages/user-profile/user-profile';
+import { SlidesHomePage } from '../slides-home/slides-home';
 // END OF TEST IMPORT
 
 @IonicPage()
@@ -52,7 +53,7 @@ export class LoginPage {
       
 
       if (data.hasOwnProperty('login') === true) {
-        this.navCtrl.push(TabsPage);
+        this.navCtrl.push(SlidesHomePage);
         this.status = true;
         loading.dismiss();
       }
@@ -110,7 +111,7 @@ export class LoginPage {
   }
 
   openIP(){
-    this.navCtrl.push(MeetingInfoPage);
+    this.navCtrl.push(SlidesHomePage);
   }
   //END OF REMOVAL AREA
 }
