@@ -17,6 +17,7 @@ export class BoraagoraPage {
 textbot;
   constructor(public navCtrl: NavController, public navParams: NavParams) {
   }
+  
 
   ionViewDidLoad() {
     console.log('ionViewDidLoad BoraagoraPage');

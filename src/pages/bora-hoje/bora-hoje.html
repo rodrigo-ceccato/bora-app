@@ -10,26 +10,36 @@
     <ion-content padding>
         <ion-title>Nome do Evento </ion-title>
         <ion-item>
-           <ion-input class="nomeEvento" placeholder="Digite o nome do evento!"[(ngModel)]="textbox"></ion-input>
+           <ion-input class="nomeEvento" placeholder="Digite o nome do evento!"[(ngModel)]="evento.eventName"></ion-input>
         </ion-item>
         <BR>
         <BR>
           <ion-title>Quando? </ion-title>
           <ion-item>
-              <ion-datetime class="time_display" placeholder="ex:14:01" displayFormat="HH : mm" [(ngModel)]="myDate"></ion-datetime>
+            <button class="boraAgora" color="secondary" round ion-button  (click)="openPageBoraAgora()" block>Agora!</button>
+          </ion-item>
+          <ion-item>
+              <ion-datetime class="time_display" placeholder="ex:14:01" displayFormat="HH : mm" [(ngModel)]="evento.eventTime"></ion-datetime>
           </ion-item>
           <BR>
           <BR>
       
         <ion-title>Local do Evento</ion-title>
         <ion-item>
-         <ion-input id="enderecoEvento" placeholder="Digite a rota do evento!"[(ngModel)]="textbox"></ion-input>
+         <ion-input id="enderecoEvento" placeholder="Digite a rota do evento!"[(ngModel)]="evento.eventAdress"></ion-input>
         </ion-item>
         <BR>
         <BR>
 
-  
-  <button class="bora-hoje-button" color="secondary" round ion-button  (click)="openPageBoraAgora()" block>Marcar evento!</button>
+          <ion-title>Foto De Capa</ion-title>
+          <ion-item>
+            <button class="Tirar Foto" color="secondary" round ion-button  (click)=" takeProfilePicture()" block>Tirar foto!</button>
+          </ion-item>
+          <BR>
+          <BR>
 
   
+  <button class="MarcarEvento" color="secondary" round ion-button  block>Marcar evento!</button>
+
+</ion-content>
 </ion-content>
