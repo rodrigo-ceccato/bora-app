@@ -6,7 +6,7 @@ import { HttpClientModule} from '@angular/common/http';
 import { Geolocation } from '@ionic-native/geolocation';
 import { AgmCoreModule } from '@agm/core';
 import { DatePicker } from '@ionic-native/date-picker';
-
+import { Camera } from '@ionic-native/camera';
 import { MyApp } from './app.component';
 
 
@@ -66,6 +66,7 @@ import { BoraHojePage } from '../pages/bora-hoje/bora-hoje';
     UserProfilePage
   ],
   providers: [
+    Camera,
     StatusBar,
     SplashScreen,
     {provide: ErrorHandler, useClass: IonicErrorHandler},

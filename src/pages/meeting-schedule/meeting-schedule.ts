@@ -3,6 +3,7 @@ import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { AlertController } from 'ionic-angular';
 
 import { SCHEDULER_TEXT } from '../../models/consts';
+import { MeetingProvider } from '../../providers/meeting/meeting';
 
 @IonicPage()
 @Component({
@@ -17,7 +18,7 @@ export class MeetingSchedulePage {
   scheduleType = 'defineDate';
 
   constructor(public navCtrl: NavController, public navParams: NavParams,
-    private alertCtrl: AlertController) {
+    private alertCtrl: AlertController, public meetProv: MeetingProvider) {
      this.fixDate.start   = new Date().toISOString();
      this.fixDate.end     = new Date(Date.now() + (1000 /*sec*/ * 60 /*min*/ * 60 /*hour*/ * 2)).toISOString();
 
@@ -60,27 +61,50 @@ export class MeetingSchedulePage {
     let valid = this.checkMeetingInput();
 
     if (valid) {
-      console.log('Checking if event ends on the next day...');
-      
+      let meeting = {
+        name : this.meeting.name,
+        location : this.meeting.local,
+        timeStart : '' ,
+        timeEnd :  '',
+        fixedDate : false,
+        peopleInvited : [],
+        PeopleConfirmed : []
+      }
+
+      // some auxiliar objects
+      let fixDateStart = new Date(this.fixDate.start);
+      let fixDateEndHour = new Date(this.fixDate.end);
+      let fixDateEnd = new Date(this.fixDate.start);
+
       if (this.scheduleType == 'defineDate') {
         //TODO allow to go to next year
+        meeting.fixedDate = false;
+        meeting.timeStart = this.unfixDate.start;
+        meeting.timeEnd   = this.unfixDate.end;
 
       } else {
         // correts if the events ends on the next day
-        let fixDateStart = new Date(this.fixDate.start);
-        let fixDateEnd = new Date(this.fixDate.end);
+        fixDateEnd.setHours(fixDateEndHour.getHours());
+        fixDateEnd.setMinutes(fixDateEndHour.getMinutes());
 
-        if(fixDateStart > fixDateEnd) {
-          console.log("Nois vai madrugar");
-
-          // solves the madrugador
-          fixDateEnd = new Date (fixDateEnd.getTime() + 1000*60*60*24);
-          this.fixDate.end = fixDateEnd.toISOString();
-          console.log(this.fixDate.end);
-
+        // meeting ends on the next day
+        if(fixDateEnd.getTime() < fixDateStart.getTime()){
+          fixDateEnd.setDate(fixDateEnd.getDate() + 1);
         }
 
+        meeting.fixedDate = true;
+        meeting.timeStart = fixDateStart.toISOString();
+        meeting.timeEnd   = fixDateEnd.toISOString();
       }
+
+      //TODO check for year change
+      console.log('Fix date start   \n>' + fixDateStart.toISOString());
+      console.log('Fix date end     \n>' + fixDateEnd.toISOString());
+      console.log('Unfix date start \n>' + this.unfixDate.start);
+      console.log('Unfix date end   \n>' + this.unfixDate.end);
+  
+      console.log(meeting);
+      this.meetProv.addMeeting(meeting);
 
     }
 
