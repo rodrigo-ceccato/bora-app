@@ -41,7 +41,7 @@ export class LoginPage {
       events.subscribe('formigueiro de rua', (user) => {
         
         console.log('Welcome', user.login);
-        this.navCtrl.push(TabsPage);
+        this.navCtrl.push(SlidesHomePage);
 
       });
 
