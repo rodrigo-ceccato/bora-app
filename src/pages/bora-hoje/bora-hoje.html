@@ -14,20 +14,24 @@
         </ion-item>
         <BR>
         <BR>
-         <div class="quando">
-           <ion-title>Quando? </ion-title>
-           <button>Agora</button>
-           <button>Depois</button>
-         </div>
-          <ion-item>
-            <button class="boraAgora" color="secondary" round ion-button  (click)="openPageBoraAgora()" block>Agora!</button>
-          </ion-item>
-          <ion-item>
+        <ion-title>Quando? </ion-title>
+          <ion-segment [(ngModel)]="scheduleType" color="secondary">
+            <ion-segment-button value="agora">
+              Agora
+            </ion-segment-button>
+            <ion-segment-button value="depois">
+              Depois
+            </ion-segment-button>
+          </ion-segment>
+          <div *ngIf="scheduleType == 'depois'"> 
+            <ion-item>
+              <BR>
               <ion-datetime class="time_display" placeholder="ex:14:01" displayFormat="HH : mm" [(ngModel)]="evento.eventTime"></ion-datetime>
-          </ion-item>
-          <BR>
-          <BR>
-      
+            </ion-item>
+          </div>
+            <BR>
+            <BR>
+        
         <ion-title>Local do Evento</ion-title>
         <ion-item>
          <ion-input id="enderecoEvento" placeholder="Digite a rota do evento!"[(ngModel)]="evento.eventAdress"></ion-input>
