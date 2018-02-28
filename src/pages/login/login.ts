@@ -96,7 +96,7 @@ export class LoginPage {
     this.navCtrl.push(MeetingInfoPage);
   }
   openMe(){
-    this.navCtrl.push(UserProfilePage);
+    this.navCtrl.push(SlidesHomePage);
   }
   //END OF REMOVAL AREA
 }
