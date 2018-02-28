@@ -30,7 +30,7 @@ export class MeetingProvider {
 
   addMeeting (meeting) {
     meeting.creator = this.peopleProvirder.currentUser.login;
-    this.http.post(API_ENDPOINT + '/events', event).subscribe((data) => {
+    this.http.post(API_ENDPOINT + '/events', meeting).subscribe((data) => {
 
       console.log(event , 'adicionado');
     });
