@@ -7,7 +7,7 @@
 
   <ion-content padding>
     
-       
+        <ion-img src="assets/imgs/logo1.png"> </ion-img>
      
 
    <ion-label class="login-text"> Login </ion-label>
@@ -26,16 +26,14 @@
     </ion-list>
     <ion-grid>
       <ion-row>
-          <button class="login-button" round ion-button  color="secondary" (click)="logar()" block>{{TEXT.LOGIN_BUTTON}}</button>
-          <button class="sign-up-button" round ion-button  color="secondary" (click)="cadastrar()" block>{{TEXT.REGISTER_BUTTON}}</button>
+          <button class="login-button" round ion-button  color="qua" (click)="logar()" block>{{TEXT.LOGIN_BUTTON}}</button>
+          <button class="sign-up-button" round ion-button  color="qua" (click)="cadastrar()" block>{{TEXT.REGISTER_BUTTON}}</button>
       </ion-row>
+      <ion-row>
+        <button class="facebook" round ion-button (click)="logar()">Conectar com Facebook</button>
+    </ion-row>
     </ion-grid>
    
-  
- 
-
-    <!-- ==========REMOVE THIS -- DEBUG PURPOSES===== <br>
-    ============DEBUG AREA STAY AWAY===========
     <button ion-button (click)="openPageTabs()" block>test Tabs</button>
     <button ion-button (click)="openPp()" block>testpeopleProv</button>
     <button ion-button (click)="openMp()" block>testMap</button>
@@ -44,11 +42,7 @@
     <button ion-button (click)="openDP()" block>MeetingDelayPage</button>
     <button ion-button (click)="openIP()" block>MeetingInfoPage</button>
     
-     END OF REMOVAL AREA
-     -->
      <button ion-button (click)="openMe()" block>MePage</button> 
-    
-   
    
    </ion-content> 
 

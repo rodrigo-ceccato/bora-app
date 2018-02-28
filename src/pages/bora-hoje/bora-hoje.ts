@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { BoraagoraPage } from '../boraagora/boraagora';
-
+import { AlertController } from 'ionic-angular';
+import { SCHEDULER_TEXT } from '../../models/consts';
 import { MeetingProvider } from '../../providers/meeting/meeting';
 import { MeetingInfoPage } from '../meeting-info/meeting-info';
 /**
@@ -17,6 +18,7 @@ import { MeetingInfoPage } from '../meeting-info/meeting-info';
   templateUrl: 'bora-hoje.html',
 })
 export class BoraHojePage {
+  public TEXT = SCHEDULER_TEXT;
   meeting = <any>{};
   fixDate = <any>{};
   unfixDate = <any>{};
@@ -24,16 +26,16 @@ export class BoraHojePage {
 
   
 
-  constructor(public navCtrl: NavController, public meetProv: MeetingProvider, public navParams: NavParams) {
+  constructor(public navCtrl: NavController,private alertCtrl: AlertController, public meetProv: MeetingProvider, public navParams: NavParams) {
   }
 
 
 verificarVazio(){
   if(this.meeting.name == "" ||
-  this.meeting.timeStart == "" ||
+  // this.meeting.timeStart == "" ||
   this.meeting.location==""){
     return true;
-  }
+  }return false;
 }
 
   ionViewDidLoad() {
@@ -47,32 +49,43 @@ verificarVazio(){
   marcarEvento(){
        if(this.verificarVazio() ==  false){
             console.log(this.meeting.name);
-            console.log(this.meeting.timeStart);
+            // console.log(this.meeting.timeStart);
             console.log(this.meeting.location);
-
+            let date = new Date();
+            console.log("Current Date ",date) ;
             let meeting = {
             name: this.meeting.name,
             location: this.meeting.local,
-            timeStart: '',
-            timeEnd: '',
+            timeStart: date,
+            timeEnd: " -1",
             fixedDate: false,
             peopleInvited: [],
             PeopleConfirmed: []
           }
           
           let fixDateStart = new Date(this.fixDate.start);
+          console.log(meeting);
           this.meetProv.addMeeting(meeting);
-  }
-  else{
-    alert("Por favor preencha todos os campos!");
-
-  }
+          let parameter = {
+            meeting: 'fudeu'
+          };
+    
+          // resets the forms
+          this.meeting.local = '';
+          this.meeting.name = '';
+    
+          this.navCtrl.push(MeetingInfoPage, parameter);
+    
+        }
+        // invalid input
+        else {
+          this.alertCtrl.create({
+            title: this.TEXT.INVALID_INPUT,
+            subTitle: this.TEXT.INVALID_INPUT_DESC,
+            buttons: [this.TEXT.CLOSE]
+          }).present();
+    
+        }
+    }
 }
-
-
-
  
-
-}
- 
-
