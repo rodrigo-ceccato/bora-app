@@ -93,7 +93,7 @@ export class LoginPage {
   }
 
   openIP(){
-    this.navCtrl.push(SlidesHomePage);
+    this.navCtrl.push(MeetingInfoPage);
   }
   openMe(){
     this.navCtrl.push(UserProfilePage);
