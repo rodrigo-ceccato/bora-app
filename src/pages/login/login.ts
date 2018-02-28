@@ -42,7 +42,12 @@ export class LoginPage {
         console.log('Welcome', user.login);
         this.navCtrl.push(TabsPage);
 
+
+
       });
+
+
+      
 
   }
 

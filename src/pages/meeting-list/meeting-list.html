@@ -14,25 +14,17 @@
 
 
 <ion-content padding>
-  <ion-list>
-    <ion-item-sliding>
-      <ion-item>
-        <ion-avatar item-start>
-          <img round src="assets/imgs/RPG.png">
-        </ion-avatar>
-        <h2>RPG na casa do Digão</h2>
-      </ion-item>
-      <ion-item-options side="right">
-       
-            <button ion-button color="secondary">
-              <ion-icon name="md-done-all"></ion-icon>
-              Aceitar
-            </button>
-        <button ion-button color="danger">
-          <ion-icon name="md-close"></ion-icon>
-          Deletar
-        </button>
-      </ion-item-options>
-    </ion-item-sliding>
-  </ion-list>
+  
+
+  <h1>Eventos para onde voce foi convidado</h1>
+  <div *ngFor="let meeting of meetingsInvited">
+      <p>Nome do Evento: {{meeting.name}}</p>
+      <p>Local do Evento: {{meeting.location}}</p>
+  </div>
+  <h1>Eventos que voce criou</h1>
+  <div *ngFor="let meeting of meetingsCreated">
+      <p>Nome do Evento: {{meeting.name}}</p>
+      <p>Local do Evento: {{meeting.location}}</p>
+  </div>
+
 </ion-content>

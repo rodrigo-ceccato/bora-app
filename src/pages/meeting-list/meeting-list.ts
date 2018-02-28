@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
+import { PeopleProvider } from '../../providers/people/people';
+import { Events } from 'ionic-angular/util/events';
 
 /**
  * Generated class for the MeetingListPage page.
@@ -15,7 +17,17 @@ import { IonicPage, NavController, NavParams } from 'ionic-angular';
 })
 export class MeetingListPage {
 
-  constructor(public navCtrl: NavController, public navParams: NavParams) {
+  meetingsInvited;
+  meetingsCreated;
+  
+
+  constructor(public navCtrl: NavController, public navParams: NavParams, public peopleProvider: PeopleProvider, public events: Events) {
+    this.meetingsInvited = this.peopleProvider.currentUserMeetingsInvited;
+    this.meetingsCreated = this.peopleProvider.currentUserMeetingsCreated;
+    this.events.subscribe("meeting added", () =>  {
+      this.meetingsCreated = this.peopleProvider.currentUserMeetingsCreated;
+      this.meetingsInvited = this.peopleProvider.currentUserMeetingsInvited;
+    });
   }
 
   ionViewDidLoad() {
