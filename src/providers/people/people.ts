@@ -68,12 +68,12 @@ export class PeopleProvider {
       
 
       if (data.hasOwnProperty('login') === true) {
-        
         this.status = true;
         loading.dismiss();
         this.events.publish('formigueiro de rua', loginData);
         this.currentUser = data;
         this.friends = this.currentUser.amigos;
+        
         
       } 
       
