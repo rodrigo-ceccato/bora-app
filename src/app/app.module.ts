@@ -28,9 +28,11 @@ import { PeopleProvider } from '../providers/people/people';
 import { GOOGLE_MAPS_API_KEY } from '../models/consts';
 import { BoraagoraPage } from '../pages/boraagora/boraagora';
 import { BoraHojePage } from '../pages/bora-hoje/bora-hoje';
+import { SlidesHomePage } from '../pages/slides-home/slides-home';
 
 @NgModule({
   declarations: [
+    SlidesHomePage,
     BoraHojePage,
     BoraagoraPage,
     MyApp,
@@ -52,6 +54,7 @@ import { BoraHojePage } from '../pages/bora-hoje/bora-hoje';
   ],
   bootstrap: [IonicApp],
   entryComponents: [
+    SlidesHomePage,
     BoraHojePage,
     BoraagoraPage,
     MyApp,

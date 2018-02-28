@@ -15,6 +15,7 @@ import { MeetingInfoPage } from '../../pages/meeting-info/meeting-info';
 import { MeetingListPage } from '../../pages/meeting-list/meeting-list';
 import { MeetingSchedulePage } from '../../pages/meeting-schedule/meeting-schedule';
 import { UserProfilePage } from '../../pages/user-profile/user-profile';
+import { SlidesHomePage } from '../slides-home/slides-home';
 // END OF TEST IMPORT
 
 @IonicPage()
@@ -55,6 +56,42 @@ export class LoginPage {
 
     this.peopleProv.login(this.person);
 
+<<<<<<< HEAD
+    this.http.post('http://159.203.45.167/login', {'login': this.person.login, 'senha' : this.person.senha}).subscribe((data) => {
+      console.log(data);
+      
+      
+
+      if (data.hasOwnProperty('login') === true) {
+        this.navCtrl.push(SlidesHomePage);
+        this.status = true;
+        loading.dismiss();
+      }
+      
+      
+    });
+
+    let loading = this.loadingCtrl.create({
+      content: 'Please wait...'
+    });
+
+    loading.present();
+
+    let alert = this.alertCtrl.create({
+      title: 'Erro ao logar',
+      subTitle: 'Login não encontrado!',
+      buttons: ['Okay']
+    });
+
+    setTimeout(() => {
+      if(!this.status) {
+      loading.dismiss();
+      alert.present();
+      }
+    }, 5000);
+    
+=======
+>>>>>>> f2faae612d0a646c63bef4d8efab1f1edeabbb36
   }
 // user sign up
   cadastrar(){
@@ -92,7 +129,7 @@ export class LoginPage {
   }
 
   openIP(){
-    this.navCtrl.push(MeetingInfoPage);
+    this.navCtrl.push(SlidesHomePage);
   }
   openMe(){
     this.navCtrl.push(UserProfilePage);
