@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { API_ENDPOINT } from '../../models/consts';
+import { PeopleProvider } from '../../providers/people/people';
 
 /*
   Generated class for the MeetingProvider provider.
@@ -11,12 +12,13 @@ import { API_ENDPOINT } from '../../models/consts';
 @Injectable()
 export class MeetingProvider {
 
-  constructor(public http: HttpClient) {
+  constructor(public http: HttpClient, public peopleProvirder: PeopleProvider) {
     console.log('Hello MeetingProvider Provider');
   }
 
 
-  addEvent (event) {
+  addMeetig (meeting) {
+    meeting.creator = this.peopleProvirder.currentUser.login;
     this.http.post(API_ENDPOINT + '/events', event).subscribe((data) => {
 
       console.log(event , 'adicionado');
