@@ -76,7 +76,7 @@ export class MeetingSchedulePage {
       let fixDateStart = new Date(this.fixDate.start);
       let fixDateEndHour = new Date(this.fixDate.end);
       let fixDateEnd = new Date(this.fixDate.start);
-
+ 
       if (this.scheduleType == 'defineDate') {
         //TODO allow to go to next year
         meeting.fixedDate = false;

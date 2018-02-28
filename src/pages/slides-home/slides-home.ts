@@ -26,13 +26,22 @@ export class SlidesHomePage {
     {
       title: "Bem-vido ao Bora!",
       description: "O <b>Bora app</b> é um app que facilita a organização de evnetos entre amigos!",
-      image: "assets/img/ica-slidebox-img-1.png",
+      image: "assets/imgs/Welcomeimg.png",
     },
     {
       title: "Facil e simples de usar!",
-      description: "<b>Bora app</b> é simples o suficiente igual gritar para os seus amigos pra sair!",
-      image: "assets/img/ica-slidebox-img-2.png",
-    }
+      description: "<b>Bora app</b> é simples como gritar para os seus amigos para sair!",
+      image: "assets/imgs/easy.png",
+    } ,
+    {
+      title: "Bora Hoje",
+      description: "<b>Bora Hoje</b> é quando o tédio bate e a necessidade vira urgencia pra hoje!",
+      image: "assets/imgs/today.png",
+    } , 
+    {title: "Bora Marcar",
+    description: "<b>Bora Marcar</b> Auxilia na escolha de datas e organiza as pessoas para um evento!",
+    image: "assets/imgs/calendar.png",
+  }
    
   ];
   skip(){

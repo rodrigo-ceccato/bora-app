@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { BoraagoraPage } from '../boraagora/boraagora';
-import { Geolocation } from '@ionic-native/geolocation';
-import { Camera, CameraOptions } from '@ionic-native/camera';
 
+import { MeetingProvider } from '../../providers/meeting/meeting';
+import { MeetingInfoPage } from '../meeting-info/meeting-info';
 /**
  * Generated class for the BoraHojePage page.
  *
@@ -17,48 +17,51 @@ import { Camera, CameraOptions } from '@ionic-native/camera';
   templateUrl: 'bora-hoje.html',
 })
 export class BoraHojePage {
-  
-  fotoURI:string;
-  fotoTirada = false;
-  gotLocation = false;
-  latitude;
-  longitude;
+  meeting = <any>{};
+  fixDate = <any>{};
+  unfixDate = <any>{};
+  scheduleType = 'defineDate';
 
-  constructor(public navCtrl: NavController, public navParams: NavParams,private camera: Camera,private geolocation: Geolocation) {
+  
+
+  constructor(public navCtrl: NavController, public meetProv: MeetingProvider, public navParams: NavParams) {
   }
-evento = {
-  eventName : "",
-  eventTime : "",
-  eventAdress: "",
-  }
+
 
 verificarVazio(){
-  if(this.evento.eventName == "" ||
-  this.evento.eventTime == "" ||
-  this.evento.eventAdress==""){
+  if(this.meeting.name == "" ||
+  this.meeting.timeStart == "" ||
+  this.meeting.location==""){
     return true;
   }
 }
 
-
   ionViewDidLoad() {
     console.log('ionViewDidLoad BoraHojePage');
   }
+
   openPageBoraAgora(){
     this.navCtrl.push(BoraagoraPage);
   }
+
   marcarEvento(){
        if(this.verificarVazio() ==  false){
-          console.log(this.evento.eventName);
-          console.log(this.evento.eventTime);
-          console.log(this.evento.eventAdress);
-          
-          this.evento = {
-            eventName : "",
-            eventTime : "",
-            eventAdress:"",
+            console.log(this.meeting.name);
+            console.log(this.meeting.timeStart);
+            console.log(this.meeting.location);
+
+            let meeting = {
+            name: this.meeting.name,
+            location: this.meeting.local,
+            timeStart: '',
+            timeEnd: '',
+            fixedDate: false,
+            peopleInvited: [],
+            PeopleConfirmed: []
           }
-          // nome, local, tempo, pessoas , data fixa , intervalo;
+          
+          let fixDateStart = new Date(this.fixDate.start);
+          this.meetProv.addMeeting(meeting);
   }
   else{
     alert("Por favor preencha todos os campos!");
@@ -66,26 +69,10 @@ verificarVazio(){
   }
 }
 
-takeProfilePicture(){
-  const options: CameraOptions = {
-    quality: 100,
-    destinationType: this.camera.DestinationType.DATA_URL,
-    encodingType: this.camera.EncodingType.JPEG,
-    mediaType: this.camera.MediaType.PICTURE,
-    targetWidth: 256
-  }
 
-  this.camera.getPicture(options).then((imageData) => {
-    //img is a file uri
-    this.fotoURI = imageData;
-    this.fotoTirada = true;
 
-   }, (err) => {
-    // Handle error
-    // TODO add error handler
-   });
-
+ 
 
 }
  
-}
+
