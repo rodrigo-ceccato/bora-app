@@ -74,6 +74,7 @@ export class PeopleProvider {
         this.currentUser = data;
         this.friends = this.currentUser.amigos;
         
+        
       } 
       
       
