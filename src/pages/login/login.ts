@@ -43,7 +43,12 @@ export class LoginPage {
         console.log('Welcome', user.login);
         this.navCtrl.push(SlidesHomePage);
 
+
+
       });
+
+
+      
 
   }
 
@@ -93,7 +98,7 @@ export class LoginPage {
   }
 
   openIP(){
-    this.navCtrl.push(SlidesHomePage);
+    this.navCtrl.push(MeetingInfoPage);
   }
   openMe(){
     this.navCtrl.push(SlidesHomePage);

@@ -103,20 +103,121 @@ app.post('/addFriend', (req, res) => {
     req.db.collection('users')
     .findOne(busca, (err, data) => {
 
-        
-        data.amigos.push(newFriend);
-        req.db.collection('users')
-        .update(busca, data,  (err, data) => {
-
+        let index = data.amigos.indexOf(newFriend);
+        if (index === -1) {
+            data.amigos.push(newFriend);
+            req.db.collection('users')
+            .update(busca, data,  (err, data) => {
 
         });
-
+        }
+        
         res.send(data);
     });
 
 
 });
 
-app.listen(3000, () => {
-    console.log('Servidor local rodando na 3000');
+app.post('/events', (req, res) => {
+    console.log("event inserted");
+    console.log(req.body);
+    if (!req.body.name || !req.body.location || !req.body.timeStart || !req.body.peopleInvited) {
+        res.status(400).send({ 'error': 'Preencha todos os campos obrigatorios' });
+        return;
+    }
+
+    event = {
+        creator: req.body.creator,
+        name: req.body.name,
+        location: req.body.location,
+        timeStart: req.body.timeStart,
+        timeEnd: req.body.timeEnd,
+        fixedDate: req.body.fixedDate,
+        peopleInvited: req.body.peopleInvited,
+        peopleConfirmed: req.body.peopleConfirmed
+
+    }
+
+
+
+    req.db.collection('events')
+    .insert(event, (err, data) => {
+        if (!err) {
+            res.send(data);
+        } else {
+            res.send(err);
+        }
+    });
+
+
 });
+
+app.get('/events', (req, res) => {
+
+    req.db.collection('events')
+    .find({})
+    .toArray((err, data) => {
+        res.send(data);
+    });
+});
+
+app.post('/searchMeetingsInvited', (req, res) => {
+    
+    console.log("searching meetings...");
+
+    console.log('o body é:', req.body);
+
+    if (!req.body.login) {
+        res.status(400).send({ 'error': 'Preencha todos os campos obrigatorios' });
+        return;
+    }
+    busca = {
+        login: req.body.login
+    }
+    
+
+
+    console.log('testando LOGIN: ', busca);
+
+    req.db.collection('events')
+    .find( {"peopleInvited": busca}).toArray((err, data) => {
+        if (!err) {
+            res.send(data);
+        } else {
+            res.send(err);
+        }
+    });
+
+
+});
+
+app.post('/searchMeetingsCreated', (req, res) => {
+    
+    console.log("searching meetings...");
+
+    console.log('o body é:', req.body);
+
+    if (!req.body.login) {
+        res.status(400).send({ 'error': 'Preencha todos os campos obrigatorios' });
+        return;
+    }
+
+    console.log('testando LOGIN: ', req.body.login);
+
+    req.db.collection('events')
+    .find( {"creator": req.body.login}).toArray((err, data) => {
+        if (!err) {
+            res.send(data);
+        } else {
+            res.send(err);
+        }
+    });
+
+
+});
+
+
+app.listen(3000, () => {
+    console.log('Servidor digital ocean rodando na 3000');
+});
+

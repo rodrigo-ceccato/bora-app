@@ -13,17 +13,11 @@ import { Events } from 'ionic-angular/util/events';
 @Injectable()
 export class MeetingProvider {
 
-  currentUserMeetings;
 
   constructor(public http: HttpClient, public peopleProvirder: PeopleProvider, public events: Events) {
     console.log('Hello MeetingProvider Provider');
 
-    events.subscribe('formigueiro de rua', (user) => {
-       http.post(API_ENDPOINT + '/searchMeetings', user.login).subscribe((data) => {
-        console.log(this.currentUserMeetings);
-        this.currentUserMeetings = data;
-      });
-    });
+    
   }
 
   
@@ -33,7 +27,7 @@ export class MeetingProvider {
     this.http.post(API_ENDPOINT + '/events', meeting).subscribe((data) => {
 
       console.log(event , 'adicionado');
+      this.events.publish("meeting added");
     });
   }
-
 }

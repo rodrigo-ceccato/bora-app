@@ -1,18 +1,39 @@
-<!--
-  Generated template for the MeetingInfoPage page.
-
-  See http://ionicframework.com/docs/components/#navigation for more info on
-  Ionic pages and navigation.
--->
 <ion-header>
 
   <ion-navbar>
-    <ion-title>meetingInfo</ion-title>
+    <ion-title>{{meeting.name}}</ion-title>
   </ion-navbar>
 
 </ion-header>
 
 
 <ion-content padding>
+  <ion-title>Local: {{meeting.location}}</ion-title>
+  <BR>
+  <BR>
 
+  <div *ngIf="meeting.isFixed == false">
+    <ion-title>Horário: tá pra ser marcado</ion-title>
+    <button ion-button color="secondary" (click)="seeSchedule()">Ver horários</button>
+  </div>
+  <div *ngIf="meeting.isFixed == true">
+    <ion-title>Horário: {{startDateFormated}} até {{endDateFormated}}</ion-title>
+  </div>
+  <BR>
+  <BR>
+
+  <ion-title>Quem vai colar?</ion-title>
+  <div *ngFor="let people of meeting.peopleConfirmed">
+    {{people}}
+  </div>
+  <BR>
+  <BR>
+
+  <ion-title>Quem foi chamado?</ion-title>
+  <div *ngFor="let people of meeting.peopleInvited">
+    {{people}}
+  </div>
+  <BR>
+  <BR>
+  <button ion-button color="secondary" (click)="invitePeople()" block>Chamar mais gente :)</button>
 </ion-content>

@@ -69,7 +69,7 @@ export class MeetingSchedulePage {
         timeEnd: '',
         fixedDate: false,
         peopleInvited: [],
-        PeopleConfirmed: []
+        peopleConfirmed: []
       }
 
       // some auxiliar objects
@@ -108,7 +108,7 @@ export class MeetingSchedulePage {
       this.meetProv.addMeeting(meeting);
 
       let parameter = {
-        meeting: 'fudeu'
+        paramCont: 'fudeu'
       };
 
       // resets the forms

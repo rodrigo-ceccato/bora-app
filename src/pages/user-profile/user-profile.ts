@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { PeopleProvider } from '../../providers/people/people';
 import { Events } from 'ionic-angular';
+import { MeetingProvider } from '../../providers/meeting/meeting';
 
 /**
  * Generated class for the UserProfilePage page.
@@ -19,12 +20,14 @@ export class UserProfilePage {
 
   friends;
 
-  constructor(public navCtrl: NavController, public navParams: NavParams, public provider: PeopleProvider, public events: Events) {
-    this.friends = this.provider.currentUser.friends;
+  constructor(public navCtrl: NavController, public navParams: NavParams, public peopleProvider: PeopleProvider, public events: Events, public meetingProvider: MeetingProvider) {
+    this.friends = this.peopleProvider.currentUser.amigos;
     events.subscribe('friend added', (data) => {
-      this.friends = this.provider.currentUser.friends;
+      this.friends = this.peopleProvider.currentUser.amigos;
       console.log(data.login);
     });
+
+
     
   }
 
@@ -37,8 +40,10 @@ export class UserProfilePage {
   }
 
   searchUser() {
-    this.provider.searchFriends(this.person);
+    this.peopleProvider.searchFriends(this.person);
     
   }
+
+
 
 }

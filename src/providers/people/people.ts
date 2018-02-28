@@ -6,15 +6,29 @@ import { API_ENDPOINT } from '../../models/consts';
 
 @Injectable()
 export class PeopleProvider {
+
+  
   
   constructor(public http: HttpClient, public events: Events,  
     private alertCtrl: AlertController, public loadingCtrl: LoadingController) {
       
     console.log('Hello PeopleProvider Provider');
-    
+    events.subscribe('formigueiro de rua', (user) => {
+
+      http.post(API_ENDPOINT + '/searchMeetingsInvited', this.currentUser).subscribe((data) => {
+      this.currentUserMeetingsInvited = data;
+      console.log(this.currentUserMeetingsInvited);
+      
+      });
+      http.post(API_ENDPOINT + '/searchMeetingsCreated', this.currentUser).subscribe((data) => {
+        this.currentUserMeetingsCreated = data;
+        console.log(this.currentUserMeetingsCreated);
+      });
+    });
     
   }
-
+  currentUserMeetingsInvited;
+  currentUserMeetingsCreated;
   status;
   currentUser;
   friends;
@@ -70,11 +84,10 @@ export class PeopleProvider {
       if (data.hasOwnProperty('login') === true) {
         this.status = true;
         loading.dismiss();
-        this.events.publish('formigueiro de rua', loginData);
         this.currentUser = data;
         this.friends = this.currentUser.amigos;
-        
-        
+        this.events.publish('formigueiro de rua', loginData);
+    
       } 
       
       
@@ -117,10 +130,7 @@ export class PeopleProvider {
           //atualiza os amigos do usuario atual
           this.http.post(API_ENDPOINT + '/search', info).subscribe((data) => {
             this.currentUser = data;
-            console.log(this.currentUser)
             this.friends = this.currentUser.amigos;
-            console.log(this.friends)
-            console.log("atualizou");
             this.events.publish('friend added', data);
 
           });
