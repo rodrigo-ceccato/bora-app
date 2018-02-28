@@ -1,20 +1,38 @@
-page-login {}
+page-login {
+
+ion-img{
+    width:100%;
+    height: 160px;
+    background-color: transparent;
+    margin-left: 5%;
+    margin-right: 5%;
+    margin-top: 15%;
+}
 
 .login-text {
- text-align:center;
-  font-size: 150%;
-  color: Black;
+    margin-top: 15%;
+    text-align:center;
+    font-size: 150%;
+    color: #422e63;
+    font-weight: bolder;
+    width: 100%;
+    border-bottom: solid #422e63 2px;
+    padding-bottom: 5px;
 
 }
 .login-button {
-    width:45%;
-    margin-left:3%;
+    width:50%;
+    margin-bottom: 10px;
 }
 
 .sign-up-button{
     margin-left: 5%;
     width:45%;
 }
-.button-ios{
-    background-color: #32db64;
+
+.facebook{
+    background-color: #3B5998;
+    width: 100%;
+}
+
 }

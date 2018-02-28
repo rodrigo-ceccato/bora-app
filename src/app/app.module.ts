@@ -19,7 +19,7 @@ import { UserProfilePage } from '../pages/user-profile/user-profile';
 import { MeetingSchedulePage } from '../pages/meeting-schedule/meeting-schedule';
 import { MeetingDelayPage } from '../pages/meeting-delay/meeting-delay';
 import { MeetingInfoPage } from '../pages/meeting-info/meeting-info';
-
+import { MeetingScheduleManangerPage } from '../pages/meeting-schedule-mananger/meeting-schedule-mananger';
 
 import { StatusBar } from '@ionic-native/status-bar';
 import { SplashScreen } from '@ionic-native/splash-screen';
@@ -28,9 +28,11 @@ import { PeopleProvider } from '../providers/people/people';
 import { GOOGLE_MAPS_API_KEY } from '../models/consts';
 import { BoraagoraPage } from '../pages/boraagora/boraagora';
 import { BoraHojePage } from '../pages/bora-hoje/bora-hoje';
+import { SlidesHomePage } from '../pages/slides-home/slides-home';
 
 @NgModule({
   declarations: [
+    SlidesHomePage,
     BoraHojePage,
     BoraagoraPage,
     MyApp,
@@ -42,7 +44,8 @@ import { BoraHojePage } from '../pages/bora-hoje/bora-hoje';
     MeetingInfoPage,
     MeetingListPage,
     MeetingSchedulePage,
-    UserProfilePage
+    UserProfilePage,
+    MeetingScheduleManangerPage
   ],
   imports: [
     BrowserModule,
@@ -52,6 +55,7 @@ import { BoraHojePage } from '../pages/bora-hoje/bora-hoje';
   ],
   bootstrap: [IonicApp],
   entryComponents: [
+    SlidesHomePage,
     BoraHojePage,
     BoraagoraPage,
     MyApp,
@@ -63,7 +67,8 @@ import { BoraHojePage } from '../pages/bora-hoje/bora-hoje';
     MeetingInfoPage,
     MeetingListPage,
     MeetingSchedulePage,
-    UserProfilePage
+    UserProfilePage,
+    MeetingScheduleManangerPage
   ],
   providers: [
     Camera,

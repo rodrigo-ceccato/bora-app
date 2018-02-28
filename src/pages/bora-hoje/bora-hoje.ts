@@ -25,10 +25,8 @@ export class BoraHojePage {
   longitude;
 
   constructor(public navCtrl: NavController, public navParams: NavParams,private camera: Camera,private geolocation: Geolocation) {
-   
-  
-     
-}  evento = {
+  }
+evento = {
   eventName : "",
   eventTime : "",
   eventAdress: "",
@@ -89,7 +87,5 @@ takeProfilePicture(){
 
 
 }
-
-
-
+ 
 }

@@ -4,6 +4,7 @@ import { AlertController } from 'ionic-angular';
 
 import { SCHEDULER_TEXT } from '../../models/consts';
 import { MeetingProvider } from '../../providers/meeting/meeting';
+import { MeetingInfoPage } from '../meeting-info/meeting-info';
 
 @IonicPage()
 @Component({
@@ -19,11 +20,11 @@ export class MeetingSchedulePage {
 
   constructor(public navCtrl: NavController, public navParams: NavParams,
     private alertCtrl: AlertController, public meetProv: MeetingProvider) {
-     this.fixDate.start   = new Date().toISOString();
-     this.fixDate.end     = new Date(Date.now() + (1000 /*sec*/ * 60 /*min*/ * 60 /*hour*/ * 2)).toISOString();
+    this.fixDate.start = new Date().toISOString();
+    this.fixDate.end = new Date(Date.now() + (1000 /*sec*/ * 60 /*min*/ * 60 /*hour*/ * 2)).toISOString();
 
-     this.unfixDate.start = new Date().toISOString();
-     this.unfixDate.end   = new Date(Date.now() + (1000 /*sec*/ * 60 /*min*/ * 60 /*hour*/ * 24 /*days*/ * 2)).toISOString();
+    this.unfixDate.start = new Date().toISOString();
+    this.unfixDate.end = new Date(Date.now() + (1000 /*sec*/ * 60 /*min*/ * 60 /*hour*/ * 24 /*days*/ * 2)).toISOString();
   }
 
   ionViewDidLoad() {
@@ -35,7 +36,7 @@ export class MeetingSchedulePage {
     console.log(this.meeting.local);
 
     // check if fields are okay
-    if (!this.meeting.name)  return false;
+    if (!this.meeting.name) return false;
     if (!this.meeting.local) return false;
 
     if (this.scheduleType == 'defineDate') {
@@ -62,13 +63,13 @@ export class MeetingSchedulePage {
 
     if (valid) {
       let meeting = {
-        name : this.meeting.name,
-        location : this.meeting.local,
-        timeStart : '' ,
-        timeEnd :  '',
-        fixedDate : false,
-        peopleInvited : [],
-        PeopleConfirmed : []
+        name: this.meeting.name,
+        location: this.meeting.local,
+        timeStart: '',
+        timeEnd: '',
+        fixedDate: false,
+        peopleInvited: [],
+        peopleConfirmed: []
       }
 
       // some auxiliar objects
@@ -80,7 +81,7 @@ export class MeetingSchedulePage {
         //TODO allow to go to next year
         meeting.fixedDate = false;
         meeting.timeStart = this.unfixDate.start;
-        meeting.timeEnd   = this.unfixDate.end;
+        meeting.timeEnd = this.unfixDate.end;
 
       } else {
         // correts if the events ends on the next day
@@ -88,13 +89,13 @@ export class MeetingSchedulePage {
         fixDateEnd.setMinutes(fixDateEndHour.getMinutes());
 
         // meeting ends on the next day
-        if(fixDateEnd.getTime() < fixDateStart.getTime()){
+        if (fixDateEnd.getTime() < fixDateStart.getTime()) {
           fixDateEnd.setDate(fixDateEnd.getDate() + 1);
         }
 
         meeting.fixedDate = true;
         meeting.timeStart = fixDateStart.toISOString();
-        meeting.timeEnd   = fixDateEnd.toISOString();
+        meeting.timeEnd = fixDateEnd.toISOString();
       }
 
       //TODO check for year change
@@ -102,9 +103,19 @@ export class MeetingSchedulePage {
       console.log('Fix date end     \n>' + fixDateEnd.toISOString());
       console.log('Unfix date start \n>' + this.unfixDate.start);
       console.log('Unfix date end   \n>' + this.unfixDate.end);
-  
+
       console.log(meeting);
       this.meetProv.addMeeting(meeting);
+
+      let parameter = {
+        paramCont: 'fudeu'
+      };
+
+      // resets the forms
+      this.meeting.local = '';
+      this.meeting.name = '';
+
+      this.navCtrl.push(MeetingInfoPage, parameter);
 
     }
 

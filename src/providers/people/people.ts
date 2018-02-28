@@ -87,6 +87,7 @@ export class PeopleProvider {
         this.currentUser = data;
         this.friends = this.currentUser.amigos;
         this.events.publish('formigueiro de rua', loginData);
+    
       } 
       
       

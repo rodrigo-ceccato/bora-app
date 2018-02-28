@@ -15,6 +15,7 @@ import { MeetingInfoPage } from '../../pages/meeting-info/meeting-info';
 import { MeetingListPage } from '../../pages/meeting-list/meeting-list';
 import { MeetingSchedulePage } from '../../pages/meeting-schedule/meeting-schedule';
 import { UserProfilePage } from '../../pages/user-profile/user-profile';
+import { SlidesHomePage } from '../slides-home/slides-home';
 // END OF TEST IMPORT
 
 @IonicPage()
@@ -40,7 +41,7 @@ export class LoginPage {
       events.subscribe('formigueiro de rua', (user) => {
         
         console.log('Welcome', user.login);
-        this.navCtrl.push(TabsPage);
+        this.navCtrl.push(SlidesHomePage);
 
 
 
@@ -100,7 +101,7 @@ export class LoginPage {
     this.navCtrl.push(MeetingInfoPage);
   }
   openMe(){
-    this.navCtrl.push(UserProfilePage);
+    this.navCtrl.push(SlidesHomePage);
   }
   //END OF REMOVAL AREA
 }
