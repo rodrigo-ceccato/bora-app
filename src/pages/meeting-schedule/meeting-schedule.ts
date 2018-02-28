@@ -104,7 +104,7 @@ export class MeetingSchedulePage {
       console.log('Unfix date end   \n>' + this.unfixDate.end);
   
       console.log(meeting);
-      this.meetProv.addEvent(meeting);
+      this.meetProv.addMeeting(meeting);
 
     }
 
