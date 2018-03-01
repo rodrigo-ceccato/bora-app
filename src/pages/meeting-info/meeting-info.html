@@ -13,7 +13,6 @@
 
     <ion-item>
       <ion-avatar item-start>
-        <img src="assets/imgs/icon-bora.png">
       </ion-avatar>
       <h1>{{meeting.name}}</h1>
     </ion-item>
@@ -25,10 +24,6 @@
         <ion-title>Horário:</ion-title>
           <p> tá pra ser marcado</p>
       
-        <ion-title>Quem vai colar?</ion-title>
-        <div *ngFor="let people of meeting.peopleConfirmed">
-          {{people}}
-        </div>
       
         <ion-title>Quem foi chamado?</ion-title>
         <div *ngFor="let people of meeting.peopleInvited">

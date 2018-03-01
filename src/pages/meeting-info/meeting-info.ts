@@ -9,12 +9,12 @@ import { MeetingScheduleManangerPage } from '../meeting-schedule-mananger/meetin
 })
 export class MeetingInfoPage {
   meeting = {
-    name: 'Rolezinho no meu apê',
-    location: 'Apê do vallone',
-    timeStart: '2018-03-02T18:16:01.184Z',
-    timeEnd: '2018-03-02T18:16:01.184Z',
-    peopleInvited: ['Julinho Porradao'],
-    peopleConfirmed: ['Mãe do Vallone ^xD^'],
+    name: 'Jantar',
+    location: 'Shopping Morumbi',
+    timeStart: '2018-03-02 - 16:01',
+    timeEnd: '2018-03-02 - 16:01',
+    peopleInvited: ['Julinho'],
+    peopleConfirmed: [''],
     isFixed: false
   };
 
@@ -28,7 +28,7 @@ export class MeetingInfoPage {
 
   constructor(public navCtrl: NavController, public navParams: NavParams, public alertCtrl: AlertController) {
     let i = this.navParams.get('paramCont');
-    console.log('Chegamos com::::');
+    console.log('');
     console.log(i);
 
   }
