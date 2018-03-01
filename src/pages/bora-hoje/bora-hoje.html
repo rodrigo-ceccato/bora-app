@@ -12,6 +12,7 @@
         <BR>
         <BR>
         <ion-title class="title">Quando vai ser? </ion-title>
+        <br>
           <ion-segment [(ngModel)]="scheduleType" color="qui">
             <ion-segment-button value="agora">
               Agora
@@ -22,7 +23,7 @@
           </ion-segment>
           <div *ngIf="scheduleType == 'depois'"> 
             <ion-item>
-              <BR>
+              <BR><BR>
               <ion-datetime class="time_display" placeholder="ex:14:01" displayFormat="HH : mm" [(ngModel)]="fixDate.start"></ion-datetime>
             </ion-item>
           </div>

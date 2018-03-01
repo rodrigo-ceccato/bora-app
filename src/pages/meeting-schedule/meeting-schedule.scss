@@ -6,4 +6,23 @@ page-meeting-schedule {
         font-weight: bolder;
         margin-top: 20px;
 }
+.segment-ios-secondary .segment-button.segment-activated{
+    border-color:#513385;
+    color:#513385;
+   
+}
+.button-ios-qui{
+    background-color:513385;
+}
+.segment-ios-secondary .segment-button{
+    border-color:#513385;
+    color:#513385; 
+}
+.segment-ios-secondary .segment-button.segment-activated{
+    background-color:#513385;
+    color:white;
+}
+page-meeting-schedule .segment-ios-secondary .segment-button.segment-activated{
+  
+}
 }
