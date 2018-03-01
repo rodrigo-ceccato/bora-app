@@ -47,9 +47,7 @@ export class SlidesHomePage {
   skip(){
     this.navCtrl.push(TabsPage);
   }
-  .OPA{
-    color="danger"
-  }
+
 }
 
 
