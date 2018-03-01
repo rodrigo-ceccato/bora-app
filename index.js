@@ -163,26 +163,22 @@ app.get('/events', (req, res) => {
 
 app.post('/searchMeetingsInvited', (req, res) => {
     
-    console.log("searching meetings...");
-
-    console.log('o body é:', req.body);
+    console.log("searching meetings invited...");
 
     if (!req.body.login) {
         res.status(400).send({ 'error': 'Preencha todos os campos obrigatorios' });
         return;
     }
-    busca = {
-        login: req.body.login
-    }
+    login = req.body.login
     
 
 
-    console.log('testando LOGIN: ', busca);
 
     req.db.collection('events')
-    .find( {"peopleInvited": busca}).toArray((err, data) => {
+    .find( {"peopleInvited": login}).toArray((err, data) => {
         if (!err) {
             res.send(data);
+            console.log(data)
         } else {
             res.send(err);
         }
@@ -193,21 +189,20 @@ app.post('/searchMeetingsInvited', (req, res) => {
 
 app.post('/searchMeetingsCreated', (req, res) => {
     
-    console.log("searching meetings...");
+    console.log("searching meetings created...");
 
-    console.log('o body é:', req.body);
+    login = req.body.login;
 
     if (!req.body.login) {
         res.status(400).send({ 'error': 'Preencha todos os campos obrigatorios' });
         return;
     }
 
-    console.log('testando LOGIN: ', req.body.login);
-
     req.db.collection('events')
-    .find( {"creator": req.body.login}).toArray((err, data) => {
+    .find( {"creator": login}).toArray((err, data) => {
         if (!err) {
             res.send(data);
+            console.log(data)
         } else {
             res.send(err);
         }
@@ -249,7 +244,7 @@ app.post('/removeEvent', (req, res) => {
     }
 
     req.db.collection('events').remove(busca, (err, data) => {
-        // console.log(data);
+        res.send(data);
     });
 
 });
