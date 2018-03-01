@@ -5,9 +5,42 @@
     <ion-title>Horários da galera</ion-title>
   </ion-navbar>
 
+
+
 </ion-header>
 
 
 <ion-content padding>
+  <div class="navWapper">
+    <button ion-button icon-only (click)="backDay()" block>
+      <ion-icon name="arrow-dropleft-circle"></ion-icon>
+    </button>
+    <div class="info">
+      {{dateDisplay[posShowing].name}}
+    </div>
+    <button ion-button icon-only (click)="nextDay()" block>
+      <ion-icon name="arrow-dropright-circle"></ion-icon>
+    </button>
+  </div>
+
+  <!-- NAME OF PEOPLE -->
+  <div *ngFor="let person of currentDay.disp" class="peopleList">
+    {{person.personName}}
+  </div>
+<BR> <BR>
+  <!-- HOURS -->
+  <div class="dispSit" *ngFor="let hour of hourName; let i = index" [attr.data-index]="i">
+    <BR><BR>
+    {{hour}}
+    <div *ngFor="let person of currentDay.disp">
+      <div *ngIf="person.hoursAvali[i] == 0">
+        VOU
+      </div>
+      <div *ngIf="person.hoursAvali[i] == 1">
+        n VOU
+      </div>
+    </div>
+  </div>
+
 
 </ion-content>

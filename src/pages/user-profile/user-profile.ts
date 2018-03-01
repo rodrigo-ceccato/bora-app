@@ -44,6 +44,6 @@ export class UserProfilePage {
     
   }
 
-
+  
 
 }

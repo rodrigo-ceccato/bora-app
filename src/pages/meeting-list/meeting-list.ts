@@ -48,6 +48,7 @@ export class MeetingListPage {
         let parametros = {
           identifacor: item
         }; 
+        this.meetingProvider.removeMeeting(item);
       }
 
       
