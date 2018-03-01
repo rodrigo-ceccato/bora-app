@@ -216,6 +216,44 @@ app.post('/searchMeetingsCreated', (req, res) => {
 
 });
 
+app.post('/inviteFriends', (req, res) => {
+
+    console.log('inviting friends...');
+    console.log('veio esta merda: ' , req.body)
+    invitedUsers = req.body.array;
+    busca = {
+        name: req.body.eventName
+    }
+
+    req.db.collection('events').findOne(busca, (err, data) => {
+        if (!err) {
+            res.send(data);
+            console.log(data);
+            console.log(data.peopleInvited);
+            data.peopleInvited = data.peopleInvited.concat(invitedUsers);
+            req.db.collection('events')
+            .update(busca, data,  (err, data) => {
+
+            });
+        } else {
+            res.send(err);
+        }
+    });
+});
+
+app.post('/removeEvent', (req, res) => {
+
+    console.log(req.body);
+    busca = {
+        name: req.body.name
+    }
+
+    req.db.collection('events').remove(busca, (err, data) => {
+        // console.log(data);
+    });
+
+});
+
 
 app.listen(3000, () => {
     console.log('Servidor digital ocean rodando na 3000');
