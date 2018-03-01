@@ -3,6 +3,7 @@ import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { PeopleProvider } from '../../providers/people/people';
 import { Events } from 'ionic-angular/util/events';
 import { ToastController } from 'ionic-angular';
+import { MeetingProvider } from '../../providers/meeting/meeting';
 
 /**
  * Generated class for the MeetingListPage page.
@@ -22,7 +23,7 @@ export class MeetingListPage {
   meetingsCreated;
   
 
-  constructor(public toastCtrl: ToastController,public navCtrl: NavController, public navParams: NavParams, public peopleProvider: PeopleProvider, public events: Events) {
+  constructor(public meetingProvider: MeetingProvider, public toastCtrl: ToastController,public navCtrl: NavController, public navParams: NavParams, public peopleProvider: PeopleProvider, public events: Events) {
     this.meetingsInvited = this.peopleProvider.currentUserMeetingsInvited;
     this.meetingsCreated = this.peopleProvider.currentUserMeetingsCreated;
     this.events.subscribe("meeting added", () =>  {

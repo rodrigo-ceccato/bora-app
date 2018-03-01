@@ -4,7 +4,7 @@ import { TabsPage } from '../../pages/tabs/tabs';
 import { PeopleProvider } from '../../providers/people/people';
 import { HttpClient } from '@angular/common/http';
 import { AlertController, LoadingController } from 'ionic-angular';
-import { LOGIN_TEXT } from '../../models/consts';
+import { LOGIN_TEXT, API_ENDPOINT } from '../../models/consts';
 import { Events } from 'ionic-angular';
 
 // TEST PAGE IMPORT - REMOVE THIS debug purpose
@@ -102,6 +102,17 @@ export class LoginPage {
   }
   openMe(){
     this.navCtrl.push(SlidesHomePage);
+  }
+  testInvite() {
+    let info = {
+      eventName: 'formigueiro de rua',
+      array: ['digoso', 'digosinho']
+    }
+    this.http.post(API_ENDPOINT + '/inviteFriends', info).subscribe((data) => {
+      console.log('tentou fumar os amiguinhos');
+    })
+
+
   }
   //END OF REMOVAL AREA
 }

@@ -20,7 +20,14 @@ export class MeetingProvider {
     
   }
 
-  
+  removeMeeting(name) {
+    let meeting = {
+      name: name
+    }
+    this.http.post(API_ENDPOINT + '/removeEvent', meeting).subscribe((data) => {
+      console.log('tentou remover o evento....' + meeting.name);
+    })
+  }
 
   addMeeting (meeting) {
     meeting.creator = this.peopleProvirder.currentUser.login;

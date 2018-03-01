@@ -7,6 +7,7 @@ import { IonicPage, NavController, NavParams } from 'ionic-angular';
   templateUrl: 'meeting-schedule-mananger.html',
 })
 export class MeetingScheduleManangerPage {
+  isMeetingCreator = false;
 
   constructor(public navCtrl: NavController, public navParams: NavParams) {
   }
