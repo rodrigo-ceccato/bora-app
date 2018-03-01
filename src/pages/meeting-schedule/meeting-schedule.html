@@ -14,13 +14,11 @@
     <ion-input placeholder={{TEXT.MEETING_NAME_FIELD}} [(ngModel)]="meeting.name"></ion-input>
   </ion-item>
   <BR>
-  <BR>
 
   <ion-title>{{TEXT.MEETING_LOCAL}}</ion-title>
   <ion-item>
     <ion-input placeholder={{TEXT.MEETING_LOCAL_DESC}} [(ngModel)]="meeting.local"></ion-input>
   </ion-item>
-  <BR>
   <BR>
 
   <ion-title>{{TEXT.TIME_INTERVAL_PICKER}}</ion-title>
@@ -34,7 +32,6 @@
       {{TEXT.TO_BE_DEFINED_DATE}}
     </ion-segment-button>
   </ion-segment>
-  <BR>
   <BR>
 
   <div *ngIf="scheduleType == 'fixedDate'">
@@ -65,7 +62,6 @@
     </ion-item>
   </div>
   <BR>
-  <BR>
 
   <div *ngIf="detailOptions == true">
     <ion-title>{{TEXT.MEETING_DETAIL}}</ion-title>
@@ -74,6 +70,6 @@
     </ion-item>
   </div>
 
-  <button ion-button color="secondary" (click)="createMeeting()" block>{{TEXT.INVITE_PEOPLE}}</button>
+  <button ion-button round color="qui" class="button" (click)="createMeeting()" block>{{TEXT.INVITE_PEOPLE}}</button>
 
 </ion-content>

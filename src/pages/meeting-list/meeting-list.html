@@ -16,19 +16,37 @@
 <ion-content padding>
   
 
-  <h1>Eventos para onde voce foi convidado</h1>
+  <ion-title>Eventos convidados</ion-title>
   <div *ngFor="let meeting of meetingsInvited">
-      <p>Nome do Evento: {{meeting.name}}</p>
-      <p>Nome do Evento: {{meeting.location}}</p>
-      
+      <ion-list>
+        <ion-item-sliding>
+          <ion-item>
+            <h2> {{meeting.name}} </h2>
+            <p>Local do Evento: {{meeting.location}}</p>
+            <p>Data do Evento: {{meeting.timeStart}}</p>
+          </ion-item>
+          <ion-item-options side="right">
+                <button (click)="showToast('bottom')"  ion-button color="secondary">
+                  <ion-icon name="md-done-all"></ion-icon>
+                  Aceitar
+                </button>
+            <button (click)="getName(meeting.name)" ion-button color="danger">
+              <ion-icon name="md-close"></ion-icon>
+              Deletar
+            </button>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
   </div>
-  <h1>Eventos que voce criou</h1>
+
+  <ion-title>Eventos craidos</ion-title>
   <div *ngFor="let meeting of meetingsCreated">
       <ion-list>
         <ion-item-sliding>
           <ion-item>
             <h2> {{meeting.name}} </h2>
             <p>Local do Evento: {{meeting.location}}</p>
+            <p>Data do Evento: {{meeting.timeStart}}</p>
           </ion-item>
           <ion-item-options side="right">
                 <button (click)="showToast('bottom')"  ion-button color="secondary">

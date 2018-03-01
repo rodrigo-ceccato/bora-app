@@ -2,39 +2,42 @@
 <ion-header>
 
   <ion-navbar>
-    <ion-title>{{meeting.name}}</ion-title>
+    <ion-title>Detalhes do Evento</ion-title>
   </ion-navbar>
 
 </ion-header>
 
 
 <ion-content padding>
-  <ion-title>Local: {{meeting.location}}</ion-title>
-  <BR>
-  <BR>
+  <ion-card>
 
-  <div *ngIf="meeting.isFixed == false">
-    <ion-title>Horário: tá pra ser marcado</ion-title>
-    <button ion-button color="secondary" (click)="seeSchedule()">Ver horários</button>
-  </div>
-  <div *ngIf="meeting.isFixed == true">
-    <ion-title>Horário: {{startDateFormated}} até {{endDateFormated}}</ion-title>
-  </div>
-  <BR>
-  <BR>
+    <ion-item>
+      <ion-avatar item-start>
+        <img src="assets/imgs/icon-bora.png">
+      </ion-avatar>
+      <h1>{{meeting.name}}</h1>
+    </ion-item>
+  
+    <ion-card-content>
+        <ion-title>Local:</ion-title>
+          <p> {{meeting.location}}</p>
 
-  <ion-title>Quem vai colar?</ion-title>
-  <div *ngFor="let people of meeting.peopleConfirmed">
-    {{people}}
-  </div>
-  <BR>
-  <BR>
+        <ion-title>Horário:</ion-title>
+          <p> tá pra ser marcado</p>
+      
+        <ion-title>Quem vai colar?</ion-title>
+        <div *ngFor="let people of meeting.peopleConfirmed">
+          {{people}}
+        </div>
+      
+        <ion-title>Quem foi chamado?</ion-title>
+        <div *ngFor="let people of meeting.peopleInvited">
+          {{people}}
+        </div>      
+    </ion-card-content>
+  
+  </ion-card>
 
-  <ion-title>Quem foi chamado?</ion-title>
-  <div *ngFor="let people of meeting.peopleInvited">
-    {{people}}
-  </div>
-  <BR>
-  <BR>
-  <button ion-button color="secondary" (click)="invitePeople()" block>Chamar mais gente :)</button>
+    <button ion-button round class="button1" color="qui" (click)="seeSchedule()">Ver horários</button>
+    <button ion-button class="button2" round color="ter" (click)="invitePeople()" block>Chamar mais gente :)</button>
 </ion-content>

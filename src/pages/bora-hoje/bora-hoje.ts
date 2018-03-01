@@ -52,24 +52,24 @@ verificarVazio(){
             // console.log(this.meeting.timeStart);
             console.log(this.meeting.location);
             let date = new Date();
+            
             console.log("Current Date ",date) ;
             let meeting = {
             name: this.meeting.name,
             location: this.meeting.local,
-            timeStart: date,
-            timeEnd: " -1",
+            timeStart: "",
+            timeEnd: "-1",
             fixedDate: false,
             peopleInvited: [],
             PeopleConfirmed: []
-          }
-          
+          }          
           let fixDateStart = new Date(this.fixDate.start);
           console.log(meeting);
           this.meetProv.addMeeting(meeting);
           let parameter = {
             meeting: 'fudeu'
           };
-    
+        
           // resets the forms
           this.meeting.local = '';
           this.meeting.name = '';

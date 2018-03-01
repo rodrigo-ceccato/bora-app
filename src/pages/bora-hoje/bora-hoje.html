@@ -1,11 +1,8 @@
-<!-- #TODO EDU STYLE  -->
 <ion-header>
   <ion-navbar>
     <ion-title>Bora hoje!</ion-title>
   </ion-navbar>
 </ion-header>
-
-<ion-content padding>
 
     <ion-content padding>
         <ion-title>O que você vai fazer? </ion-title>
@@ -14,8 +11,8 @@
         </ion-item>
         <BR>
         <BR>
-        <ion-title>Quando? </ion-title>
-          <ion-segment [(ngModel)]="scheduleType" color="secondary">
+        <ion-title class="title">Quando vai ser? </ion-title>
+          <ion-segment [(ngModel)]="scheduleType" color="qui">
             <ion-segment-button value="agora">
               Agora
             </ion-segment-button>
@@ -32,13 +29,12 @@
             <BR>
             <BR>
         
-        <ion-title>Local do Evento</ion-title>
+        <ion-title class="title">Onde vai ser?</ion-title>
         <ion-item>
          <ion-input id="enderecoEvento" placeholder="Digite a rota do evento!"[(ngModel)]="meeting.local"></ion-input>
         </ion-item>
         <BR>
         <BR>
-   <button ion-button color="secondary" (click)="marcarEvento()" block>Chamar a galera</button>
+   <button ion-button class="button" color="qui" (click)="marcarEvento()" round>Marcar o evento!</button>
 
-</ion-content>
 </ion-content>

@@ -12,11 +12,11 @@
 <ion-content padding>
 
   <ion-list>
-        <ion-item style="width:90%">
+        <ion-item >
           <ion-label color="black" fixed><ion-icon name="md-arrow-forward"></ion-icon></ion-label>
-          <ion-input placeholder="Adicionar amigo"[(ngModel)]="person.login"></ion-input>
+          <ion-input placeholder="Nome do amigo"[(ngModel)]="person.login"></ion-input>
         </ion-item>
-        <button  style="padding:0"style="width:64px" ion-button round (click)='searchUser()'>+</button>
+        <button  ion-button round  (click)='searchUser()'>Adiconar Amigo!</button>
   </ion-list>
 
  
@@ -25,7 +25,7 @@
   <ion-searchbar (ionInput)="getItems($event)"></ion-searchbar>
   <ion-list>
     <ion-item *ngFor="let friend of friends">
-      {{ friends }}
+      {{ friend }}
     </ion-item>
   </ion-list>
   
