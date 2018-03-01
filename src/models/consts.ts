@@ -35,8 +35,8 @@ export const SCHEDULER_TEXT = {
 };
 
 // API INFO
-export const API_ENDPOINT = 'http://localhost:3000';
-// export const API_ENDPOINT = 'http://159.203.45.167:3000';
+// export const API_ENDPOINT = 'http://localhost:3000';
+export const API_ENDPOINT = 'http://159.203.45.167:3000';
 
 // API KEYS
 export const GOOGLE_MAPS_API_KEY = {
