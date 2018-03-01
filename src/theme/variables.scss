@@ -52,21 +52,21 @@ $colors: (
   dec:#357aa7,
 );
 .bar-button-default-ios, .bar-button-default.bar-button-ios-default, .bar-button-clear-ios-default {
-  color: map-get($colors, pri) !important;
+  color: map-get($colors, qui) !important;
 }
 
 .bar-button-default-md, .bar-button-default.bar-button-md-default, .bar-button-clear-md-default {
-  color: map-get($colors, pri) !important;
+  color: map-get($colors, qui) !important;
 }
 
 .bar-button-default-wp, .bar-button-default.bar-button-wp-default, .bar-button-clear-wp-default {
-  color: map-get($colors, pri) !important;
+  color: map-get($colors, qui) !important;
 }
 .tabs-ios .tab-button:hover:not(.disable-hover), .tabs-ios .tab-button[aria-selected=true]{
-  color:#422e63 !important;
+  color: map-get($colors, qui) !important;
 }
 .tabs-ios .tab-button[aria-selected=true] .tab-button-icon{
-  color:#422e63 !important;
+  color: map-get($colors, qui) !important;
 }
 
 

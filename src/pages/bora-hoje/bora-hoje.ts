@@ -57,7 +57,7 @@ verificarVazio(){
             let meeting = {
             name: this.meeting.name,
             location: this.meeting.local,
-            timeStart: "",
+            timeStart: date,
             timeEnd: "-1",
             fixedDate: false,
             peopleInvited: [],
