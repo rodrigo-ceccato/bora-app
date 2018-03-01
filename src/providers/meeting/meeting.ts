@@ -14,7 +14,7 @@ import { Events } from 'ionic-angular/util/events';
 export class MeetingProvider {
 
 
-  constructor(public http: HttpClient, public peopleProvirder: PeopleProvider, public events: Events) {
+  constructor(public http: HttpClient, public peopleProvider: PeopleProvider, public events: Events) {
     console.log('Hello MeetingProvider Provider');
 
     
@@ -24,17 +24,53 @@ export class MeetingProvider {
     let meeting = {
       name: name
     }
+
+    console.log("removendo evento: ", meeting);
     this.http.post(API_ENDPOINT + '/removeEvent', meeting).subscribe((data) => {
       console.log('tentou remover o evento....' + meeting.name);
-    })
+
+      
+      
+      this.http.post(API_ENDPOINT + '/searchMeetingsInvited', this.peopleProvider.currentUser).subscribe((data) => {
+
+        this.peopleProvider.currentUserMeetingsInvited = data;
+        console.log(this.peopleProvider.currentUserMeetingsInvited);
+        this.events.publish("meeting removed");  
+      });
+
+      this.http.post(API_ENDPOINT + '/searchMeetingsCreated', this.peopleProvider.currentUser).subscribe((data) => {
+
+          this.peopleProvider.currentUserMeetingsCreated = data;
+          console.log(this.peopleProvider.currentUserMeetingsCreated);
+          this.events.publish("meeting removed");
+      });
+      
+    });
+    
   }
 
   addMeeting (meeting) {
-    meeting.creator = this.peopleProvirder.currentUser.login;
+    meeting.creator = this.peopleProvider.currentUser.login;
     this.http.post(API_ENDPOINT + '/events', meeting).subscribe((data) => {
 
-      console.log(event , 'adicionado');
-      this.events.publish("meeting added");
+      console.log(event + 'adicionado');
+
+      this.http.post(API_ENDPOINT + '/searchMeetingsInvited', this.peopleProvider.currentUser).subscribe((data) => {
+
+        this.peopleProvider.currentUserMeetingsInvited = data;
+        console.log(this.peopleProvider.currentUserMeetingsInvited);
+        this.events.publish("meeting added");  
+      });
+
+      this.http.post(API_ENDPOINT + '/searchMeetingsCreated', this.peopleProvider.currentUser).subscribe((data) => {
+
+          this.peopleProvider.currentUserMeetingsCreated = data;
+          console.log(this.peopleProvider.currentUserMeetingsCreated);
+          this.events.publish("meeting added");
+          
+      });
+      
+      
     });
   }
 }

@@ -24,13 +24,29 @@ export class MeetingListPage {
   
 
   constructor(public meetingProvider: MeetingProvider, public toastCtrl: ToastController,public navCtrl: NavController, public navParams: NavParams, public peopleProvider: PeopleProvider, public events: Events) {
+    
     this.meetingsInvited = this.peopleProvider.currentUserMeetingsInvited;
     this.meetingsCreated = this.peopleProvider.currentUserMeetingsCreated;
+
     this.events.subscribe("meeting added", () =>  {
+
       this.meetingsCreated = this.peopleProvider.currentUserMeetingsCreated;
       this.meetingsInvited = this.peopleProvider.currentUserMeetingsInvited;
       this.initializeFriends();
-  });
+      console.log("escutou o evento added");
+      console.log(this.meetingsCreated);
+      console.log(this.meetingsInvited);
+
+    });
+    this.events.subscribe("meeting removed", () => {
+
+      this.meetingsCreated = this.peopleProvider.currentUserMeetingsCreated;
+      this.meetingsInvited = this.peopleProvider.currentUserMeetingsInvited;
+      console.log("escutou o evento removed");
+      console.log(this.meetingsCreated);
+      console.log(this.meetingsInvited);
+
+    });
   }
   initializeFriends() {
     // this.friends = [
@@ -41,15 +57,17 @@ export class MeetingListPage {
     console.log('ionViewDidLoad MeetingListPage');
   }
 
-    removeMeeting(nome){
+  removeMeeting(nome){
 
-        }
-      getName(item){
-        let parametros = {
-          identifacor: item
-        }; 
-        this.meetingProvider.removeMeeting(item);
-      }
+  }
+
+  getName(item){
+  
+    let parametros = {
+      identifacor: item
+    }; 
+    this.meetingProvider.removeMeeting(item);
+  }
 
       
    
