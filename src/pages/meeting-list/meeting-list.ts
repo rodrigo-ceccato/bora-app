@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams } from 'ionic-angular';
 import { PeopleProvider } from '../../providers/people/people';
 import { Events } from 'ionic-angular/util/events';
+import { ToastController } from 'ionic-angular';
 
 /**
  * Generated class for the MeetingListPage page.
@@ -21,17 +22,44 @@ export class MeetingListPage {
   meetingsCreated;
   
 
-  constructor(public navCtrl: NavController, public navParams: NavParams, public peopleProvider: PeopleProvider, public events: Events) {
+  constructor(public toastCtrl: ToastController,public navCtrl: NavController, public navParams: NavParams, public peopleProvider: PeopleProvider, public events: Events) {
     this.meetingsInvited = this.peopleProvider.currentUserMeetingsInvited;
     this.meetingsCreated = this.peopleProvider.currentUserMeetingsCreated;
     this.events.subscribe("meeting added", () =>  {
       this.meetingsCreated = this.peopleProvider.currentUserMeetingsCreated;
       this.meetingsInvited = this.peopleProvider.currentUserMeetingsInvited;
-    });
+      this.initializeFriends();
+  });
   }
-
+  initializeFriends() {
+    // this.friends = [
+     
+    // ];
+  }
   ionViewDidLoad() {
     console.log('ionViewDidLoad MeetingListPage');
   }
 
+    removeMeeting(nome){
+
+        }
+      getName(item){
+        let parametros = {
+          identifacor: item
+        }; 
+      }
+
+      
+   
+    showToast(position: string) {
+      let toast = this.toastCtrl.create({
+        message: 'Presença confirmada!',
+        duration: 2000,
+        position: position
+      });
+  
+      toast.present(toast);
+    }
+
 }
+

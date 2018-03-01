@@ -3,7 +3,7 @@
 <ion-header>
 
   <ion-navbar>
-    <ion-title>userProfile</ion-title>
+    <ion-title>Meu Perfil</ion-title>
   </ion-navbar>
 
 </ion-header>
@@ -13,15 +13,19 @@
 
   <ion-list>
         <ion-item>
-          <ion-label color="black" fixed><ion-icon name="ios-person"></ion-icon></ion-label>
-          <ion-input placeholder="Usuario"[(ngModel)]="person.login"></ion-input>
+          <ion-label color="black" fixed><ion-icon name="md-arrow-forward"></ion-icon></ion-label>
+          <ion-input placeholder="Adicionar amigo"[(ngModel)]="person.login"><button ion-button round (click)='searchUser()'>+</button></ion-input>
         </ion-item>
   </ion-list>
 
-  <button ion-button round (click)='searchUser()'>Adicionar Amigo</button>
-  <div *ngFor="let friend of friends">
-    <p>{{friend}}</p>
-  </div>
-
+ 
+  
+  
+  <ion-searchbar (ionInput)="getItems($event)"></ion-searchbar>
+  <ion-list>
+    <ion-item *ngFor="let friend of friends">
+      {{ friends }}
+    </ion-item>
+  </ion-list>
   
 </ion-content>
