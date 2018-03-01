@@ -8,7 +8,9 @@ page-bora-hoje {
         font-weight: bolder;
     }
     
-    
+    .segment-ios-qui .segment-button.segment-activated{
+       background-color: #422e63; 
+    }
     .datetime-ios{
         position:flex;
         padding: 11px 8px 11px 109px;
@@ -24,5 +26,5 @@ page-bora-hoje {
         font-size: 16px;
         font-weight: bolder;
     }
-
+  
 }
