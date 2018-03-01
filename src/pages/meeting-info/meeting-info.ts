@@ -68,4 +68,5 @@ export class MeetingInfoPage {
 
     alert.present();
   }
+  
 }
