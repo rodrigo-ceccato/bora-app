@@ -12,10 +12,11 @@
 <ion-content padding>
 
   <ion-list>
-        <ion-item>
+        <ion-item style="width:90%">
           <ion-label color="black" fixed><ion-icon name="md-arrow-forward"></ion-icon></ion-label>
-          <ion-input placeholder="Adicionar amigo"[(ngModel)]="person.login"><button ion-button round (click)='searchUser()'>+</button></ion-input>
+          <ion-input placeholder="Adicionar amigo"[(ngModel)]="person.login"></ion-input>
         </ion-item>
+        <button  style="padding:0"style="width:64px" ion-button round (click)='searchUser()'>+</button>
   </ion-list>
 
  
