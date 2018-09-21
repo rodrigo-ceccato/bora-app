@@ -15,10 +15,12 @@ page-meeting-schedule-mananger {
 
     .peopleList {
         display: inline-table;
+        margin-left: 50px;
     }
 
     .dispSit{
         display: inline-flex;
+        width: 100px;
     }
 
 }
