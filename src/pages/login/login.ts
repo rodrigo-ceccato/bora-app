@@ -16,6 +16,7 @@ import { MeetingListPage } from '../../pages/meeting-list/meeting-list';
 import { MeetingSchedulePage } from '../../pages/meeting-schedule/meeting-schedule';
 import { UserProfilePage } from '../../pages/user-profile/user-profile';
 import { SlidesHomePage } from '../slides-home/slides-home';
+import { MeetingScheduleManangerPage } from '../meeting-schedule-mananger/meeting-schedule-mananger';
 // END OF TEST IMPORT
 
 @IonicPage()
@@ -35,20 +36,20 @@ export class LoginPage {
   status;
 
   constructor(public navCtrl: NavController, public navParams: NavParams,
-    public peopleProv: PeopleProvider, public http: HttpClient,  
+    public peopleProv: PeopleProvider, public http: HttpClient,
     public loadingCtrl: LoadingController, public events: Events) {
 
-      events.subscribe('formigueiro de rua', (user) => {
-        
-        console.log('Welcome', user.login);
-        this.navCtrl.push(SlidesHomePage);
+    events.subscribe('formigueiro de rua', (user) => {
+
+      console.log('Welcome', user.login);
+      this.navCtrl.push(SlidesHomePage);
 
 
 
-      });
+    });
 
 
-      
+
 
   }
 
@@ -57,52 +58,57 @@ export class LoginPage {
   }
 
   // login function to check user credencials and go to tabs 
-  logar () {
+  logar() {
 
     this.peopleProv.login(this.person);
 
   }
-// user sign up
-  cadastrar(){
-    
+  // user sign up
+  cadastrar() {
+
     this.person = {
       login: this.person.login,
       senha: this.person.senha,
-      }
-    
+    }
+
     this.peopleProv.signUp(this.person);
     this.person.login = '';
     this.person.senha = '';
   }
 
   // DEBUG CODE, REMOVE THIS
-  openPageTabs(){
+  openPageTabs() {
     this.navCtrl.push(TabsPage);
   }
 
   // openPp(){
   //   this.peopleProv.login();
   // }
-  
 
-  openMp(){
+
+  openMp() {
     this.navCtrl.push(MapPage);
   }
 
-  openSP(){
+  openSP() {
     this.navCtrl.push(MeetingSchedulePage);
   }
 
-  openDP(){
+  openDP() {
     this.navCtrl.push(MeetingDelayPage);
   }
 
-  openIP(){
+  openIP() {
     this.navCtrl.push(MeetingInfoPage);
   }
-  openMe(){
+  openMe() {
     this.navCtrl.push(SlidesHomePage);
   }
+
+  openMeetMg() {
+    this.navCtrl.push(MeetingScheduleManangerPage);
+  }
+
   testInvite() {
     let info = {
       eventName: 'formigueiro de rua',

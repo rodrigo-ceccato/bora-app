@@ -12,6 +12,55 @@ page-meeting-schedule-mananger {
         }
     }
 
+    .monthWrapper{
+        display: flex;
+        width: 100%;
+        height: 30px;
+        margin: auto;
+        
+        .monthName{
+            font-size: 20px;
+            width: 100%;
+            line-height: 30px;
+            margin: auto;
+        }
+
+        .monthBackBtn{
+            width: 100%;
+            font-size: 50px;
+            margin-top: -20px;
+        }
+
+        .monthFwdBtn{
+            width: 100%;
+            font-size: 50px;
+            margin-top: -20px;
+            float:right;
+            text-align: right;
+        }
+    }
+
+    .daysWrapper {
+        height: 25px;
+        width: 100%;
+        display: flex;
+        overflow-x: scroll;
+
+        ::-webkit-scrollbar { 
+            display: none;  // Safari and Chrome
+        }
+
+        .dayBtn {
+            border-right-style: solid;
+            border-right-width: 1px;
+            margin-right: 4px;
+            height: 24px;
+            width: 40px;
+            padding-left: 4px;
+            padding-right: 8px;
+            
+        }
+    }
 
     .peopleList {
         display: inline-table;
@@ -22,5 +71,4 @@ page-meeting-schedule-mananger {
         display: inline-flex;
         width: 100px;
     }
-
 }
