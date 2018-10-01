@@ -5,8 +5,6 @@ import { MeetingCreatePage } from './meeting-create';
 
 @NgModule({
   declarations: [
-    MeetingCreatePage,
-
   ],
   imports: [
     IonicPageModule.forChild(MeetingCreatePage),

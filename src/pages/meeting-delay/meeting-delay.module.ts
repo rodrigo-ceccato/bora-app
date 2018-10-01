@@ -4,7 +4,6 @@ import { MeetingDelayPage } from './meeting-delay';
 
 @NgModule({
   declarations: [
-    MeetingDelayPage,
   ],
   imports: [
     IonicPageModule.forChild(MeetingDelayPage),

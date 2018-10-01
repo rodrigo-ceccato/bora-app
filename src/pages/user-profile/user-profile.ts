@@ -11,7 +11,6 @@ import { MeetingProvider } from '../../providers/meeting/meeting';
  * Ionic pages and navigation.
  */
 
-@IonicPage()
 @Component({
   selector: 'page-user-profile',
   templateUrl: 'user-profile.html',

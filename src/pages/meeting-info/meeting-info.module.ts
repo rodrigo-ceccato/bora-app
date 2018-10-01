@@ -4,7 +4,6 @@ import { MeetingInfoPage } from './meeting-info';
 
 @NgModule({
   declarations: [
-    MeetingInfoPage,
   ],
   imports: [
     IonicPageModule.forChild(MeetingInfoPage),

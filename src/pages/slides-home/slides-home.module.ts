@@ -4,7 +4,6 @@ import { SlidesHomePage } from './slides-home';
 
 @NgModule({
   declarations: [
-    SlidesHomePage,
   ],
   imports: [
     IonicPageModule.forChild(SlidesHomePage),

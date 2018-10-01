@@ -4,7 +4,6 @@ import { MeetingSchedulePage } from './meeting-schedule';
 
 @NgModule({
   declarations: [
-    MeetingSchedulePage,
   ],
   imports: [
     IonicPageModule.forChild(MeetingSchedulePage),

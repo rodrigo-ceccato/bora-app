@@ -4,7 +4,6 @@ import { BoraHojePage } from './bora-hoje';
 
 @NgModule({
   declarations: [
-    BoraHojePage,
   ],
   imports: [
     IonicPageModule.forChild(BoraHojePage),
