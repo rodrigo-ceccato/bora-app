@@ -4,8 +4,11 @@
 *~
 *.sw[mnpcod]
 *.log
+.env
+.env.local
 *.tmp
 *.tmp.*
+.bora-data.json
 log.txt
 *.sublime-project
 *.sublime-workspace

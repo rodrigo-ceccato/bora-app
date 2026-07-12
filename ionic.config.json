@@ -1,7 +1,0 @@
-{
-  "name": "bora",
-  "integrations": {
-    "cordova": {}
-  },
-  "type": "ionic-angular"
-}
