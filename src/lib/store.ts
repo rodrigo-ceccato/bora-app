@@ -109,6 +109,16 @@ export function usingSupabase() {
   return hasSupabase;
 }
 
+export function subscribeToEvent(eventId: string, onChange: () => void) {
+  if (!supabase) return () => undefined;
+  const channel = supabase
+    .channel(`bora-event-${eventId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'votes', filter: `event_id=eq.${eventId}` }, onChange)
+    .subscribe();
+  return () => { void supabase.removeChannel(channel); };
+}
+
 export async function createEvent(draft: EventDraft): Promise<BoraEvent> {
   const event: BoraEvent = {
     ...draft,
@@ -118,13 +128,30 @@ export async function createEvent(draft: EventDraft): Promise<BoraEvent> {
     votingClosed: false,
     createdAt: new Date().toISOString()
   };
+  const creatorVote: BoraVote | null = event.createdByName ? {
+    id: uid('vote'),
+    eventId: event.id,
+    voterName: event.createdByName,
+    response: 'accept',
+    preferredOption: event.mode === 'mais-tarde' && event.startsAt
+      ? new Date(event.startsAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      : undefined,
+    availability: event.mode === 'marcar'
+      ? Object.fromEntries(event.days.map((day) => [day.id, [...day.slots]]))
+      : {},
+    createdAt: event.createdAt
+  } : null;
 
   if (supabase) {
-    const { error } = await supabase.from('events').insert(toDbEvent(event));
-    if (error) throw error;
+    const { error: eventError } = await supabase.from('events').insert(toDbEvent(event));
+    if (eventError) throw eventError;
+    if (creatorVote) {
+      const { error: voteError } = await supabase.from('votes').insert(toDbVote(creatorVote));
+      if (voteError) throw voteError;
+    }
   } else {
     const items = readLocal();
-    items.unshift({ event, votes: [] });
+    items.unshift({ event, votes: creatorVote ? [creatorVote] : [] });
     writeLocal(items);
   }
   return event;

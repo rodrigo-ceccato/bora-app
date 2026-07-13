@@ -1,13 +1,13 @@
 :root {
-  --ion-color-primary: #5b37d1;
-  --ion-color-primary-rgb: 91, 55, 209;
+  --ion-color-primary: #1976d2;
+  --ion-color-primary-rgb: 25, 118, 210;
   --ion-color-secondary: #00b894;
   --ion-font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-body { background: #f6f3ff; }
+body { background: #f6f8fb; }
 
-.hero-bg { --background: linear-gradient(160deg, #f8f6ff 0%, #eefaf6 100%); }
+.hero-bg { --background: #f6f8fb; }
 
 .hero {
   max-width: 980px;
@@ -16,9 +16,16 @@ body { background: #f6f3ff; }
   text-align: center;
 }
 
+.bora-share-symbol {
+  display: block;
+  width: clamp(72px, 12vw, 112px);
+  height: auto;
+  margin: 0 auto 12px;
+}
+
 .hero h1 {
-  font-size: clamp(2.4rem, 8vw, 5.5rem);
-  line-height: 0.95;
+  font-size: clamp(2rem, 7vw, 4.5rem);
+  line-height: 1.03;
   margin: 14px 0;
   letter-spacing: -0.06em;
 }
@@ -26,27 +33,69 @@ body { background: #f6f3ff; }
 .hero p {
   max-width: 720px;
   margin: 0 auto 24px;
-  color: #4a4658;
+  color: #4f5965;
   font-size: clamp(1rem, 2vw, 1.25rem);
 }
 
-.muted { color: #706b7d; font-size: 0.95rem; }
+.muted { color: #5f6368; font-size: 0.95rem; }
 
-.mode-grid, .recent-list {
+.home-mode-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
-  max-width: 1100px;
-  margin: 0 auto 28px;
+  max-width: 900px;
+  margin: 0 auto 18px;
 }
 
-.form-page ion-card, .event-layout { max-width: 1120px; margin-left: auto; margin-right: auto; }
+.home-mode-button {
+  min-height: 68px;
+  margin: 0;
+  --background: #1976d2;
+  --background-activated: #1565c0;
+  --background-focused: #1565c0;
+  --border-radius: 8px;
+  --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.mode-action-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.mode-action-content small { font-size: 0.75rem; font-weight: 500; opacity: 0.9; }
+
+.home-mode-button::part(native) {
+  transition: box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.home-mode-button:hover::part(native) {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+}
+
+.form-page ion-card, .event-layout { max-width: 760px; margin-left: auto; margin-right: auto; }
+
+.create-intro {
+  max-width: 760px;
+  margin: 0 auto 16px;
+}
+
+.create-intro h1 { margin: 0 0 4px; font-size: clamp(1.8rem, 5vw, 2.5rem); }
+.create-intro p { margin: 0; color: #5f6368; }
+.optional-label { color: #6b7280; font-weight: 400; }
+.field-error { display: block; margin: 4px 16px 8px; }
+.guest-note { display: block; margin: 16px 0; color: #5f6368; }
+.form-page .ion-invalid { --highlight-color-invalid: #b3261e; }
 
 .event-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+  display: flex;
+  flex-direction: column;
   gap: 18px;
-  align-items: start;
 }
 
 .event-summary h2 { font-size: 1.35rem; }
@@ -58,12 +107,20 @@ body { background: #f6f3ff; }
   margin: 14px 0;
 }
 
+.success-card {
+  border: 1px solid #90caf9;
+  background: #edf6ff;
+}
+
+.success-card p { margin-top: 0; }
+.success-card ion-button { margin-top: 8px; }
+
 .admin-panel {
-  border: 1px dashed #d7d0ee;
-  border-radius: 16px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
   padding: 12px;
   margin-top: 12px;
-  background: #fbfaff;
+  background: #fff;
 }
 
 .result-row {
@@ -71,16 +128,38 @@ body { background: #f6f3ff; }
   grid-template-columns: 1fr auto;
   gap: 6px 10px;
   align-items: center;
-  border-bottom: 1px solid #eeeaf8;
+  border-bottom: 1px solid #dfe3e8;
   padding: 10px 0;
 }
 
 .result-row span {
   grid-column: 1 / -1;
-  color: #706b7d;
+  color: #5f6368;
 }
 
-.vote-card { position: sticky; top: 14px; }
+.result-progress {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #e3f2fd;
+}
+
+.result-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #1976d2;
+}
+
+.vote-card { width: 100%; }
+
+.vote-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
 
 .day-scroll {
   display: flex;
@@ -92,22 +171,22 @@ body { background: #f6f3ff; }
 
 .day-card {
   flex: 0 0 min(78vw, 260px);
-  border: 1px solid #e2def0;
-  border-radius: 18px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
   padding: 14px;
   background: #fff;
   scroll-snap-align: start;
-  box-shadow: 0 8px 24px rgba(41, 29, 78, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
 }
 
 .day-card h4 { margin: 0 0 4px; font-size: 1.2rem; }
-.day-card p { margin: 0 0 12px; color: #706b7d; }
+.day-card p { margin: 0 0 12px; color: #5f6368; }
 
 .slot {
   width: 100%;
-  border: 1px solid #d7d0ee;
+  border: 1px solid #9aa0a6;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 12px;
   margin: 5px 0;
   font-weight: 700;
@@ -115,12 +194,67 @@ body { background: #f6f3ff; }
 }
 
 .slot.selected {
-  background: #5b37d1;
-  border-color: #5b37d1;
+  background: #1976d2;
+  border-color: #1976d2;
   color: #fff;
 }
 
+.slot:focus-visible {
+  outline: 3px solid #90caf9;
+  outline-offset: 2px;
+}
+
+.scroll-hint { margin: 8px 0; color: #5f6368; font-size: 0.9rem; }
+
 .day-editor ion-card { margin: 12px 0; }
+
+.schedule-time-picker { padding: 16px; }
+.schedule-time-picker ion-label { display: block; margin-bottom: 12px; }
+.schedule-time-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 8px;
+}
+
+.schedule-time-grid ion-checkbox { font-size: 0.9rem; }
+
+.alternative-picker {
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.alternative-picker h2 { margin: 0; font-size: 1rem; }
+
+.alternative-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.alternative-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding-left: 10px;
+  border: 1px solid #b9d6f2;
+  border-radius: 16px;
+  background: #edf6ff;
+  color: #0d47a1;
+  font-weight: 600;
+}
+
+.alternative-chip ion-button { margin: 0 2px; --color: #0d47a1; }
+
+.alternative-time-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
 
 .center {
   text-align: center;
@@ -130,6 +264,5 @@ body { background: #f6f3ff; }
 }
 
 @media (max-width: 820px) {
-  .event-layout { grid-template-columns: 1fr; }
-  .vote-card { position: static; }
+  .home-mode-actions { grid-template-columns: 1fr; }
 }

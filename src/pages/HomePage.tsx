@@ -1,14 +1,7 @@
-import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import { useEffect, useState } from 'react';
-import { listCreatedEvents, usingSupabase } from '../lib/store';
-import type { BoraEvent } from '../lib/types';
+import { IonButton, IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import shareSymbol from '../assets/share-sem-bolinha.png';
 
 export default function HomePage() {
-  const [events, setEvents] = useState<BoraEvent[]>([]);
-
-  useEffect(() => {
-    listCreatedEvents().then(setEvents).catch(console.error);
-  }, []);
 
   return (
     <IonPage>
@@ -19,45 +12,23 @@ export default function HomePage() {
       </IonHeader>
       <IonContent className="ion-padding hero-bg">
         <section className="hero">
-          <IonChip color="secondary">Ionic React + Capacitor</IonChip>
+          <img className="bora-share-symbol" src={shareSymbol} alt="Símbolo de compartilhamento Bora" />
           <h1>Crie um convite, mande o link, combine sem fricção.</h1>
           <p>
             Bora Agora, Bora Mais Tarde e Bora Marcar ajudam grupos a decidir se o rolê vai acontecer, sem obrigar convidados a criar conta.
           </p>
-          <IonButton routerLink="/create" size="large">Criar um Bora</IonButton>
-          <p className="muted">Backend: {usingSupabase() ? 'Supabase configurado' : 'demo localStorage; configure Supabase para produção'}</p>
+          <div className="home-mode-actions" role="group" aria-label="Escolha o tipo de Bora">
+            <IonButton routerLink="/create?mode=agora" size="large" expand="block" className="home-mode-button">
+              <span className="mode-action-content"><span>BORA AGORA! 🧑‍🤝‍🧑</span><small>Decidir já</small></span>
+            </IonButton>
+            <IonButton routerLink="/create?mode=mais-tarde" size="large" expand="block" className="home-mode-button">
+              <span className="mode-action-content"><span>Bora mais tarde 🕒</span><small>Escolher um horário</small></span>
+            </IonButton>
+            <IonButton routerLink="/create?mode=marcar" size="large" expand="block" className="home-mode-button">
+              <span className="mode-action-content"><span>Bora marcar 📅</span><small>Cruzar disponibilidades</small></span>
+            </IonButton>
+          </div>
         </section>
-
-        <section className="mode-grid">
-          <IonCard>
-            <IonCardHeader><IonCardTitle>Bora Agora</IonCardTitle></IonCardHeader>
-            <IonCardContent>Para decidir se todo mundo topa ir agora. Configure mínimo de aceites para o evento acontecer.</IonCardContent>
-          </IonCard>
-          <IonCard>
-            <IonCardHeader><IonCardTitle>Bora Mais Tarde</IonCardTitle></IonCardHeader>
-            <IonCardContent>Para hoje ou próximos dias, com voto de presença e sugestão/preferência por alternativas.</IonCardContent>
-          </IonCard>
-          <IonCard>
-            <IonCardHeader><IonCardTitle>Bora Marcar</IonCardTitle></IonCardHeader>
-            <IonCardContent>Um when2meet simples: dias em cards horizontais e horários clicáveis para disponibilidade.</IonCardContent>
-          </IonCard>
-        </section>
-
-        {events.length > 0 && (
-          <section>
-            <h2>Eventos recentes</h2>
-            <div className="recent-list">
-              {events.map((event) => (
-                <IonCard key={event.id} routerLink={`/e/${event.slug}`} button>
-                  <IonCardHeader>
-                    <IonCardTitle>{event.title}</IonCardTitle>
-                  </IonCardHeader>
-                  <IonCardContent>{event.place}</IonCardContent>
-                </IonCard>
-              ))}
-            </div>
-          </section>
-        )}
       </IonContent>
     </IonPage>
   );

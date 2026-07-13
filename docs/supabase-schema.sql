@@ -43,3 +43,15 @@ create policy "public votes can be created" on public.votes for insert with chec
 
 create index if not exists events_slug_idx on public.events(slug);
 create index if not exists votes_event_id_idx on public.votes(event_id);
+
+-- Let linked event pages update as votes and event edits arrive.
+-- Ignore the duplicate-table error when this script is run again.
+do $$ begin
+  alter publication supabase_realtime add table public.events;
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.votes;
+exception when duplicate_object then null;
+end $$;
