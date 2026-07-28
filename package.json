@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Bora: shareable event planning polls built with Ionic React, Vite, Capacitor, and Supabase.",
+  "workspaces": ["server"],
+  "description": "Bora: shareable event planning polls built with Ionic React, PostgreSQL, and a small Node API.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "api": "node server/index.mjs",
+    "db:migrate": "node server/migrate.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
@@ -22,14 +25,11 @@
     "@capacitor/status-bar": "latest",
     "@ionic/react": "latest",
     "@ionic/react-router": "latest",
-    "@supabase/supabase-js": "latest",
-    "@vitejs/plugin-react": "latest",
     "ionicons": "latest",
     "react": "latest",
     "react-dom": "latest",
     "react-router": "^5.3.4",
-    "react-router-dom": "^5.3.4",
-    "vite": "latest"
+    "react-router-dom": "^5.3.4"
   },
   "devDependencies": {
     "@capacitor/cli": "latest",
@@ -38,9 +38,11 @@
     "@types/react-dom": "latest",
     "@types/react-router": "^5.1.20",
     "@types/react-router-dom": "^5.3.3",
+    "@vitejs/plugin-react": "latest",
     "eslint": "latest",
     "typescript": "latest",
     "typescript-eslint": "latest",
+    "vite": "latest",
     "vitest": "latest"
   }
 }

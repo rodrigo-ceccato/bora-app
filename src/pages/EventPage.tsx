@@ -1,7 +1,7 @@
-import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonChip, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonRadio, IonRadioGroup, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonToast } from '@ionic/react';
-import { useEffect, useMemo, useState } from 'react';
+import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonRadio, IonRadioGroup, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { getEvent, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
+import { deleteEvent, getEvent, getParticipantId, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
 import { responseLabel } from '../lib/schedule';
 import type { BoraEvent, BoraVote, EventWithVotes, VoteResponse } from '../lib/types';
 
@@ -17,7 +17,8 @@ function statusText(event: BoraEvent, votes: BoraVote[]) {
   if (event.votingClosed) return 'Votação encerrada pelo criador.';
   const accepted = acceptedCount(votes);
   if (accepted >= event.threshold) return `Vai acontecer! ${accepted}/${event.threshold} confirmações.`;
-  return `Faltam ${event.threshold - accepted} confirmação(ões). ${accepted}/${event.threshold} até agora.`;
+  const remaining = event.threshold - accepted;
+  return `${remaining === 1 ? 'Falta 1 confirmação' : `Faltam ${remaining} confirmações`}. ${accepted}/${event.threshold} até agora.`;
 }
 
 function formatTime(value?: string) {
@@ -47,6 +48,9 @@ export default function EventPage() {
   const { slug } = useParams<{ slug: string }>();
   const query = useQuery();
   const [toast] = useIonToast();
+  const [presentAlert] = useIonAlert();
+  const router = useIonRouter();
+  const adminToken = query.get('admin') || '';
   const [data, setData] = useState<EventWithVotes | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState(localStorage.getItem('bora_voter_name') || '');
@@ -54,21 +58,36 @@ export default function EventPage() {
   const [availability, setAvailability] = useState<Record<string, string[]>>({});
   const [editEvent, setEditEvent] = useState<BoraEvent | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [submittingVote, setSubmittingVote] = useState(false);
+  const [voteSubmitted, setVoteSubmitted] = useState(false);
+  const [editingVote, setEditingVote] = useState(false);
+  const [savingAdminAction, setSavingAdminAction] = useState(false);
+  const [adminSection, setAdminSection] = useState<'overview' | 'manage'>('overview');
+  const hydratedVote = useRef(false);
 
-  const isAdmin = data?.event.adminToken && query.get('admin') === data.event.adminToken;
+  const isAdmin = Boolean(data?.isAdmin);
   const wasJustCreated = query.get('created') === '1';
 
   useEffect(() => {
     let active = true;
     let unsubscribe: (() => void) | undefined;
+    hydratedVote.current = false;
 
     async function refresh() {
       try {
-        const result = await getEvent(slug);
+        const result = await getEvent(slug, adminToken);
         if (!active) return;
         setData(result);
-        if (result?.event.mode === 'mais-tarde') {
-          setPreferredOption(formatTime(result.event.startsAt) || result.event.alternatives[0] || '');
+        const ownVote = result?.votes.find((vote) => vote.isOwn || vote.participantId === getParticipantId());
+        if (!hydratedVote.current && result) {
+          if (ownVote) setName(ownVote.voterName);
+          if (result.event.mode === 'mais-tarde') {
+            setPreferredOption(ownVote?.preferredOption || formatTime(result.event.startsAt) || result.event.alternatives[0] || '');
+          }
+          if (result.event.mode === 'marcar' && ownVote) {
+            setAvailability(ownVote.availability);
+          }
+          hydratedVote.current = true;
         }
         if (result && !unsubscribe) unsubscribe = subscribeToEvent(result.event.id, () => { void refresh(); });
       } catch (error) {
@@ -83,7 +102,7 @@ export default function EventPage() {
       active = false;
       unsubscribe?.();
     };
-  }, [slug, toast]);
+  }, [slug, adminToken, toast]);
 
   const counts = useMemo(() => {
     const votes = data?.votes || [];
@@ -149,7 +168,7 @@ export default function EventPage() {
     }
     setSavingEdit(true);
     try {
-      const updated = await updateEvent(data.event.adminToken, {
+      const updated = await updateEvent(adminToken, {
         ...editEvent,
         title: editEvent.title.trim(),
         place: editEvent.place.trim(),
@@ -182,19 +201,69 @@ export default function EventPage() {
       return;
     }
     localStorage.setItem('bora_voter_name', name.trim());
+    setSubmittingVote(true);
     try {
       await submitVote(data.event, {
         voterName: name.trim(),
         response,
-        preferredOption: data.event.mode === 'mais-tarde' ? preferredOption : undefined,
-        availability: data.event.mode === 'marcar' ? availability : {}
+        preferredOption: data.event.mode === 'mais-tarde' && response !== 'decline' ? preferredOption : undefined,
+        availability: data.event.mode === 'marcar' && response !== 'decline' ? availability : {}
       });
-      const refreshed = await getEvent(slug);
+      const refreshed = await getEvent(slug, adminToken);
       setData(refreshed);
+      setVoteSubmitted(true);
+      setEditingVote(false);
       toast({ message: 'Voto registrado!', color: 'success', duration: 2200 });
     } catch (error) {
       toast({ message: error instanceof Error ? error.message : 'Não foi possível votar.', color: 'danger', duration: 2600 });
+    } finally {
+      setSubmittingVote(false);
     }
+  }
+
+  async function toggleVoting() {
+    if (!data || !isAdmin) return;
+    setSavingAdminAction(true);
+    try {
+      const updated = await updateEvent(adminToken, { ...data.event, votingClosed: !data.event.votingClosed });
+      setData((current) => current ? { ...current, event: updated } : current);
+      toast({
+        message: updated.votingClosed ? 'Votação encerrada.' : 'Votação reaberta.',
+        color: 'success',
+        duration: 1800
+      });
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : 'Não foi possível atualizar a votação.', color: 'danger', duration: 2600 });
+    } finally {
+      setSavingAdminAction(false);
+    }
+  }
+
+  function confirmDelete() {
+    if (!data || !isAdmin) return;
+    presentAlert({
+      header: 'Excluir este Bora?',
+      message: 'O evento e todos os votos serão apagados. Essa ação não pode ser desfeita.',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Excluir',
+          role: 'destructive',
+          handler: () => {
+            void (async () => {
+              setSavingAdminAction(true);
+              try {
+                await deleteEvent(adminToken, data.event);
+                router.push('/home', 'back', 'replace');
+              } catch (error) {
+                toast({ message: error instanceof Error ? error.message : 'Não foi possível excluir o evento.', color: 'danger', duration: 2600 });
+                setSavingAdminAction(false);
+              }
+            })();
+          }
+        }
+      ]
+    });
   }
 
   async function copyText(url: string, message: string) {
@@ -222,7 +291,7 @@ export default function EventPage() {
 
   async function copyAdminLink() {
     if (!data) return;
-    await copyText(`${window.location.origin}/e/${slug}?admin=${data.event.adminToken}`, 'Link de administrador copiado!');
+    await copyText(`${window.location.origin}/e/${slug}?admin=${adminToken}`, 'Link de administrador copiado!');
   }
 
   function shareOnWhatsApp() {
@@ -243,6 +312,9 @@ export default function EventPage() {
   const preferredOptions = event.mode === 'mais-tarde'
     ? Array.from(new Set([formatTime(event.startsAt), ...event.alternatives].filter(Boolean)))
     : [];
+  const ownVote = votes.find((vote) => vote.isOwn || vote.participantId === getParticipantId());
+  const showVoteConfirmation = !isAdmin && !editingVote && Boolean(voteSubmitted || ownVote);
+  const confirmationProgress = Math.min(100, (counts.accept / event.threshold) * 100);
 
   return (
     <IonPage>
@@ -250,49 +322,162 @@ export default function EventPage() {
         <IonToolbar>
           <IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons>
           <IonTitle>{event.title}</IonTitle>
-          {isAdmin && <IonButtons slot="end"><IonButton onClick={openEdit}>Editar</IonButton></IonButtons>}
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding event-page">
         <section className="event-layout">
           {isAdmin && wasJustCreated && (
-            <IonCard className="success-card">
-              <IonCardHeader><IonCardTitle>Seu Bora está pronto! 🎉</IonCardTitle></IonCardHeader>
+            <IonCard className="success-card ready-card">
               <IonCardContent>
-                <p>Envie o convite para a galera votar.</p>
-                <IonButton expand="block" onClick={shareOnWhatsApp}>Compartilhar no WhatsApp</IonButton>
-                <IonButton expand="block" fill="outline" onClick={() => void shareLink()}>COPIAR LINK DE CONVITE</IonButton>
-                <IonButton expand="block" fill="outline" onClick={() => void copyAdminLink()}>COPIAR LINK DO ADMINISTRADOR</IonButton>
+                <div>
+                  <strong>Seu Bora está pronto! 🎉</strong>
+                  <p>Agora é só chamar a galera.</p>
+                </div>
+                <IonButton onClick={shareOnWhatsApp}>Compartilhar</IonButton>
               </IonCardContent>
             </IonCard>
           )}
-          <div>
-            <IonCard className="event-summary">
-              <IonCardHeader>
-                <IonChip color="primary">{event.mode === 'agora' ? 'Bora Agora' : event.mode === 'mais-tarde' ? 'Bora Mais Tarde' : 'Bora Marcar'}</IonChip>
-                <IonCardTitle>{event.title}</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <p><strong>Local:</strong> {event.place}</p>
-                {event.startsAt && <p><strong>Quando:</strong> {new Date(event.startsAt).toLocaleString('pt-BR')}</p>}
-                {event.description && <p>{event.description}</p>}
-                <h2>{statusText(event, votes)}</h2>
-                <div className="count-row">
-                  <IonBadge color="success">Topo: {counts.accept}</IonBadge>
-                  <IonBadge color="warning">Talvez: {counts.maybe}</IonBadge>
-                  <IonBadge color="danger">Não: {counts.decline}</IonBadge>
+          <IonCard className="event-summary">
+            <IonCardContent>
+              <div className="event-kicker">
+                <span>{event.mode === 'agora' ? 'Bora agora' : event.mode === 'mais-tarde' ? 'Bora mais tarde' : 'Bora marcar'}</span>
+                {event.votingClosed && <span className="closed-pill">Encerrado</span>}
+              </div>
+              <h1>{event.title}</h1>
+              <div className="event-facts">
+                <p><span aria-hidden="true">📍</span><span><small>Local</small><strong>{event.place}</strong></span></p>
+                {event.startsAt && <p><span aria-hidden="true">🗓️</span><span><small>Quando</small><strong>{new Date(event.startsAt).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' })}</strong></span></p>}
+              </div>
+              {event.description && <p className="event-description">{event.description}</p>}
+              <div className="status-block">
+                <div className="status-heading">
+                  <strong>{counts.accept >= event.threshold ? 'Bora confirmado!' : `${counts.accept} de ${event.threshold} confirmados`}</strong>
+                  <span>{Math.round(confirmationProgress)}%</span>
                 </div>
-                {isAdmin && (
-                  <div className="admin-panel">
-                    <p className="muted">Você está no link de administrador.</p>
-                    <IonButton expand="block" onClick={() => void copyAdminLink()}>COPIAR LINK DO ADMINISTRADOR</IonButton>
-                    <IonButton expand="block" fill="outline" onClick={() => void shareLink()}>COPIAR LINK DE CONVITE</IonButton>
-                  </div>
-                )}
-              </IonCardContent>
-            </IonCard>
+                <div className="threshold-progress" role="progressbar" aria-label={`${counts.accept} de ${event.threshold} confirmações`} aria-valuemin={0} aria-valuemax={event.threshold} aria-valuenow={counts.accept}>
+                  <span style={{ width: `${confirmationProgress}%` }} />
+                </div>
+                <p>{statusText(event, votes)}</p>
+              </div>
+            </IonCardContent>
+          </IonCard>
 
-            {event.mode === 'marcar' && (
+          {isAdmin && (
+            <nav className="admin-nav" aria-label="Seções da administração">
+              <button type="button" className={adminSection === 'overview' ? 'active' : ''} onClick={() => setAdminSection('overview')}>Resumo</button>
+              <button type="button" className={adminSection === 'manage' ? 'active' : ''} onClick={() => setAdminSection('manage')}>Gerenciar</button>
+            </nav>
+          )}
+
+          <div>
+            {!isAdmin && (
+              <IonCard className={`vote-card ${showVoteConfirmation ? 'vote-card-complete' : ''}`}>
+                <IonCardContent>
+                  {showVoteConfirmation ? (
+                    <div className="vote-confirmation">
+                      <span className="confirmation-icon" aria-hidden="true">✓</span>
+                      <div>
+                        <h2>Voto registrado</h2>
+                        <p>
+                        {ownVote
+                          ? `${responseLabel(ownVote.response)}${ownVote.preferredOption ? ` · prefere ${ownVote.preferredOption}` : ''}`
+                          : 'Sua resposta foi salva.'}
+                        </p>
+                      </div>
+                      <IonButton fill="clear" onClick={() => setEditingVote(true)}>Alterar</IonButton>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="vote-heading">
+                        <span className="section-eyebrow">Sua resposta</span>
+                        <h2>{event.mode === 'agora' ? 'Você topa?' : event.mode === 'mais-tarde' ? 'Qual horário funciona?' : 'Quando você pode?'}</h2>
+                        <p>Leva menos de um minuto.</p>
+                      </div>
+                      <IonItem className="name-field" lines="none"><IonLabel position="stacked">Seu nome</IonLabel><IonInput value={name} onIonInput={(e) => setName(e.detail.value || '')} placeholder="Como a galera te chama?" required /></IonItem>
+
+                      {event.mode === 'mais-tarde' && (
+                        <IonRadioGroup className="time-options" value={preferredOption} onIonChange={(e) => setPreferredOption(e.detail.value)}>
+                          {preferredOptions.map((option, index) => (
+                            <IonItem key={option} lines="none"><IonRadio value={option} /><IonLabel className="ion-margin-start">{index === 0 ? `Principal · ${option}` : option}</IonLabel></IonItem>
+                          ))}
+                        </IonRadioGroup>
+                      )}
+
+                      {event.mode === 'marcar' && (
+                        <div>
+                          <h3>Marque os horários em que você pode</h3>
+                          <p className="scroll-hint">Deslize para ver mais dias.</p>
+                          <div className="day-scroll">
+                            {event.days.map((day) => (
+                              <div className="day-card" key={day.id}>
+                                <h4>{day.label}</h4>
+                                <p>{new Date(`${day.date}T12:00:00`).toLocaleDateString('pt-BR')}</p>
+                                {day.slots.map((slot) => {
+                                  const selected = (availability[day.id] || []).includes(slot);
+                                  return <button type="button" key={slot} className={selected ? 'slot selected' : 'slot'} aria-pressed={selected} aria-label={`${day.label}, ${slot}`} onClick={() => toggleSlot(day.id, slot)}>{slot}</button>;
+                                })}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="vote-actions" aria-label="Registrar voto">
+                        <IonButton className="response-yes" disabled={event.votingClosed || submittingVote} onClick={() => void vote('accept')}><span><b aria-hidden="true">🙌</b>{submittingVote ? 'Salvando...' : 'Bora!'}</span></IonButton>
+                        <IonButton className="response-maybe" fill="outline" disabled={event.votingClosed || submittingVote} onClick={() => void vote('maybe')}><span><b aria-hidden="true">🤔</b>Talvez</span></IonButton>
+                        <IonButton className="response-no" fill="clear" disabled={event.votingClosed || submittingVote} onClick={() => void vote('decline')}><span><b aria-hidden="true">😔</b>Não posso</span></IonButton>
+                      </div>
+                      {event.votingClosed && <p className="closed-message">A votação foi encerrada pelo criador.</p>}
+                    </>
+                  )}
+                </IonCardContent>
+              </IonCard>
+            )}
+
+            {isAdmin && adminSection === 'manage' && (
+              <section className="admin-manage" aria-labelledby="manage-title">
+                <div className="admin-section-heading">
+                  <span className="section-eyebrow">Organizador</span>
+                  <h2 id="manage-title">Gerenciar evento</h2>
+                  <p>Compartilhe, edite ou controle a votação.</p>
+                </div>
+                <IonCard>
+                  <IonCardContent>
+                    <h3>Convidar pessoas</h3>
+                    <p className="muted">O link de convite não dá acesso aos controles do organizador.</p>
+                    <div className="share-actions">
+                      <IonButton expand="block" onClick={shareOnWhatsApp}>Compartilhar no WhatsApp</IonButton>
+                      <IonButton expand="block" fill="outline" onClick={() => void shareLink()}>Copiar link de convite</IonButton>
+                    </div>
+                    <button type="button" className="admin-link-action" onClick={() => void copyAdminLink()}>Copiar link privado do administrador</button>
+                  </IonCardContent>
+                </IonCard>
+                <IonCard>
+                  <IonCardContent>
+                    <h3>Configurações</h3>
+                    <div className="settings-row">
+                      <div><strong>Receber novos votos</strong><span>{event.votingClosed ? 'A votação está encerrada.' : 'Convidados ainda podem responder.'}</span></div>
+                      <IonButton fill="outline" onClick={() => void toggleVoting()} disabled={savingAdminAction}>{event.votingClosed ? 'Reabrir' : 'Encerrar'}</IonButton>
+                    </div>
+                    <div className="settings-row">
+                      <div><strong>Detalhes do evento</strong><span>Nome, local, meta e horários.</span></div>
+                      <IonButton fill="outline" onClick={openEdit}>Editar</IonButton>
+                    </div>
+                  </IonCardContent>
+                </IonCard>
+                <IonCard className="danger-zone">
+                  <IonCardContent>
+                    <div>
+                      <h3>Excluir evento</h3>
+                      <p>Apaga o evento e todos os votos permanentemente.</p>
+                    </div>
+                    <IonButton fill="clear" color="danger" onClick={confirmDelete} disabled={savingAdminAction}>Excluir</IonButton>
+                  </IonCardContent>
+                </IonCard>
+              </section>
+            )}
+
+            {(!isAdmin || adminSection === 'overview') && event.mode === 'marcar' && (
               <IonCard>
                 <IonCardHeader><IonCardTitle>Melhores horários</IonCardTitle></IonCardHeader>
                 <IonCardContent>
@@ -314,7 +499,7 @@ export default function EventPage() {
               </IonCard>
             )}
 
-            {event.mode === 'mais-tarde' && (
+            {(!isAdmin || adminSection === 'overview') && event.mode === 'mais-tarde' && (
               <IonCard>
                 <IonCardHeader><IonCardTitle>Horários preferidos</IonCardTitle></IonCardHeader>
                 <IonCardContent>
@@ -335,8 +520,15 @@ export default function EventPage() {
               </IonCard>
             )}
 
-            <IonCard>
-              <IonCardHeader><IonCardTitle>Votos</IonCardTitle></IonCardHeader>
+            {(!isAdmin || adminSection === 'overview') && <IonCard className="votes-card">
+              <IonCardHeader>
+                <IonCardTitle>Quem respondeu</IonCardTitle>
+                <div className="count-row" aria-label="Resumo dos votos">
+                  <span className="count-pill accept">🙌 {counts.accept}</span>
+                  <span className="count-pill maybe">🤔 {counts.maybe}</span>
+                  <span className="count-pill decline">😔 {counts.decline}</span>
+                </div>
+              </IonCardHeader>
               <IonCardContent>
                 {votes.length === 0 && <p>Ninguém votou ainda. Seja a primeira pessoa.</p>}
                 <IonList>
@@ -350,53 +542,9 @@ export default function EventPage() {
                   ))}
                 </IonList>
               </IonCardContent>
-            </IonCard>
+            </IonCard>}
           </div>
 
-          {!isAdmin && (
-            <IonCard className="vote-card">
-              <IonCardHeader><IonCardTitle>Seu voto</IonCardTitle></IonCardHeader>
-            <IonCardContent>
-              <IonItem><IonLabel position="stacked">Seu nome *</IonLabel><IonInput value={name} onIonInput={(e) => setName(e.detail.value || '')} placeholder="Ex: Ana" required /></IonItem>
-
-              {event.mode === 'agora' && <p className="muted">Você topa sair agora?</p>}
-
-              {event.mode === 'mais-tarde' && (
-                <IonRadioGroup value={preferredOption} onIonChange={(e) => setPreferredOption(e.detail.value)}>
-                  <h3>Qual horário você prefere?</h3>
-                  {preferredOptions.map((option, index) => (
-                    <IonItem key={option}><IonRadio value={option} /><IonLabel className="ion-margin-start">{index === 0 ? `Horário principal · ${option}` : option}</IonLabel></IonItem>
-                  ))}
-                </IonRadioGroup>
-              )}
-
-              {event.mode === 'marcar' && (
-                <div>
-                  <h3>Marque os horários em que você pode</h3>
-                  <p className="scroll-hint">Deslize para ver mais dias.</p>
-                  <div className="day-scroll">
-                    {event.days.map((day) => (
-                      <div className="day-card" key={day.id}>
-                        <h4>{day.label}</h4>
-                        <p>{day.date}</p>
-                        {day.slots.map((slot) => {
-                          const selected = (availability[day.id] || []).includes(slot);
-                          return <button key={slot} className={selected ? 'slot selected' : 'slot'} aria-pressed={selected} aria-label={`${day.label}, ${slot}`} onClick={() => toggleSlot(day.id, slot)}>{slot}</button>;
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="vote-actions" aria-label="Registrar voto">
-                <IonButton expand="block" size="large" disabled={event.votingClosed} onClick={() => void vote('accept')}>BORA</IonButton>
-                <IonButton expand="block" size="large" fill="outline" disabled={event.votingClosed} onClick={() => void vote('maybe')}>TALVEZ</IonButton>
-                <IonButton expand="block" size="large" color="medium" disabled={event.votingClosed} onClick={() => void vote('decline')}>NÃO POSSO</IonButton>
-              </div>
-              </IonCardContent>
-            </IonCard>
-          )}
         </section>
 
         <IonModal isOpen={Boolean(editEvent)} onDidDismiss={() => setEditEvent(null)}>

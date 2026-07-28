@@ -1,56 +1,77 @@
 # Bora
 
-Bora is now a modern responsive Ionic React + Capacitor app for creating shareable event-planning links.
+Bora is a mobile-first link for deciding short social events without requiring guests to create accounts.
 
 ## Product modes
 
-- **Bora Agora**: invitees vote if they are up to going now. The creator sets a minimum number of accepts required for the event to happen.
-- **Bora Mais Tarde**: invitees vote if they are up for a later event and can pick a preferred alternative time/day.
-- **Bora Marcar**: creator defines days and hour slots; invitees enter their name and mark availability in horizontally scrollable day cards, like a simple when2meet.
+- **Bora Agora** — see who is up for going today.
+- **Bora Mais Tarde** — choose a main time and same-day alternatives.
+- **Bora Marcar** — cross availability over several days and hours.
 
-Invitees do **not** need accounts. They only enter their name before voting. Creator accounts are optional for future expansion; the MVP uses a shareable event link plus an admin token in the creator URL.
+The creator is automatically counted as confirmed. Guests receive a public link, enter a name, and can change their response from the same browser.
 
 ## Stack
 
-- Ionic React
-- Vite
-- Capacitor
-- Supabase
-- TypeScript
+- Ionic React, Vite, and Capacitor
+- Small Node.js HTTP API
+- PostgreSQL 16
+- Docker Compose and nginx for self-hosting
 
-The app works as a responsive website/PWA and can be packaged for Android/iOS with Capacitor.
+Administrator tokens are returned only when an event is created, stored as hashes in PostgreSQL, and sent as bearer credentials for creator actions. They are never included in public event responses.
 
-## Run locally
+## Fast local demo
+
+This mode stores everything in the current browser:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the shown Vite URL.
+Do not use browser-only mode for testing links on different devices.
 
-## Build
+## Full local stack with Docker
 
 ```bash
+cp .env.docker.example .env
+```
+
+Replace `POSTGRES_PASSWORD`, then run:
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:8080`. PostgreSQL data is kept in the `bora_database` Docker volume.
+
+## Develop the web app and API separately
+
+Start PostgreSQL, provide `DATABASE_URL`, and run:
+
+```bash
+npm run db:migrate
+npm run api
+```
+
+In another terminal:
+
+```bash
+cp .env.example .env
+npm run dev
+```
+
+Vite proxies `/api` to `http://127.0.0.1:8787`.
+
+## Verification
+
+```bash
+npm test
+npm run lint
 npm run build
+docker compose config
 ```
 
-## Supabase setup
-
-1. Create a Supabase project.
-2. Run `docs/supabase-schema.sql` in the Supabase SQL editor.
-3. Copy `.env.example` to `.env` and fill:
-
-```bash
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-If Supabase env vars are absent, the app runs in local demo mode using `localStorage`.
-
-## MVP testing
-
-Before sharing with testers, follow [`docs/mvp-test-checklist.md`](docs/mvp-test-checklist.md).
+See [deployment](docs/deployment.md) and the [MVP test checklist](docs/mvp-test-checklist.md) before sharing the app.
 
 ## Mobile packaging
 
@@ -62,7 +83,3 @@ npx cap open android
 ```
 
 Use `ios` instead of `android` on macOS with Xcode.
-
-## Legacy note
-
-The previous Ionic 3/Cordova prototype was replaced by this fresh migration because the old stack no longer builds reliably on modern Node and does not fit the anonymous link-based Bora use case.

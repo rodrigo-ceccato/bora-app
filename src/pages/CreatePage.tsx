@@ -29,6 +29,7 @@ export default function CreatePage() {
   const [isAlternativeModalOpen, setIsAlternativeModalOpen] = useState(false);
   const [days, setDays] = useState<ScheduleDay[]>(defaultDays());
   const [submitted, setSubmitted] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   useIonViewWillEnter(() => {
     if (mode === 'agora') setStartsAt(new Date().toISOString());
@@ -77,18 +78,28 @@ export default function CreatePage() {
       return;
     }
 
-    const event = await createEvent({
-      mode,
-      title: title.trim(),
-      place: place.trim(),
-      description: description.trim(),
-      threshold: thresholdNumber,
-      startsAt: mode === 'agora' || mode === 'mais-tarde' ? startsAt : undefined,
-      alternatives: mode === 'mais-tarde' ? alternatives : [],
-      days: mode === 'marcar' ? days : [],
-      createdByName: createdByName.trim()
-    });
-    router.push(`/e/${event.slug}?admin=${event.adminToken}&created=1`, 'forward');
+    setCreating(true);
+    try {
+      const event = await createEvent({
+        mode,
+        title: title.trim(),
+        place: place.trim(),
+        description: description.trim(),
+        threshold: thresholdNumber,
+        startsAt: mode === 'agora' || mode === 'mais-tarde' ? startsAt : undefined,
+        alternatives: mode === 'mais-tarde' ? alternatives : [],
+        days: mode === 'marcar' ? days : [],
+        createdByName: createdByName.trim()
+      });
+      router.push(`/e/${event.slug}?admin=${event.adminToken}&created=1`, 'forward');
+    } catch (error) {
+      toast({
+        message: error instanceof Error ? error.message : 'Não foi possível criar o Bora.',
+        color: 'danger',
+        duration: 3000
+      });
+      setCreating(false);
+    }
   }
 
   const detail = modeDetails[mode];
@@ -199,8 +210,12 @@ export default function CreatePage() {
               </section>
             )}
 
-            <IonNote className="guest-note">Convidados não precisam criar conta, mas devem informar o nome para votar.</IonNote>
-            <IonButton expand="block" size="large" onClick={submit}>Criar link do Bora</IonButton>
+            <IonNote className="guest-note">
+              Você já entra como confirmado ao criar. Convidados só precisam informar o nome para votar.
+            </IonNote>
+            <IonButton expand="block" size="large" onClick={submit} disabled={creating}>
+              {creating ? 'Criando...' : 'Criar link do Bora'}
+            </IonButton>
           </IonCardContent>
         </IonCard>
 

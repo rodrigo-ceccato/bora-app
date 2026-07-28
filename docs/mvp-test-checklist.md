@@ -1,86 +1,76 @@
 # Bora MVP pre-test checklist
 
-Use this before sharing the MVP with real testers.
-
-## 1. Local verification
+## 1. Automated verification
 
 ```bash
-npm install
 npm test
 npm run lint
 npm run build
-npm run dev
+docker compose config
 ```
 
-Pass criteria:
+All commands must pass.
 
-- All commands pass.
-- `/home`, `/create`, and `/e/:slug` render without console errors.
-- Mobile viewport and desktop viewport are usable.
+## 2. Shared environment
 
-## 2. Supabase verification
-
-1. Create a Supabase project.
-2. Run `docs/supabase-schema.sql`.
-3. Copy `.env.example` to `.env` and fill `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-4. Restart `npm run dev`.
-5. Confirm the home page says `Supabase configurado`.
+1. Copy `.env.docker.example` to `.env` and replace the database password.
+2. Run `docker compose up -d --build`.
+3. Open `http://localhost:8080/api/health`.
+4. Confirm the response is `{"status":"ok"}`.
 
 Pass criteria:
 
-- Created events open in a different browser/incognito window.
-- Votes submitted in one browser appear after refresh in another browser.
+- An event created in one browser opens in another browser or phone.
+- Votes appear after submission and after automatic refresh.
+- Opening a fake `?admin=` token does not expose creator controls.
+- A direct `/e/:slug` page load works.
 
-## 3. Deployment verification
+## 3. Creation and creator controls
 
-Deploy to Vercel, Netlify, or Cloudflare Pages with the same env vars.
+- The creator is automatically counted as confirmed.
+- The creator can copy a clean invite link.
+- The creator can recover the admin page under “Meus Boras neste aparelho.”
+- Closing voting disables guest voting.
+- Reopening voting enables it.
+- Deleting removes the event and its votes.
 
-Pass criteria:
+## 4. Guest voting
 
-- Public event link works on phone and desktop.
-- Invitee link does not include `?admin=`.
-- Admin link includes `?admin=` and should only be kept by the creator.
+- The voting form appears before group results.
+- A name is required.
+- Double-clicking does not create duplicate votes.
+- Voting again from the same browser updates the previous vote.
+- A clear saved state appears after voting.
+- “Alterar meu voto” restores the previous selection.
+- Declining does not record a preferred time or availability.
 
-## 4. Bora Agora flow
+## 5. Mode-specific checks
 
-1. Create a Bora Agora event.
-2. Set threshold to 3.
-3. Copy public invite link.
-4. Vote as three different names in incognito/private sessions.
+### Bora Agora
 
-Pass criteria:
+- The threshold includes the creator.
+- Status changes from “Faltam…” to “Vai acontecer!” at the threshold.
 
-- Invitees can vote without account.
-- Name is required.
-- Threshold text changes from `Faltam...` to `Vai acontecer!`.
-- Creator can close and reopen voting with the admin link.
+### Bora Mais Tarde
 
-## 5. Bora Mais Tarde flow
+- Main and alternative times display correctly in the test timezone.
+- Preferences count only “Bora” and “Talvez” responses.
 
-1. Create alternatives like `Hoje 20:00`, `Amanhã 19:30`, `Quarta 21:00`.
-2. Vote with accept/maybe/decline and different preferred options.
+### Bora Marcar
 
-Pass criteria:
+- Day cards scroll horizontally on small phones.
+- Hour labels are readable.
+- The creator starts available for every proposed slot.
+- Best times rank by availability and highlight the threshold.
 
-- Preferred option is shown in the votes list.
-- Threshold still uses accepted votes.
+## 6. Friends-and-family pilot
 
-## 6. Bora Marcar flow
+Start with 5–10 trusted people and Bora Agora. Record:
 
-1. Create at least three days.
-2. Add multiple hour slots for each day.
-3. Vote availability across horizontally scrollable day cards.
+- whether creation required help;
+- whether invitees understood the page without explanation;
+- time from opening the link to voting;
+- failed or duplicate submissions;
+- confusion about creator versus invite links.
 
-Pass criteria:
-
-- Day cards scroll horizontally on mobile.
-- Selected slots are visually highlighted before submit.
-- `Melhores horários` ranks slots by vote count.
-- Slots meeting the threshold are highlighted green.
-
-## 7. Known MVP limitations
-
-- No full account system yet.
-- Admin-token updates are suitable for private MVP tests only; production should move admin mutations to a Supabase Edge Function.
-- No anti-spam/CAPTCHA yet.
-- No realtime subscriptions yet; users refresh to see latest votes.
+Do not treat this build as a public anonymous service until rate limiting and operational backups are configured.

@@ -11,7 +11,7 @@ export interface ScheduleDay {
 export interface BoraEvent {
   id: string;
   slug: string;
-  adminToken: string;
+  adminToken?: string;
   mode: BoraMode;
   title: string;
   place: string;
@@ -28,6 +28,8 @@ export interface BoraEvent {
 export interface BoraVote {
   id: string;
   eventId: string;
+  participantId?: string;
+  isOwn?: boolean;
   voterName: string;
   response: VoteResponse;
   preferredOption?: string;
@@ -38,6 +40,7 @@ export interface BoraVote {
 export interface EventWithVotes {
   event: BoraEvent;
   votes: BoraVote[];
+  isAdmin?: boolean;
 }
 
 export interface EventDraft {

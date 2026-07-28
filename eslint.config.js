@@ -6,5 +6,16 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     ignores: ['dist', 'android', 'ios']
+  },
+  {
+    files: ['server/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly',
+        URL: 'readonly',
+        console: 'readonly',
+        process: 'readonly'
+      }
+    }
   }
 );

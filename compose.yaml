@@ -1,0 +1,53 @@
+services:
+  database:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bora}
+      POSTGRES_USER: ${POSTGRES_USER:-bora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
+    volumes:
+      - bora_database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      PORT: 8787
+      PGHOST: database
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:-bora}
+      PGUSER: ${POSTGRES_USER:-bora}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
+      DATABASE_POOL_SIZE: 10
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8787/api/health >/dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_API_URL: /api
+    restart: unless-stopped
+    ports:
+      - "${BORA_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  bora_database:
