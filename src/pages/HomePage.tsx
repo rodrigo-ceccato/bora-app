@@ -20,14 +20,14 @@ export default function HomePage() {
           <img className="bora-share-symbol" src={shareSymbol} alt="Símbolo de compartilhamento Bora" />
           <h1>Crie um convite, mande o link, combine sem fricção.</h1>
           <p>
-            Bora Agora, Bora Mais Tarde e Bora Marcar ajudam grupos a decidir se o rolê vai acontecer, sem obrigar convidados a criar conta.
+            Bora Agora, Bora Essa Semana e Bora Marcar ajudam grupos a decidir se o rolê vai acontecer, sem obrigar convidados a criar conta.
           </p>
           <div className="home-mode-actions" role="group" aria-label="Escolha o tipo de Bora">
             <IonButton routerLink="/create?mode=agora" size="large" expand="block" className="home-mode-button">
               <span className="mode-action-content"><span>BORA AGORA! 🧑‍🤝‍🧑</span><small>Quem topa sair hoje?</small></span>
             </IonButton>
             <IonButton routerLink="/create?mode=mais-tarde" size="large" expand="block" className="home-mode-button">
-              <span className="mode-action-content"><span>Bora mais tarde 🕒</span><small>Qual horário funciona hoje?</small></span>
+              <span className="mode-action-content"><span>Bora essa semana? 🗓️</span><small>Qual dia e horário dessa semana funcionam?</small></span>
             </IonButton>
             <IonButton routerLink="/create?mode=marcar" size="large" expand="block" className="home-mode-button">
               <span className="mode-action-content"><span>Bora marcar 📅</span><small>Qual dia funciona para todos?</small></span>

@@ -342,7 +342,7 @@ export default function EventPage() {
           <IonCard className="event-summary">
             <IonCardContent>
               <div className="event-kicker">
-                <span>{event.mode === 'agora' ? 'Bora agora' : event.mode === 'mais-tarde' ? 'Bora mais tarde' : 'Bora marcar'}</span>
+                <span>{event.mode === 'agora' ? 'Bora agora' : event.mode === 'mais-tarde' ? 'Bora essa semana' : 'Bora marcar'}</span>
                 {event.votingClosed && <span className="closed-pill">Encerrado</span>}
               </div>
               <h1>{event.title}</h1>

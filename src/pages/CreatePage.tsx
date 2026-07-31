@@ -8,7 +8,7 @@ import type { BoraMode, ScheduleDay } from '../lib/types';
 
 const modeDetails: Record<BoraMode, { title: string; description: string }> = {
   agora: { title: 'Bora Agora', description: 'Defina um horário e veja se a galera topa sair agora.' },
-  'mais-tarde': { title: 'Bora Mais Tarde', description: 'Escolha o horário principal e ofereça alternativas no mesmo dia.' },
+  'mais-tarde': { title: 'Bora essa semana?', description: 'Qual dia e horário dessa semana funcionam?' },
   marcar: { title: 'Bora Marcar', description: 'Adicione dias e horários para a galera informar disponibilidade.' }
 };
 
