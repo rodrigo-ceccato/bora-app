@@ -1,0 +1,19 @@
+[Unit]
+Description=Bora application stack (Docker Compose)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/bora
+ExecStart=/usr/bin/docker compose -f compose.yaml -f compose.prod.yaml up -d --remove-orphans
+ExecStop=/usr/bin/docker compose -f compose.yaml -f compose.prod.yaml stop
+ExecReload=/usr/bin/docker compose -f compose.yaml -f compose.prod.yaml up -d --remove-orphans
+# Finite, so a wedged compose run can never block boot indefinitely. The
+# containers also carry restart: unless-stopped, so they recover on their own.
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

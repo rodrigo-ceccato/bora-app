@@ -1,0 +1,13 @@
+{
+	email {$BORA_TLS_EMAIL}
+}
+
+{$BORA_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+	}
+
+	reverse_proxy web:80
+}

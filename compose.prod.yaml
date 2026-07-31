@@ -1,0 +1,38 @@
+# Production overlay: terminates TLS with Caddy and tunes PostgreSQL for a small VM.
+#
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+#
+# Requires BORA_DOMAIN in .env, and BORA_BIND=127.0.0.1 so the plain-HTTP web
+# container is only reachable through Caddy.
+services:
+  database:
+    command:
+      - postgres
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - max_connections=25
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=32MB
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      BORA_DOMAIN: ${BORA_DOMAIN:?set BORA_DOMAIN in .env}
+      BORA_TLS_EMAIL: ${BORA_TLS_EMAIL:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro,z
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -44,7 +44,8 @@ services:
         VITE_API_URL: /api
     restart: unless-stopped
     ports:
-      - "${BORA_PORT:-8080}:80"
+      # Behind a TLS proxy, set BORA_BIND=127.0.0.1 so plain HTTP is not public.
+      - "${BORA_BIND:-0.0.0.0}:${BORA_PORT:-8080}:80"
     depends_on:
       api:
         condition: service_healthy

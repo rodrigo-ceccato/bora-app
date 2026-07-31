@@ -73,6 +73,18 @@ docker compose config
 
 See [deployment](docs/deployment.md) and the [MVP test checklist](docs/mvp-test-checklist.md) before sharing the app.
 
+## Production host
+
+The live instance runs on a small Oracle VM behind Caddy. To ship a new version
+from a checkout:
+
+```bash
+./deploy/sync.sh
+```
+
+See the [operations runbook](docs/operations.md) for connecting, deploying,
+logs, backups, rollback, and DNS.
+
 ## Mobile packaging
 
 ```bash

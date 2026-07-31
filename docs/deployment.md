@@ -19,6 +19,51 @@ The nginx container serves the application, rewrites client routes such as `/e/:
 - `web`: static Vite build and nginx reverse proxy
 - `api`: Node API; applies SQL migrations before starting
 - `database`: PostgreSQL 16 with a persistent named volume
+- `caddy`: TLS termination and automatic Let's Encrypt certificates (`compose.prod.yaml` only)
+
+## Production overlay with HTTPS
+
+`compose.prod.yaml` adds a Caddy container on ports 80 and 443 that terminates
+TLS and proxies to `web`, and trims PostgreSQL's memory footprint so the stack
+fits on a 1 GB VM.
+
+Add to `.env`:
+
+```
+BORA_BIND=127.0.0.1
+BORA_DOMAIN=your-host.example.org
+BORA_TLS_EMAIL=you@example.org
+```
+
+`BORA_BIND=127.0.0.1` keeps the plain-HTTP `web` port on loopback so the only
+public entry points are Caddy's. Then run:
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+```
+
+Caddy requests a certificate on first start, so `BORA_DOMAIN` must already
+resolve to the server and inbound 80/443 must be reachable. Certificates are
+kept in the `caddy_data` volume and renew automatically.
+
+## Dynamic DNS with DuckDNS
+
+For a server without a static hostname, `deploy/duckdns-update.sh` plus the
+matching systemd service and timer keep a DuckDNS subdomain pointed at the
+machine's current public IP.
+
+```bash
+sudo install -m 755 deploy/duckdns-update.sh /usr/local/bin/duckdns-update.sh
+sudo install -m 644 deploy/duckdns.service /etc/systemd/system/
+sudo install -m 644 deploy/duckdns.timer /etc/systemd/system/
+printf 'DUCKDNS_DOMAIN=your-subdomain\nDUCKDNS_TOKEN=your-token\n' | sudo tee /etc/duckdns.env >/dev/null
+sudo chmod 600 /etc/duckdns.env
+sudo systemctl daemon-reload
+sudo systemctl enable --now duckdns.timer
+```
+
+`DUCKDNS_DOMAIN` is the bare label (`bora-app`), not the full hostname. The
+timer refreshes the record every five minutes and on boot.
 
 ## Backups
 
@@ -34,7 +79,7 @@ Restore into an empty database only after testing the backup procedure in a non-
 
 ```bash
 git pull
-docker compose up -d --build
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build
 ```
 
 New SQL files in `server/migrations` run once at API startup and are recorded in the `schema_migrations` table. Never edit a migration that has already reached a shared environment; add a new numbered migration instead.
