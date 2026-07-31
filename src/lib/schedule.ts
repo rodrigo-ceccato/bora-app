@@ -1,4 +1,5 @@
 import type { ScheduleDay } from './types';
+import { localDateKey } from './datetime';
 
 export function uid(prefix = 'id') {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
@@ -19,7 +20,7 @@ export function defaultDays(): ScheduleDay[] {
   return [0, 1, 2].map((offset) => {
     const date = new Date(today);
     date.setDate(today.getDate() + offset);
-    const iso = date.toISOString().slice(0, 10);
+    const iso = localDateKey(date);
     return {
       id: uid('day'),
       label: date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }),

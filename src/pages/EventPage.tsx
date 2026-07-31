@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { deleteEvent, getEvent, getParticipantId, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
 import { responseLabel } from '../lib/schedule';
+import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
 import type { BoraEvent, BoraVote, EventWithVotes, VoteResponse } from '../lib/types';
 
 function useQuery() {
@@ -126,7 +127,7 @@ export default function EventPage() {
 
   function openEdit() {
     if (!data) return;
-    setEditEvent({ ...data.event, days: data.event.days.map((day) => ({ ...day, slots: [...day.slots] })), alternatives: [...data.event.alternatives] });
+    setEditEvent({ ...data.event, startsAt: toPickerValue(data.event.startsAt), days: data.event.days.map((day) => ({ ...day, slots: [...day.slots] })), alternatives: [...data.event.alternatives] });
   }
 
   function updateEdit(patch: Partial<BoraEvent>) {
@@ -147,7 +148,7 @@ export default function EventPage() {
   }
 
   function addEditDay() {
-    const date = new Date().toISOString().slice(0, 10);
+    const date = localDateKey();
     setEditEvent((current) => current ? {
       ...current,
       days: [...current.days, { id: `day_${Date.now()}`, label: 'Novo dia', date, slots: [] }]
@@ -170,6 +171,7 @@ export default function EventPage() {
     try {
       const updated = await updateEvent(adminToken, {
         ...editEvent,
+        startsAt: editEvent.startsAt ? toInstantIso(editEvent.startsAt) : undefined,
         title: editEvent.title.trim(),
         place: editEvent.place.trim(),
         description: editEvent.description?.trim(),

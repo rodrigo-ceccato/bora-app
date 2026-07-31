@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { createEvent } from '../lib/store';
 import { defaultDays, uid } from '../lib/schedule';
+import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
 import type { BoraMode, ScheduleDay } from '../lib/types';
 
 const modeDetails: Record<BoraMode, { title: string; description: string }> = {
@@ -23,7 +24,7 @@ export default function CreatePage() {
   const [place, setPlace] = useState('');
   const [description, setDescription] = useState('');
   const [threshold, setThreshold] = useState('3');
-  const [startsAt, setStartsAt] = useState(new Date().toISOString());
+  const [startsAt, setStartsAt] = useState(() => toPickerValue(new Date().toISOString())!);
   const [createdByName, setCreatedByName] = useState('');
   const [alternatives, setAlternatives] = useState<string[]>([]);
   const [isAlternativeModalOpen, setIsAlternativeModalOpen] = useState(false);
@@ -32,7 +33,7 @@ export default function CreatePage() {
   const [creating, setCreating] = useState(false);
 
   useIonViewWillEnter(() => {
-    if (mode === 'agora') setStartsAt(new Date().toISOString());
+    if (mode === 'agora') setStartsAt(toPickerValue(new Date().toISOString())!);
   }, [mode]);
 
   const thresholdNumber = Number(threshold);
@@ -55,7 +56,7 @@ export default function CreatePage() {
   }
 
   function addDay() {
-    setDays((current) => [...current, { id: uid('day'), label: 'Novo dia', date: new Date().toISOString().slice(0, 10), slots: ['18:00', '19:00'] }]);
+    setDays((current) => [...current, { id: uid('day'), label: 'Novo dia', date: localDateKey(), slots: ['18:00', '19:00'] }]);
   }
 
   function removeDay(dayId: string) {
@@ -86,7 +87,7 @@ export default function CreatePage() {
         place: place.trim(),
         description: description.trim(),
         threshold: thresholdNumber,
-        startsAt: mode === 'agora' || mode === 'mais-tarde' ? startsAt : undefined,
+        startsAt: mode === 'agora' || mode === 'mais-tarde' ? toInstantIso(startsAt) : undefined,
         alternatives: mode === 'mais-tarde' ? alternatives : [],
         days: mode === 'marcar' ? days : [],
         createdByName: createdByName.trim()

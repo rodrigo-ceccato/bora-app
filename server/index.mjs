@@ -54,7 +54,12 @@ function validIsoDate(value, required = false) {
   if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) {
     throw httpError(400, 'Data ou horário inválido.');
   }
-  return value;
+  // An offset-less value is a wall clock, not an instant: Postgres would resolve it
+  // against the server session zone and silently shift the event for everyone else.
+  if (!/(Z|[+-]\d{2}:?\d{2})$/.test(value)) {
+    throw httpError(400, 'Data ou horário deve incluir o fuso horário.');
+  }
+  return new Date(value).toISOString();
 }
 
 function validateDays(value) {
