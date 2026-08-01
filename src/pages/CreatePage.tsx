@@ -64,8 +64,7 @@ export default function CreatePage() {
   }
 
   function addAlternative(hoursFromStart: number) {
-    const alternativeTime = new Date(new Date(startsAt).getTime() + hoursFromStart * 60 * 60 * 1000)
-      .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const alternativeTime = new Date(new Date(startsAt).getTime() + hoursFromStart * 60 * 60 * 1000).toISOString();
     setAlternatives((current) => current.includes(alternativeTime) ? current : [...current, alternativeTime]);
     setIsAlternativeModalOpen(false);
   }
@@ -169,7 +168,7 @@ export default function CreatePage() {
                     <div className="alternative-list" aria-label="Horários alternativos">
                       {alternatives.map((alternative) => (
                         <span className="alternative-chip" key={alternative}>
-                          {alternative}
+                          {new Date(alternative).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           <IonButton fill="clear" size="small" aria-label={`Remover horário ${alternative}`} onClick={() => setAlternatives((current) => current.filter((item) => item !== alternative))}>×</IonButton>
                         </span>
                       ))}

@@ -250,6 +250,13 @@ body { background: #f6f8fb; }
 
 .ready-card p { margin: 3px 0 0; color: #52616f; font-size: 0.88rem; }
 .ready-card ion-button { flex: 0 0 auto; margin: 0; text-transform: none; }
+.decided-message {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #e9f8f1;
+  color: #17663e;
+}
 
 .admin-panel {
   border: 1px solid #dfe3e8;

@@ -1,9 +1,10 @@
-import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonRadio, IonRadioGroup, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
+import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { deleteEvent, getEvent, getParticipantId, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
 import { responseLabel } from '../lib/schedule';
 import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
+import { eventOptions, optionLabel } from '../lib/options';
 import type { BoraEvent, BoraVote, EventWithVotes, VoteResponse } from '../lib/types';
 
 function useQuery() {
@@ -22,10 +23,6 @@ function statusText(event: BoraEvent, votes: BoraVote[]) {
   return `${remaining === 1 ? 'Falta 1 confirmação' : `Faltam ${remaining} confirmações`}. ${accepted}/${event.threshold} até agora.`;
 }
 
-function formatTime(value?: string) {
-  return value ? new Date(value).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
-}
-
 const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`);
 
 function slotSummary(event: BoraEvent, votes: BoraVote[]) {
@@ -38,10 +35,10 @@ function slotSummary(event: BoraEvent, votes: BoraVote[]) {
 }
 
 function preferenceSummary(event: BoraEvent, votes: BoraVote[]) {
-  const options = Array.from(new Set([formatTime(event.startsAt), ...event.alternatives].filter(Boolean)));
+  const options = eventOptions(event);
   return options.map((option) => ({
     option,
-    count: votes.filter((vote) => vote.response !== 'decline' && (vote.preferredOption || formatTime(event.startsAt)) === option).length
+    count: votes.filter((vote) => vote.response !== 'decline' && vote.preferredOptions.includes(option.id)).length
   })).sort((a, b) => b.count - a.count);
 }
 
@@ -55,7 +52,7 @@ export default function EventPage() {
   const [data, setData] = useState<EventWithVotes | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState(localStorage.getItem('bora_voter_name') || '');
-  const [preferredOption, setPreferredOption] = useState('');
+  const [preferredOptions, setPreferredOptions] = useState<string[]>([]);
   const [availability, setAvailability] = useState<Record<string, string[]>>({});
   const [editEvent, setEditEvent] = useState<BoraEvent | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -83,7 +80,7 @@ export default function EventPage() {
         if (!hydratedVote.current && result) {
           if (ownVote) setName(ownVote.voterName);
           if (result.event.mode === 'mais-tarde') {
-            setPreferredOption(ownVote?.preferredOption || formatTime(result.event.startsAt) || result.event.alternatives[0] || '');
+            setPreferredOptions(ownVote?.preferredOptions || (result.event.startsAt ? [result.event.startsAt] : []));
           }
           if (result.event.mode === 'marcar' && ownVote) {
             setAvailability(ownVote.availability);
@@ -123,6 +120,12 @@ export default function EventPage() {
       const next = selected.includes(slot) ? selected.filter((item) => item !== slot) : [...selected, slot];
       return { ...current, [dayId]: next };
     });
+  }
+
+  function togglePreferredOption(optionId: string) {
+    setPreferredOptions((current) => current.includes(optionId)
+      ? current.filter((item) => item !== optionId)
+      : [...current, optionId]);
   }
 
   function openEdit() {
@@ -198,6 +201,10 @@ export default function EventPage() {
       return;
     }
     const selectedSlots = Object.values(availability).flat();
+    if (data.event.mode === 'mais-tarde' && response !== 'decline' && preferredOptions.length === 0) {
+      toast({ message: 'Marque pelo menos um horário ou selecione “Não posso”.', color: 'danger', duration: 2600 });
+      return;
+    }
     if (data.event.mode === 'marcar' && response !== 'decline' && selectedSlots.length === 0) {
       toast({ message: 'Marque pelo menos um horário ou selecione “Não posso”.', color: 'danger', duration: 2600 });
       return;
@@ -208,7 +215,7 @@ export default function EventPage() {
       await submitVote(data.event, {
         voterName: name.trim(),
         response,
-        preferredOption: data.event.mode === 'mais-tarde' && response !== 'decline' ? preferredOption : undefined,
+        preferredOptions: data.event.mode === 'mais-tarde' && response !== 'decline' ? preferredOptions : [],
         availability: data.event.mode === 'marcar' && response !== 'decline' ? availability : {}
       });
       const refreshed = await getEvent(slug, adminToken);
@@ -236,6 +243,34 @@ export default function EventPage() {
       });
     } catch (error) {
       toast({ message: error instanceof Error ? error.message : 'Não foi possível atualizar a votação.', color: 'danger', duration: 2600 });
+    } finally {
+      setSavingAdminAction(false);
+    }
+  }
+
+  async function decideOption(optionId: string) {
+    if (!data || !isAdmin) return;
+    setSavingAdminAction(true);
+    try {
+      const updated = await updateEvent(adminToken, { ...data.event, decidedOption: optionId, votingClosed: true });
+      setData((current) => current ? { ...current, event: updated } : current);
+      toast({ message: 'Horário definido e votação encerrada.', color: 'success', duration: 2200 });
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : 'Não foi possível definir o horário.', color: 'danger', duration: 2600 });
+    } finally {
+      setSavingAdminAction(false);
+    }
+  }
+
+  async function clearDecision() {
+    if (!data || !isAdmin) return;
+    setSavingAdminAction(true);
+    try {
+      const updated = await updateEvent(adminToken, { ...data.event, decidedOption: undefined, decidedAt: undefined, votingClosed: false });
+      setData((current) => current ? { ...current, event: updated } : current);
+      toast({ message: 'Decisão removida e votação reaberta.', color: 'success', duration: 2200 });
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : 'Não foi possível reabrir a votação.', color: 'danger', duration: 2600 });
     } finally {
       setSavingAdminAction(false);
     }
@@ -311,9 +346,7 @@ export default function EventPage() {
   }
 
   const { event, votes } = data;
-  const preferredOptions = event.mode === 'mais-tarde'
-    ? Array.from(new Set([formatTime(event.startsAt), ...event.alternatives].filter(Boolean)))
-    : [];
+  const preferredTimeOptions = event.mode === 'mais-tarde' ? eventOptions(event) : [];
   const ownVote = votes.find((vote) => vote.isOwn || vote.participantId === getParticipantId());
   const showVoteConfirmation = !isAdmin && !editingVote && Boolean(voteSubmitted || ownVote);
   const confirmationProgress = Math.min(100, (counts.accept / event.threshold) * 100);
@@ -346,6 +379,7 @@ export default function EventPage() {
                 {event.votingClosed && <span className="closed-pill">Encerrado</span>}
               </div>
               <h1>{event.title}</h1>
+              {event.decidedOption && <p className="decided-message"><strong>✓ Definido:</strong> {optionLabel(event, event.decidedOption)}</p>}
               <div className="event-facts">
                 <p><span aria-hidden="true">📍</span><span><small>Local</small><strong>{event.place}</strong></span></p>
                 {event.startsAt && <p><span aria-hidden="true">🗓️</span><span><small>Quando</small><strong>{new Date(event.startsAt).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' })}</strong></span></p>}
@@ -372,7 +406,7 @@ export default function EventPage() {
           )}
 
           <div>
-            {!isAdmin && (
+            {!isAdmin && !event.decidedOption && (
               <IonCard className={`vote-card ${showVoteConfirmation ? 'vote-card-complete' : ''}`}>
                 <IonCardContent>
                   {showVoteConfirmation ? (
@@ -382,7 +416,7 @@ export default function EventPage() {
                         <h2>Voto registrado</h2>
                         <p>
                         {ownVote
-                          ? `${responseLabel(ownVote.response)}${ownVote.preferredOption ? ` · prefere ${ownVote.preferredOption}` : ''}`
+                          ? `${responseLabel(ownVote.response)}${ownVote.preferredOptions.length ? ` · pode ${ownVote.preferredOptions.map((option) => optionLabel(event, option)).join(', ')}` : ''}`
                           : 'Sua resposta foi salva.'}
                         </p>
                       </div>
@@ -398,11 +432,15 @@ export default function EventPage() {
                       <IonItem className="name-field" lines="none"><IonLabel position="stacked">Seu nome</IonLabel><IonInput value={name} onIonInput={(e) => setName(e.detail.value || '')} placeholder="Como a galera te chama?" required /></IonItem>
 
                       {event.mode === 'mais-tarde' && (
-                        <IonRadioGroup className="time-options" value={preferredOption} onIonChange={(e) => setPreferredOption(e.detail.value)}>
-                          {preferredOptions.map((option, index) => (
-                            <IonItem key={option} lines="none"><IonRadio value={option} /><IonLabel className="ion-margin-start">{index === 0 ? `Principal · ${option}` : option}</IonLabel></IonItem>
+                        <div className="time-options">
+                          <h3>Marque todos os horários que funcionam</h3>
+                          {preferredTimeOptions.map((option) => (
+                            <IonItem key={option.id} lines="none">
+                              <IonCheckbox checked={preferredOptions.includes(option.id)} onIonChange={() => togglePreferredOption(option.id)} />
+                              <IonLabel className="ion-margin-start">{option.primary ? `Principal · ${option.label}` : option.label}</IonLabel>
+                            </IonItem>
                           ))}
-                        </IonRadioGroup>
+                        </div>
                       )}
 
                       {event.mode === 'marcar' && (
@@ -461,6 +499,10 @@ export default function EventPage() {
                       <div><strong>Receber novos votos</strong><span>{event.votingClosed ? 'A votação está encerrada.' : 'Convidados ainda podem responder.'}</span></div>
                       <IonButton fill="outline" onClick={() => void toggleVoting()} disabled={savingAdminAction}>{event.votingClosed ? 'Reabrir' : 'Encerrar'}</IonButton>
                     </div>
+                    {event.decidedOption && <div className="settings-row">
+                      <div><strong>Horário definido</strong><span>{optionLabel(event, event.decidedOption)}</span></div>
+                      <IonButton fill="outline" onClick={() => void clearDecision()} disabled={savingAdminAction}>Alterar decisão</IonButton>
+                    </div>}
                     <div className="settings-row">
                       <div><strong>Detalhes do evento</strong><span>Nome, local, meta e horários.</span></div>
                       <IonButton fill="outline" onClick={openEdit}>Editar</IonButton>
@@ -494,6 +536,7 @@ export default function EventPage() {
                           <span style={{ width: `${percentage}%` }} />
                         </div>
                         <span>{item.names.join(', ') || 'Sem votos'}</span>
+                        {isAdmin && !event.decidedOption && <IonButton size="small" fill="outline" onClick={() => void decideOption(`${item.day.id}:${item.slot}`)} disabled={savingAdminAction}>Escolher</IonButton>}
                       </div>
                     );
                   })}
@@ -508,13 +551,14 @@ export default function EventPage() {
                   {timePreferences.map((item) => {
                     const percentage = votes.length ? (item.count / votes.length) * 100 : 0;
                     return (
-                      <div className="result-row" key={item.option}>
-                        <strong>{item.option === formatTime(event.startsAt) ? `Horário principal · ${item.option}` : item.option}</strong>
+                      <div className="result-row" key={item.option.id}>
+                        <strong>{item.option.primary ? `Horário principal · ${item.option.label}` : item.option.label}</strong>
                         <IonBadge color={item.count > 0 ? 'primary' : 'medium'}>{item.count}</IonBadge>
-                        <div className="result-progress" role="progressbar" aria-label={`${item.option}: ${item.count} preferências`} aria-valuemin={0} aria-valuemax={votes.length} aria-valuenow={item.count}>
+                        <div className="result-progress" role="progressbar" aria-label={`${item.option.label}: ${item.count} preferências`} aria-valuemin={0} aria-valuemax={votes.length} aria-valuenow={item.count}>
                           <span style={{ width: `${percentage}%` }} />
                         </div>
                         <span>{item.count === 1 ? '1 preferência' : `${item.count} preferências`}</span>
+                        {isAdmin && !event.decidedOption && <IonButton size="small" fill="outline" onClick={() => void decideOption(item.option.id)} disabled={savingAdminAction}>Escolher</IonButton>}
                       </div>
                     );
                   })}
@@ -538,7 +582,7 @@ export default function EventPage() {
                     <IonItem key={vote.id}>
                       <IonLabel>
                         <h3>{vote.voterName}</h3>
-                        <p>{responseLabel(vote.response)}{vote.preferredOption ? ` · prefere ${vote.preferredOption}` : ''}</p>
+                        <p>{responseLabel(vote.response)}{vote.preferredOptions.length ? ` · pode ${vote.preferredOptions.map((option) => optionLabel(event, option)).join(', ')}` : ''}</p>
                       </IonLabel>
                     </IonItem>
                   ))}

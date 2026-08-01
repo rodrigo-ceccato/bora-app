@@ -1,5 +1,7 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { pool, withTransaction } from './db.mjs';
 
 const port = Number(process.env.PORT || 8787);
@@ -79,10 +81,10 @@ function validateDays(value) {
   });
 }
 
-function validateEvent(input) {
+export function validateEvent(input) {
   const mode = modes.has(input?.mode) ? input.mode : null;
   if (!mode) throw httpError(400, 'Tipo de Bora inválido.');
-  return {
+  const event = {
     mode,
     title: text(input.title, 120, true),
     place: text(input.place, 240, true),
@@ -96,9 +98,41 @@ function validateEvent(input) {
     createdByName: text(input.createdByName, 80, true),
     votingClosed: Boolean(input.votingClosed)
   };
+  const decidedOption = text(input.decidedOption, 200);
+  if (decidedOption && !eventOptionIds(event).has(decidedOption)) {
+    throw httpError(400, 'O horário escolhido não pertence a este Bora.');
+  }
+  return { ...event, decidedOption: decidedOption || null };
 }
 
-function validateVote(input, event) {
+export function eventOptionIds(event) {
+  if (event.mode === 'mais-tarde') {
+    return new Set([event.startsAt, ...event.alternatives].filter(Boolean).map((value) => (
+      !Number.isNaN(Date.parse(value)) ? new Date(value).toISOString() : `legacy:${value}`
+    )));
+  }
+  if (event.mode === 'marcar') {
+    return new Set(event.days.flatMap((day) => day.slots.map((slot) => `${day.id}:${slot}`)));
+  }
+  return new Set();
+}
+
+export function validatePreferredOptions(input, event, required = false) {
+  const raw = Array.isArray(input?.preferredOptions)
+    ? input.preferredOptions
+    : input?.preferredOption ? [input.preferredOption] : [];
+  const allowed = eventOptionIds(event);
+  const preferredOptions = Array.from(new Set(raw
+    .filter((value) => typeof value === 'string')
+    .map((value) => text(value, 200))
+    .filter((value) => allowed.has(value))));
+  if (required && preferredOptions.length === 0) {
+    throw httpError(400, 'Marque pelo menos um horário ou selecione “Não posso”.');
+  }
+  return preferredOptions;
+}
+
+export function validateVote(input, event) {
   const response = responses.has(input?.response) ? input.response : null;
   if (!response) throw httpError(400, 'Resposta inválida.');
   const participantId = text(input.participantId, 100, true);
@@ -120,9 +154,9 @@ function validateVote(input, event) {
     participantId,
     voterName: text(input.voterName, 80, true),
     response,
-    preferredOption: event.mode === 'mais-tarde' && response !== 'decline'
-      ? text(input.preferredOption, 80, true)
-      : null,
+    preferredOptions: event.mode === 'mais-tarde' && response !== 'decline'
+      ? validatePreferredOptions(input, event, true)
+      : [],
     availability: event.mode === 'marcar' && response !== 'decline' ? cleanedAvailability : {}
   };
 }
@@ -141,6 +175,8 @@ function mapEvent(row) {
     days: row.days || [],
     createdByName: row.created_by_name,
     votingClosed: row.voting_closed,
+    decidedOption: row.decided_option || undefined,
+    decidedAt: row.decided_at?.toISOString?.() || row.decided_at || undefined,
     createdAt: row.created_at?.toISOString?.() || row.created_at
   };
 }
@@ -152,7 +188,7 @@ function mapVote(row, viewerParticipantId = '') {
     isOwn: Boolean(viewerParticipantId && row.participant_id === viewerParticipantId),
     voterName: row.voter_name,
     response: row.response,
-    preferredOption: row.preferred_option || undefined,
+    preferredOptions: row.preferred_options || (row.preferred_option ? [`legacy:${row.preferred_option}`] : []),
     availability: row.availability || {},
     createdAt: row.created_at?.toISOString?.() || row.created_at
   };
@@ -247,9 +283,9 @@ async function route(request, response) {
     const availability = eventInput.mode === 'marcar'
       ? Object.fromEntries(eventInput.days.map((day) => [day.id, [...day.slots]]))
       : {};
-    const preferredOption = eventInput.mode === 'mais-tarde'
-      ? text(body.creatorPreferredOption, 80, true)
-      : null;
+    const preferredOptions = eventInput.mode === 'mais-tarde'
+      ? validatePreferredOptions({ preferredOptions: body.creatorPreferredOptions }, eventInput, true)
+      : [];
 
     const result = await withTransaction(async (client) => {
       const insertedEvent = await client.query(
@@ -262,9 +298,9 @@ async function route(request, response) {
       );
       const insertedVote = await client.query(
         `insert into votes
-          (id, event_id, participant_id, voter_name, response, preferred_option, availability)
+          (id, event_id, participant_id, voter_name, response, preferred_options, availability)
          values ($1,$2,$3,$4,'accept',$5,$6) returning *`,
-        [voteId, eventId, participantId, eventInput.createdByName, preferredOption, JSON.stringify(availability)]
+        [voteId, eventId, participantId, eventInput.createdByName, JSON.stringify(preferredOptions), JSON.stringify(availability)]
       );
       return { event: insertedEvent.rows[0], vote: insertedVote.rows[0] };
     });
@@ -297,17 +333,17 @@ async function route(request, response) {
       const vote = validateVote(await readJson(request), event);
       const result = await pool.query(
         `insert into votes
-          (id, event_id, participant_id, voter_name, response, preferred_option, availability)
+          (id, event_id, participant_id, voter_name, response, preferred_options, availability)
          values ($1,$2,$3,$4,$5,$6,$7)
          on conflict (event_id, participant_id) do update set
            voter_name = excluded.voter_name,
            response = excluded.response,
-           preferred_option = excluded.preferred_option,
+           preferred_options = excluded.preferred_options,
            availability = excluded.availability,
            updated_at = now()
          returning *`,
         [uid('vote'), event.id, vote.participantId, vote.voterName, vote.response,
-          vote.preferredOption, JSON.stringify(vote.availability)]
+          JSON.stringify(vote.preferredOptions), JSON.stringify(vote.availability)]
       );
       return send(response, 200, { vote: mapVote(result.rows[0], vote.participantId) });
     }
@@ -318,10 +354,12 @@ async function route(request, response) {
       const result = await pool.query(
         `update events set
           title=$1, place=$2, description=$3, threshold=$4, starts_at=$5,
-          alternatives=$6, days=$7, voting_closed=$8
-         where id=$9 returning *`,
+          alternatives=$6, days=$7, voting_closed=$8, decided_option=$9,
+          decided_at=case when $9 is null then null when decided_option is distinct from $9 then now() else decided_at end
+         where id=$10 returning *`,
         [input.title, input.place, input.description, input.threshold, input.startsAt,
-          JSON.stringify(input.alternatives), JSON.stringify(input.days), input.votingClosed, current.id]
+          JSON.stringify(input.alternatives), JSON.stringify(input.days), input.decidedOption ? true : input.votingClosed,
+          input.decidedOption, current.id]
       );
       return send(response, 200, { event: mapEvent(result.rows[0]), isAdmin: true });
     }
@@ -362,12 +400,13 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(port, () => console.log(`Bora API listening on http://0.0.0.0:${port}`));
-
 async function shutdown() {
   server.close();
   await pool.end();
 }
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  server.listen(port, () => console.log(`Bora API listening on http://0.0.0.0:${port}`));
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+}

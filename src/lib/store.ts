@@ -9,7 +9,18 @@ const ADMIN_EVENTS_KEY = 'bora_admin_events';
 type ApiEventResponse = EventWithVotes & { adminToken?: string };
 
 function readLocal(): EventWithVotes[] {
-  return JSON.parse(localStorage.getItem(LOCAL_EVENTS_KEY) || '[]');
+  const items = JSON.parse(localStorage.getItem(LOCAL_EVENTS_KEY) || '[]') as EventWithVotes[];
+  return items.map((item) => ({
+    ...item,
+    votes: item.votes.map((vote) => ({
+      ...vote,
+      preferredOptions: Array.isArray(vote.preferredOptions)
+        ? vote.preferredOptions
+        : (vote as BoraVote & { preferredOption?: string }).preferredOption
+          ? [(vote as BoraVote & { preferredOption?: string }).preferredOption!]
+          : []
+    }))
+  }));
 }
 
 function writeLocal(items: EventWithVotes[]) {
@@ -74,12 +85,10 @@ export function subscribeToEvent(_eventId: string, onChange: () => void) {
 export async function createEvent(draft: EventDraft): Promise<BoraEvent> {
   const participantId = getParticipantId();
   if (API_BASE) {
-    const creatorPreferredOption = draft.mode === 'mais-tarde' && draft.startsAt
-      ? new Date(draft.startsAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-      : undefined;
+    const creatorPreferredOptions = draft.mode === 'mais-tarde' && draft.startsAt ? [draft.startsAt] : [];
     const result = await apiRequest<ApiEventResponse>('/events', {
       method: 'POST',
-      body: JSON.stringify({ event: draft, participantId, creatorPreferredOption })
+      body: JSON.stringify({ event: draft, participantId, creatorPreferredOptions })
     });
     if (!result.adminToken) throw new Error('O servidor não retornou o link de administrador.');
     rememberAdminEvent(result.event, result.adminToken);
@@ -100,9 +109,7 @@ export async function createEvent(draft: EventDraft): Promise<BoraEvent> {
     participantId,
     voterName: event.createdByName || '',
     response: 'accept',
-    preferredOption: event.mode === 'mais-tarde' && event.startsAt
-      ? new Date(event.startsAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-      : undefined,
+    preferredOptions: event.mode === 'mais-tarde' && event.startsAt ? [event.startsAt] : [],
     availability: event.mode === 'marcar'
       ? Object.fromEntries(event.days.map((day) => [day.id, [...day.slots]]))
       : {},

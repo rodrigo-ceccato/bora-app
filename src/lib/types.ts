@@ -22,6 +22,8 @@ export interface BoraEvent {
   days: ScheduleDay[];
   createdByName?: string;
   votingClosed: boolean;
+  decidedOption?: string;
+  decidedAt?: string;
   createdAt: string;
 }
 
@@ -32,7 +34,7 @@ export interface BoraVote {
   isOwn?: boolean;
   voterName: string;
   response: VoteResponse;
-  preferredOption?: string;
+  preferredOptions: string[];
   availability: Record<string, string[]>;
   createdAt: string;
 }
