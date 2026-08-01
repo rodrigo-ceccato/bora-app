@@ -41,6 +41,14 @@ chosen*.
   header badge ("Decidido — quinta, 18:00"). Keep the vote counts visible; people
   still want to see how close it was.
 
+- Notification system (from browser? shoudl work on mobile too).
+
+- use local storage and or cookies to show presistente list of ongoing accepted/votting events
+
+- Generate google agenda adder handle, or link, something like that from the event page (from manager and for voteees to access, when date is decided)
+
+- Check if, when suggesting, votters can pick multiple possible dates. the creator of the event can 'close' the event and pick any of the dates that have a minumum of votes on (if minum is 3, the date/hour options with less than 3 should be grayed out)
+
 ### Fix this bug as part of the work
 
 **Votes are currently matched by rendered display string.** `preferred_option` is
