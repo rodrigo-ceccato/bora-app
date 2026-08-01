@@ -355,7 +355,7 @@ async function route(request, response) {
         `update events set
           title=$1, place=$2, description=$3, threshold=$4, starts_at=$5,
           alternatives=$6, days=$7, voting_closed=$8, decided_option=$9,
-          decided_at=case when $9 is null then null when decided_option is distinct from $9 then now() else decided_at end
+          decided_at=case when $9::text is null then null when decided_option is distinct from $9 then now() else decided_at end
          where id=$10 returning *`,
         [input.title, input.place, input.description, input.threshold, input.startsAt,
           JSON.stringify(input.alternatives), JSON.stringify(input.days), input.decidedOption ? true : input.votingClosed,
