@@ -8,6 +8,11 @@ const ADMIN_EVENTS_KEY = 'bora_admin_events';
 
 type ApiEventResponse = EventWithVotes & { adminToken?: string };
 
+export interface MyEvents {
+  created: BoraEvent[];
+  joined: BoraEvent[];
+}
+
 function readLocal(): EventWithVotes[] {
   const items = JSON.parse(localStorage.getItem(LOCAL_EVENTS_KEY) || '[]') as EventWithVotes[];
   return items.map((item) => ({
@@ -58,6 +63,19 @@ export function listAdminEvents() {
     title: string;
     adminToken: string;
   }>;
+}
+
+export async function listMyEvents(): Promise<MyEvents> {
+  if (API_BASE) {
+    return apiRequest<MyEvents>('/me/events', {
+      headers: { 'x-participant-id': getParticipantId() }
+    });
+  }
+  const items = readLocal();
+  return {
+    created: items.filter((item) => item.isAdmin).map((item) => item.event),
+    joined: items.filter((item) => !item.isAdmin).map((item) => item.event)
+  };
 }
 
 async function apiRequest<T>(path: string, init: RequestInit = {}, adminToken?: string): Promise<T> {

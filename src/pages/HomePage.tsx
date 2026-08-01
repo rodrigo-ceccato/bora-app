@@ -33,6 +33,7 @@ export default function HomePage() {
               <span className="mode-action-content"><span>Bora marcar 📅</span><small>Qual dia funciona para todos?</small></span>
             </IonButton>
           </div>
+          <IonButton fill="outline" expand="block" routerLink="/my-events">Meus Boras</IonButton>
           {createdEvents.length > 0 && (
             <IonCard className="created-events-card">
               <IonCardContent>

@@ -272,6 +272,32 @@ async function route(request, response) {
     return send(response, 200, { status: 'ok' });
   }
 
+  if (request.method === 'GET' && url.pathname === '/api/me/events') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const [created, joined] = await Promise.all([
+      pool.query(
+        `select * from events
+         where created_by_participant_id = $1
+         order by coalesce(starts_at, created_at) desc
+         limit 100`,
+        [participantId]
+      ),
+      pool.query(
+        `select events.* from events
+         join votes on votes.event_id = events.id
+         where votes.participant_id = $1
+           and events.created_by_participant_id is distinct from $1
+         order by coalesce(events.starts_at, events.created_at) desc
+         limit 100`,
+        [participantId]
+      )
+    ]);
+    return send(response, 200, {
+      created: created.rows.map(mapEvent),
+      joined: joined.rows.map(mapEvent)
+    });
+  }
+
   if (request.method === 'POST' && url.pathname === '/api/events') {
     const body = await readJson(request);
     const eventInput = validateEvent(body.event || body);
@@ -290,11 +316,11 @@ async function route(request, response) {
     const result = await withTransaction(async (client) => {
       const insertedEvent = await client.query(
         `insert into events
-          (id, slug, admin_token_hash, mode, title, place, description, threshold, starts_at, alternatives, days, created_by_name)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning *`,
+          (id, slug, admin_token_hash, mode, title, place, description, threshold, starts_at, alternatives, days, created_by_name, created_by_participant_id)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) returning *`,
         [eventId, slug, tokenHash(adminToken), eventInput.mode, eventInput.title, eventInput.place,
           eventInput.description, eventInput.threshold, eventInput.startsAt,
-          JSON.stringify(eventInput.alternatives), JSON.stringify(eventInput.days), eventInput.createdByName]
+          JSON.stringify(eventInput.alternatives), JSON.stringify(eventInput.days), eventInput.createdByName, participantId]
       );
       const insertedVote = await client.query(
         `insert into votes

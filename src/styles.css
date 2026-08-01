@@ -341,6 +341,14 @@ body { background: #f6f8fb; }
   --background: #fff;
 }
 
+.my-events-intro { margin: 10px 0 24px; }
+.my-events-intro h1, .my-events-section h2 { color: #17212b; }
+.my-events-intro p { color: #66717d; }
+.my-events-section { margin: 28px 0; }
+.my-event-card ion-card-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.my-event-card h3 { margin: 0 0 5px; }
+.my-event-card p { margin: 0; color: #66717d; }
+
 .vote-confirmation p { font-size: 1.05rem; }
 .vote-card-complete { border-color: #b8dfd3 !important; background: #f2fbf8; }
 
