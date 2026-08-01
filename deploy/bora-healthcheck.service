@@ -1,0 +1,8 @@
+[Unit]
+Description=Check Bora internal and public health endpoints
+After=network-online.target bora.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/bora-healthcheck.sh

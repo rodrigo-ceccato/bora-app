@@ -1,0 +1,8 @@
+[Unit]
+Description=Back up Bora PostgreSQL database
+After=bora.service
+Requires=bora.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/bora-backup.sh

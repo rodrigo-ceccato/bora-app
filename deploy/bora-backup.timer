@@ -1,0 +1,10 @@
+[Unit]
+Description=Create a daily Bora database backup
+
+[Timer]
+OnCalendar=*-*-* 03:20:00 UTC
+Persistent=true
+Unit=bora-backup.service
+
+[Install]
+WantedBy=timers.target

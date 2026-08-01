@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Bora uptime every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=bora-healthcheck.service
+
+[Install]
+WantedBy=timers.target

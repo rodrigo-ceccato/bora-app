@@ -1,0 +1,8 @@
+[Unit]
+Description=Verify the latest Bora database backup can be restored
+After=bora-backup.service
+Requires=bora-backup.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/bora-backup-verify.sh

@@ -173,6 +173,38 @@ Data lives in the `bora_database` Docker volume and survives `up`, `down`, and
 rebuilds. It does **not** survive `docker compose down -v` — that flag destroys
 the volume.
 
+## Pilot operations
+
+Run this once from a current checkout after deploying the operations assets:
+
+```bash
+./deploy/setup-operations.sh
+```
+
+It installs three systemd timers on the VM:
+
+- `bora-backup.timer` creates a compressed SQL dump daily at 03:20 UTC, keeping
+  14 days in `/var/backups/bora` with root-only permissions.
+- `bora-backup-verify.timer` restores the newest dump into a temporary database
+  every Sunday at 04:15 UTC, verifies migration metadata, then drops it.
+- `bora-healthcheck.timer` checks both loopback and the public HTTPS health URL
+  every five minutes. Failures are logged at error priority in journald.
+
+Run or inspect them manually:
+
+```bash
+sudo systemctl start bora-backup.service
+sudo systemctl start bora-backup-verify.service
+sudo systemctl start bora-healthcheck.service
+sudo systemctl list-timers bora-backup.timer bora-backup-verify.timer bora-healthcheck.timer
+sudo journalctl -u bora-backup.service -u bora-backup-verify.service -u bora-healthcheck.service -n 80 --no-pager
+sudo ls -lh /var/backups/bora
+```
+
+The backup directory is intentionally host-local. Before inviting people beyond
+the private pilot, copy it to an encrypted off-host destination and periodically
+practice a restore there.
+
 ## Rollback
 
 ```bash

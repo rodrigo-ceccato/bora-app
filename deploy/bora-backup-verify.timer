@@ -1,0 +1,10 @@
+[Unit]
+Description=Verify a Bora backup restore weekly
+
+[Timer]
+OnCalendar=Sun *-*-* 04:15:00 UTC
+Persistent=true
+Unit=bora-backup-verify.service
+
+[Install]
+WantedBy=timers.target
