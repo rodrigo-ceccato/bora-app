@@ -38,7 +38,7 @@ rsync -az --delete \
   ./ "$HOST:$DIR/"
 
 echo "==> deploying"
-ssh "$HOST" "cd '$DIR' && $COMPOSE up -d $BUILD --remove-orphans && $COMPOSE ps"
+ssh "$HOST" "cd '$DIR' && $COMPOSE up -d $BUILD --force-recreate --remove-orphans && $COMPOSE ps"
 
 echo "==> health"
 ssh "$HOST" "curl -fsS http://127.0.0.1:8080/api/health && echo"
