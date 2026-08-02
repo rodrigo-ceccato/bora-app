@@ -125,6 +125,14 @@ body { background: #f6f8fb; }
 .compact-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .compact-inputs ion-item, .day-accordion ion-item { border: 1px solid #d5e0e7; border-radius: 10px; --background: #fff; }
 .schedule-summary { margin: 14px 0 0; color: #17664b; font-weight: 650; text-transform: capitalize; }
+.time-picker-trigger { display: grid; grid-template-columns: 1fr auto auto; align-items: center; width: 100%; min-height: 72px; margin-top: 14px; border: 1px solid #b8d8cc; border-radius: 14px; background: linear-gradient(135deg, #f3fbf7, #fff); color: #145f46; padding: 12px 15px; font: inherit; text-align: left; box-shadow: 0 2px 5px rgba(18, 92, 68, .05); }
+.time-picker-trigger span:first-child { color: #587064; font-size: .82rem; font-weight: 700; }
+.time-picker-trigger strong { margin-right: 14px; color: #123f30; font-size: 1.55rem; letter-spacing: .02em; }
+.time-picker-trigger:focus-visible { outline: 3px solid #77c7aa; outline-offset: 3px; }
+.agora-date-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.agora-date-summary .schedule-summary { margin-top: 14px; }
+.agora-date-summary ion-button { margin: 8px -7px 0 0; text-transform: none; }
+.time-picker-modal ion-datetime { width: 100%; max-width: 420px; margin: 0 auto; --background: transparent; }
 .week-picker { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 12px 0 6px; }
 .week-picker button { min-height: 58px; border: 1px solid #d6e0e7; border-radius: 12px; background: #fff; color: #3f4d58; font: inherit; }
 .week-picker button span, .week-picker button b { display: block; }

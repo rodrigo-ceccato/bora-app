@@ -1,4 +1,4 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonHeader, IonInput, IonItem, IonLabel, IonModal, IonNote, IonPage, IonTextarea, IonTitle, IonToolbar, useIonRouter, useIonToast, useIonViewWillEnter } from '@ionic/react';
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonModal, IonNote, IonPage, IonTextarea, IonTitle, IonToolbar, useIonRouter, useIonToast, useIonViewWillEnter } from '@ionic/react';
 import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { createEvent } from '../lib/store';
@@ -72,6 +72,7 @@ export default function CreatePage() {
   const [timeDraft, setTimeDraft] = useState('18:00');
   const [days, setDays] = useState<ScheduleDay[]>(() => [newDay()]);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -116,6 +117,12 @@ export default function CreatePage() {
       return;
     }
     setAgoraDate(date);
+  }
+
+  function selectAgoraTime(value: string | string[] | null | undefined) {
+    if (typeof value !== 'string') return;
+    const match = value.match(/T(\d{2}:\d{2})/);
+    if (match) updateAgoraTime(match[1]);
   }
 
   function addWeekTime(time = timeDraft) {
@@ -247,9 +254,7 @@ export default function CreatePage() {
 
           {mode === 'agora' && <section className="schedule-section">
             <h2>Que horas?</h2><p className="muted">Começa agora. Se escolher um horário que já passou, ele fica para amanhã.</p>
-            <div className="compact-inputs">
-              <IonItem><IonLabel position="stacked">Horário</IonLabel><IonInput type="time" value={agoraTime} onIonInput={(event) => updateAgoraTime(event.detail.value || '')} /></IonItem>
-            </div>
+            <button type="button" className="time-picker-trigger" onClick={() => setTimePickerOpen(true)} aria-haspopup="dialog"><span>Horário</span><strong>{agoraTime}</strong><span aria-hidden="true">⌄</span></button>
             <div className="agora-date-summary"><p className="schedule-summary">{dayLabel(agoraDate, true)} às {agoraTime}</p><IonButton fill="clear" size="small" onClick={() => setCalendarOpen(true)}>Alterar data</IonButton></div>
             {submitted && !agoraValid && <IonNote className="field-error" color="danger">Escolha uma data e horário no futuro.</IonNote>}
           </section>}
@@ -289,6 +294,10 @@ export default function CreatePage() {
       <IonModal isOpen={calendarOpen} onDidDismiss={() => setCalendarOpen(false)}>
         <IonHeader><IonToolbar><IonTitle>{mode === 'agora' ? 'Alterar data' : 'Escolher outra data'}</IonTitle><IonButtons slot="end"><IonButton onClick={() => setCalendarOpen(false)}>Fechar</IonButton></IonButtons></IonToolbar></IonHeader>
         <IonContent className="ion-padding"><IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" min={today} value={mode === 'agora' ? agoraDate : weekDate} onIonInput={(event) => { const date = event.detail.value || (mode === 'agora' ? agoraDate : weekDate); if (mode === 'agora') updateAgoraDate(date); else setWeekDate(date); setCalendarOpen(false); }} /></IonItem></IonContent>
+      </IonModal>
+      <IonModal isOpen={timePickerOpen} onDidDismiss={() => setTimePickerOpen(false)} className="time-picker-modal">
+        <IonHeader><IonToolbar><IonTitle>Escolha o horário</IonTitle><IonButtons slot="end"><IonButton onClick={() => setTimePickerOpen(false)}>Pronto</IonButton></IonButtons></IonToolbar></IonHeader>
+        <IonContent className="ion-padding"><IonDatetime presentation="time" hourCycle="h23" value={dateTimeValue(today, agoraTime)} onIonChange={(event) => selectAgoraTime(event.detail.value)} /></IonContent>
       </IonModal>
     </IonContent>
   </IonPage>;
