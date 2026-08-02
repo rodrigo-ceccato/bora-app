@@ -28,8 +28,10 @@ obvious.
   most three top options initially, and give only creators compact finalisation
   controls.
 - Manual visual validation was completed at 360px, 768px and 1440px. Automated
-  visual regression coverage for empty, filled, invalid, loading and completed
-  pt-BR flows remains the next quality task.
+  responsive smoke coverage now checks the home page, every creation mode, the
+  time wheel and results with real votes at those same widths; it saves a
+  screenshot and trace when a check fails. Deeper visual baselines for empty,
+  invalid, loading and completed states remain a later quality improvement.
 
 ---
 

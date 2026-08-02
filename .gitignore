@@ -21,6 +21,8 @@ npm-debug.log*
 .tmp/
 .versions/
 coverage/
+test-results/
+playwright-report/
 dist/
 node_modules/
 tmp/

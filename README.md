@@ -66,10 +66,15 @@ Vite proxies `/api` to `http://127.0.0.1:8787`.
 
 ```bash
 npm test
+npm run test:e2e
 npm run lint
 npm run build
 docker compose config
 ```
+
+`npm run test:e2e` uses the Docker stack at `http://127.0.0.1:8080` and checks
+the home page, all creation modes and the results page at 360px, 768px and
+1440px. Set `PLAYWRIGHT_BASE_URL` to target another non-production environment.
 
 See [deployment](docs/deployment.md) and the [MVP test checklist](docs/mvp-test-checklist.md) before sharing the app.
 
