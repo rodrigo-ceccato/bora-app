@@ -5,10 +5,11 @@ current code so the scope is concrete rather than aspirational.
 
 ---
 
-## Product UX refresh and responsive validation
+## Completed — Product UX refresh
 
-**Goal:** make the first impression and the three creation paths match their
-distinct planning jobs, while keeping Bora's no-account promise obvious.
+**Delivered (2026-08-02):** the first impression and the three creation paths
+now match their distinct planning jobs, while keeping Bora's no-account promise
+obvious.
 
 - Add the green Bora graph symbol as the favicon and home-page mark.
 - Home hero: “Bora marcar?” above the symbol and concise no-account copy below
@@ -26,12 +27,19 @@ distinct planning jobs, while keeping Bora's no-account promise obvious.
 - Results: group schedule choices by date, show “x de y disponíveis”, expose at
   most three top options initially, and give only creators compact finalisation
   controls.
-- Add visual regression coverage at 360px, 768px and 1440px for empty, filled,
-  invalid, loading, and completed flows in pt-BR.
+- Manual visual validation was completed at 360px, 768px and 1440px. Automated
+  visual regression coverage for empty, filled, invalid, loading and completed
+  pt-BR flows remains the next quality task.
 
 ---
 
 ## 1. Multi-option voting and a "decided" event state
+
+**Status (2026-08-02): delivered.** Events persist a decision and its timestamp;
+votes persist multiple stable option IDs; creators can decide a qualifying slot;
+and the results interface groups, ranks and explains availability. The former
+timezone bug is covered by option-ID tests and no longer relies on rendered
+time labels.
 
 **Goal:** invitees pick *several* times that work for them, the creator then locks
 one in. Once decided, the losing options grey out and the event clearly reads as
@@ -96,6 +104,10 @@ schema is already being rewritten is far cheaper than a standalone fix.
 ---
 
 ## 2. "My events" — see events you created or accepted
+
+**Status (2026-08-02): partially delivered.** A device-local “Meus Boras” list
+already keeps created and joined event links on the current device. A server-backed
+cross-device list remains future work.
 
 **Goal:** a person can find the Boras they made and the ones they said yes to,
 without having saved the link.
@@ -175,9 +187,13 @@ can create a Bora and share a link in about ten seconds.
 
 ---
 
-## Suggested order
+## Suggested next order
 
-1. **Item 1** — highest user-visible value, and it fixes a live correctness bug.
-2. **Item 2** on device-local identity — useful on its own, no new auth concepts.
-3. **Item 3** as a recovery link, upgrading item 2 in place. Google sign-in only
-   if there's real demand.
+1. **Automated visual and flow coverage** — verify all three modes at 360px,
+   768px and 1440px, including keyboard, invalid and loading states.
+2. **Calendar link for decided events** — let both the organiser and invitees add
+   the final date and time to Google Calendar (or download an ICS file).
+3. **Notifications/reminders** — first define the consent and delivery channel;
+   browser notifications must work on mobile before they are relied on.
+4. **Server-backed “Meus Boras” plus recovery link** — extend the useful existing
+   device-local history without making accounts mandatory.
