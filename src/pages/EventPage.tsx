@@ -5,6 +5,7 @@ import { deleteEvent, getEvent, getParticipantId, subscribeToEvent, submitVote, 
 import { responseLabel } from '../lib/schedule';
 import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
 import { eventOptions, optionLabel } from '../lib/options';
+import { calendarDetails, calendarIcs, googleCalendarUrl } from '../lib/calendar';
 import type { BoraEvent, BoraVote, EventWithVotes, VoteResponse } from '../lib/types';
 
 function useQuery() {
@@ -114,6 +115,7 @@ export default function EventPage() {
 
   const availabilitySummary = useMemo(() => data ? slotSummary(data.event, data.votes) : [], [data]);
   const timePreferences = useMemo(() => data?.event.mode === 'mais-tarde' ? preferenceSummary(data.event, data.votes) : [], [data]);
+  const decidedCalendar = useMemo(() => data ? calendarDetails(data.event) : null, [data]);
   const groupedAvailability = useMemo(() => {
     const visible = showAllResults ? availabilitySummary : availabilitySummary.slice(0, 3);
     return visible.reduce<Array<{ label: string; items: typeof visible }>>((groups, item) => {
@@ -131,6 +133,17 @@ export default function EventPage() {
       const next = selected.includes(slot) ? selected.filter((item) => item !== slot) : [...selected, slot];
       return { ...current, [dayId]: next };
     });
+  }
+
+  function downloadCalendar() {
+    if (!data || !decidedCalendar) return;
+    const file = new Blob([calendarIcs(data.event, decidedCalendar)], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${data.event.slug}.ics`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   function togglePreferredOption(optionId: string) {
@@ -408,6 +421,18 @@ export default function EventPage() {
               </div>
             </IonCardContent>
           </IonCard>
+
+          {decidedCalendar && <IonCard className="calendar-card">
+            <IonCardContent>
+              <span className="section-eyebrow">Plano confirmado</span>
+              <h2>Coloque na sua agenda</h2>
+              <p>{optionLabel(event, event.decidedOption)} · {event.place}</p>
+              <div className="calendar-actions">
+                <IonButton href={googleCalendarUrl(event, decidedCalendar)} target="_blank" rel="noopener">Adicionar ao Google Agenda</IonButton>
+                <IonButton fill="outline" onClick={downloadCalendar}>Baixar arquivo de agenda</IonButton>
+              </div>
+            </IonCardContent>
+          </IonCard>}
 
           {isAdmin && (
             <nav className="admin-nav" aria-label="Seções da administração">

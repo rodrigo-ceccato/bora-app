@@ -125,6 +125,11 @@ body { background: #f6f8fb; }
 .compact-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .compact-inputs ion-item, .day-accordion ion-item { border: 1px solid #d5e0e7; border-radius: 10px; --background: #fff; }
 .schedule-summary { margin: 14px 0 0; color: #17664b; font-weight: 650; text-transform: capitalize; }
+.calendar-card { border-color: #b9ddce; background: linear-gradient(135deg, #f1fbf6, #fff); }
+.calendar-card h2 { margin: 5px 0; color: #164a38; font-size: 1.25rem; }
+.calendar-card p { margin: 0; color: #587064; }
+.calendar-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.calendar-actions ion-button { margin: 0; text-transform: none; }
 .time-picker-trigger { display: grid; grid-template-columns: 1fr auto auto; align-items: center; width: 100%; min-height: 72px; margin-top: 14px; border: 1px solid #b8d8cc; border-radius: 14px; background: linear-gradient(135deg, #f3fbf7, #fff); color: #145f46; padding: 12px 15px; font: inherit; text-align: left; box-shadow: 0 2px 5px rgba(18, 92, 68, .05); }
 .time-picker-trigger span:first-child { color: #587064; font-size: .82rem; font-weight: 700; }
 .time-picker-trigger strong { margin-right: 14px; color: #123f30; font-size: 1.55rem; letter-spacing: .02em; }

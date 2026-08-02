@@ -37,11 +37,14 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expectNoHorizontalScroll(page);
 });
 
-test('results stay compact and explain availability', async ({ page, request }) => {
-  const title = `Teste visual ${Date.now()}`;
+test('results stay compact and explain availability', async ({ page, request }, testInfo) => {
+  const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const title = `Teste visual ${runId}`;
+  const apiHeaders = { 'x-forwarded-for': `e2e-${runId}` };
   const created = await request.post('/api/events', {
+    headers: apiHeaders,
     data: {
-      participantId: `criador-${Date.now()}`,
+      participantId: `criador-${runId}`,
       event: {
         mode: 'marcar', title, place: 'Centro', description: '', threshold: 3,
         startsAt: null, alternatives: [], createdByName: 'Ana', votingClosed: false,
@@ -57,7 +60,8 @@ test('results stay compact and explain availability', async ({ page, request }) 
   try {
     for (const participantId of ['bia', 'caio']) {
       const vote = await request.post(`/api/events/${slug}/votes`, {
-        data: { participantId: `${participantId}-${Date.now()}`, voterName: participantId, response: 'accept', preferredOptions: [], availability: { sabado: ['18:00', '19:00'] } }
+        headers: apiHeaders,
+        data: { participantId: `${participantId}-${runId}`, voterName: participantId, response: 'accept', preferredOptions: [], availability: { sabado: ['18:00', '19:00'] } }
       });
       expect(vote.ok()).toBeTruthy();
     }
@@ -69,7 +73,22 @@ test('results stay compact and explain availability', async ({ page, request }) 
     await expect(page.getByRole('button', { name: /Ver mais horários/ })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Escolher este horário' })).toHaveCount(3);
     await expectNoHorizontalScroll(page);
+
+    const decided = await request.patch(`/api/events/${slug}`, {
+      headers: { ...apiHeaders, authorization: `Bearer ${token}` },
+      data: { ...body.event, decidedOption: 'sabado:18:00', votingClosed: true }
+    });
+    expect(decided.ok()).toBeTruthy();
+
+    for (const url of [`/e/${slug}?admin=${token}`, `/e/${slug}`]) {
+      await page.goto(url);
+      await expect(page.getByText('Coloque na sua agenda')).toBeVisible();
+      await expect(page.locator('a[href*="calendar.google.com"]')).toHaveCount(1);
+    }
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Baixar arquivo de agenda' }).click();
+    await expect((await download).suggestedFilename()).toBe(`${slug}.ics`);
   } finally {
-    await request.delete(`/api/events/${slug}`, { headers: { authorization: `Bearer ${token}` } });
+    await request.delete(`/api/events/${slug}`, { headers: { ...apiHeaders, authorization: `Bearer ${token}` } });
   }
 });
