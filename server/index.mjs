@@ -298,6 +298,25 @@ async function route(request, response) {
     });
   }
 
+  if (request.method === 'POST' && url.pathname === '/api/me/recovery-link') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const recoveryToken = `rec_${randomBytes(32).toString('base64url')}`;
+    await pool.query(
+      `insert into participant_recovery_tokens (participant_id, token_hash, updated_at)
+       values ($1, $2, now())
+       on conflict (participant_id) do update set token_hash = excluded.token_hash, updated_at = now()`,
+      [participantId, tokenHash(recoveryToken)]
+    );
+    return send(response, 201, { recoveryToken });
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/recover') {
+    const recoveryToken = text((await readJson(request)).recoveryToken, 200, true);
+    const result = await pool.query('select participant_id from participant_recovery_tokens where token_hash = $1', [tokenHash(recoveryToken)]);
+    if (!result.rows[0]) throw httpError(404, 'Link de recuperação inválido ou revogado.');
+    return send(response, 200, { participantId: result.rows[0].participant_id });
+  }
+
   if (request.method === 'POST' && url.pathname === '/api/events') {
     const body = await readJson(request);
     const eventInput = validateEvent(body.event || body);

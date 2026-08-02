@@ -41,10 +41,11 @@ test('results stay compact and explain availability', async ({ page, request }, 
   const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const title = `Teste visual ${runId}`;
   const apiHeaders = { 'x-forwarded-for': `e2e-${runId}` };
+  const creatorParticipantId = `criador-${runId}`;
   const created = await request.post('/api/events', {
     headers: apiHeaders,
     data: {
-      participantId: `criador-${runId}`,
+      participantId: creatorParticipantId,
       event: {
         mode: 'marcar', title, place: 'Centro', description: '', threshold: 3,
         startsAt: null, alternatives: [], createdByName: 'Ana', votingClosed: false,
@@ -58,6 +59,15 @@ test('results stay compact and explain availability', async ({ page, request }, 
   const token = body.adminToken as string;
 
   try {
+    const recoveryLink = await request.post('/api/me/recovery-link', {
+      headers: { ...apiHeaders, 'x-participant-id': creatorParticipantId }
+    });
+    expect(recoveryLink.ok()).toBeTruthy();
+    const recovery = await recoveryLink.json();
+    await page.goto(`/recover?token=${encodeURIComponent(recovery.recoveryToken as string)}`);
+    await expect(page.getByRole('heading', { name: 'Pronto!' })).toBeVisible();
+    expect(page.url()).toMatch(/\/recover$/);
+
     for (const participantId of ['bia', 'caio']) {
       const vote = await request.post(`/api/events/${slug}/votes`, {
         headers: apiHeaders,

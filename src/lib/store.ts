@@ -53,6 +53,10 @@ export function getParticipantId() {
   return participantId;
 }
 
+export function restoreParticipantId(participantId: string) {
+  localStorage.setItem(PARTICIPANT_KEY, participantId);
+}
+
 export function usingApi() {
   return Boolean(API_BASE);
 }
@@ -76,6 +80,20 @@ export async function listMyEvents(): Promise<MyEvents> {
     created: items.filter((item) => item.isAdmin).map((item) => item.event),
     joined: items.filter((item) => !item.isAdmin).map((item) => item.event)
   };
+}
+
+export async function createRecoveryLink(): Promise<string> {
+  const result = await apiRequest<{ recoveryToken: string }>('/me/recovery-link', {
+    method: 'POST', headers: { 'x-participant-id': getParticipantId() }
+  });
+  return `${window.location.origin}/recover?token=${encodeURIComponent(result.recoveryToken)}`;
+}
+
+export async function recoverParticipant(recoveryToken: string): Promise<void> {
+  const result = await apiRequest<{ participantId: string }>('/recover', {
+    method: 'POST', body: JSON.stringify({ recoveryToken })
+  });
+  restoreParticipantId(result.participantId);
 }
 
 async function apiRequest<T>(path: string, init: RequestInit = {}, adminToken?: string): Promise<T> {

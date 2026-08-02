@@ -416,6 +416,10 @@ body { background: #f6f8fb; }
 .my-event-card ion-card-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .my-event-card h3 { margin: 0 0 5px; }
 .my-event-card p { margin: 0; color: #66717d; }
+.recovery-card { border-color: #c9dce6; background: #fbfdff; }
+.recovery-card h2 { margin-top: 0; color: #17384b; }
+.recovery-card p { color: #5e6e7a; }
+.recovery-link { overflow-wrap: anywhere; font-size: .85rem; }
 
 .vote-confirmation p { font-size: 1.05rem; }
 .vote-card-complete { border-color: #b8dfd3 !important; background: #f2fbf8; }

@@ -108,9 +108,10 @@ schema is already being rewritten is far cheaper than a standalone fix.
 
 ## 2. "My events" — see events you created or accepted
 
-**Status (2026-08-02): partially delivered.** A device-local “Meus Boras” list
-already keeps created and joined event links on the current device. A server-backed
-cross-device list remains future work.
+**Status (2026-08-02): delivered without mandatory accounts.** “Meus Boras” is
+queried from the server for the current participant, while administrator tokens
+remain only on the original device. An optional recovery link restores that
+participant identity on another device without transferring admin privileges.
 
 **Goal:** a person can find the Boras they made and the ones they said yes to,
 without having saved the link.
@@ -148,6 +149,11 @@ item 3 upgrades it in place.
 ---
 
 ## 3. Accounts / portable identity
+
+**Status (2026-08-02): recovery-link phase delivered.** Bora now uses an opaque,
+high-entropy recovery token whose hash alone is stored by the server. Google
+sign-in remains an optional future upgrade, not a requirement for creating or
+voting.
 
 **Goal:** your events follow you to a new device.
 
@@ -196,5 +202,5 @@ can create a Bora and share a link in about ten seconds.
    768px and 1440px, including keyboard, invalid and loading states.
 2. **Notifications/reminders** — first define the consent and delivery channel;
    browser notifications must work on mobile before they are relied on.
-3. **Server-backed “Meus Boras” plus recovery link** — extend the useful existing
-   device-local history without making accounts mandatory.
+3. **Optional sign-in only if demand proves it valuable** — preserve the recovery
+   link as the lightweight, no-account default.

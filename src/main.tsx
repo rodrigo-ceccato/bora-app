@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import CreatePage from './pages/CreatePage';
 import EventPage from './pages/EventPage';
 import MyEventsPage from './pages/MyEventsPage';
+import RecoverPage from './pages/RecoverPage';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -27,6 +28,7 @@ function App() {
           <Route exact path="/create" component={CreatePage} />
           <Route exact path="/e/:slug" component={EventPage} />
           <Route exact path="/my-events" component={MyEventsPage} />
+          <Route exact path="/recover" component={RecoverPage} />
           <Route exact path="/">
             <Redirect to="/home" />
           </Route>
