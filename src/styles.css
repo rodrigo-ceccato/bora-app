@@ -20,11 +20,11 @@ body { background: #f6f8fb; }
   display: block;
   width: clamp(72px, 12vw, 112px);
   height: auto;
-  margin: 0 auto 12px;
+  margin: 16px auto 18px;
 }
 
 .hero h1 {
-  font-size: clamp(2rem, 7vw, 4.5rem);
+  font-size: clamp(2rem, 6vw, 3.5rem);
   line-height: 1.03;
   margin: 14px 0;
   letter-spacing: -0.06em;
@@ -89,6 +89,8 @@ body { background: #f6f8fb; }
 }
 
 .form-page ion-card, .event-layout { max-width: 760px; margin-left: auto; margin-right: auto; }
+.form-page { --padding-top: clamp(18px, 4vw, 40px); --padding-bottom: 40px; }
+.create-card { max-width: 680px !important; }
 
 .create-intro {
   max-width: 760px;
@@ -101,6 +103,56 @@ body { background: #f6f8fb; }
 .field-error { display: block; margin: 4px 16px 8px; }
 .guest-note { display: block; margin: 16px 0; color: #5f6368; }
 .form-page .ion-invalid { --highlight-color-invalid: #b3261e; }
+
+.threshold-control,
+.schedule-section {
+  margin: 22px 0;
+  padding: 18px;
+  border: 1px solid #dfe6ec;
+  border-radius: 16px;
+  background: #fbfcfd;
+}
+
+.threshold-control { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.threshold-control strong, .threshold-control small { display: block; }
+.threshold-control small { margin-top: 3px; color: #66717d; }
+.stepper { display: grid; grid-template-columns: 42px 52px 42px; align-items: center; border: 1px solid #c7d3dd; border-radius: 12px; overflow: hidden; background: #fff; }
+.stepper button { min-height: 42px; border: 0; background: #eff5f2; color: #137352; font-size: 1.45rem; font-weight: 700; }
+.stepper button:disabled { color: #a5b0b9; background: #f4f6f7; }
+.stepper input { width: 100%; min-height: 42px; border: 0; border-inline: 1px solid #d8e1e7; color: #1b2832; font: inherit; font-weight: 800; text-align: center; }
+.stepper input:focus { outline: 3px solid #90d9c0; outline-offset: -3px; }
+.schedule-section h2 { margin: 0 0 7px; color: #1b2a34; font-size: 1.13rem; }
+.compact-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.compact-inputs ion-item, .day-accordion ion-item { border: 1px solid #d5e0e7; border-radius: 10px; --background: #fff; }
+.schedule-summary { margin: 14px 0 0; color: #17664b; font-weight: 650; text-transform: capitalize; }
+.week-picker { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 12px 0 6px; }
+.week-picker button { min-height: 58px; border: 1px solid #d6e0e7; border-radius: 12px; background: #fff; color: #3f4d58; font: inherit; }
+.week-picker button span, .week-picker button b { display: block; }
+.week-picker button span { font-size: .72rem; text-transform: lowercase; }
+.week-picker button b { margin-top: 3px; font-size: 1.05rem; }
+.week-picker button.selected { border-color: #16836b; background: #e9f8f1; color: #11664d; box-shadow: inset 0 0 0 1px #16836b; }
+.week-picker button:disabled { opacity: .42; }
+.time-add-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-top: 10px; }
+.time-add-row ion-input { min-height: 46px; padding: 0 12px !important; border: 1px solid #d5e0e7; border-radius: 10px; background: #fff; }
+.time-add-row ion-button { margin: 0; }
+.quick-times, .time-chips, .day-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.quick-times button { border: 1px solid #b8d8cc; border-radius: 999px; background: #f2faf6; color: #17664b; padding: 7px 11px; font: inherit; font-size: .86rem; font-weight: 700; }
+.time-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; border: 1px solid #8acbb0; border-radius: 999px; background: #e8f8ef; color: #135f45; padding: 7px 10px 7px 13px; font: inherit; font-weight: 750; }
+.time-chip span[aria-hidden] { font-size: 1.15rem; line-height: 1; }
+.section-heading-row { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.section-heading-row ion-button { flex: 0 0 auto; margin: 0; text-transform: none; }
+.day-accordion { margin: 10px 0; overflow: hidden; border: 1px solid #d8e3e9; border-radius: 13px; background: #fff; }
+.day-accordion summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.day-accordion summary::-webkit-details-marker { display: none; }
+.day-accordion summary strong, .day-accordion summary small { display: block; }
+.day-accordion summary small { margin-top: 3px; color: #6b7782; }
+.day-accordion[open] summary { border-bottom: 1px solid #e5ebef; }
+.day-accordion-content { padding: 14px; }
+.time-chip-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.time-chip-grid button { min-height: 40px; border: 1px solid #afbdc7; border-radius: 9px; background: #fff; color: #2d3a45; font: inherit; font-weight: 700; }
+.time-chip-grid button.selected { border: 2px solid #157357; background: #e6f7ee; color: #0d583e; }
+.time-chip-grid button:focus-visible, .week-picker button:focus-visible, .quick-times button:focus-visible, .time-chip:focus-visible { outline: 3px solid #77c7aa; outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .event-layout {
   display: flex;
@@ -279,6 +331,9 @@ body { background: #f6f8fb; }
   grid-column: 1 / -1;
   color: #5f6368;
 }
+.result-date-group + .result-date-group { margin-top: 18px; }
+.result-date-group h3 { margin: 0 0 4px; color: #52616d; font-size: .9rem; }
+.result-row ion-button { justify-self: start; margin: 4px 0 0; text-transform: none; }
 
 .result-progress {
   grid-column: 1 / -1;
@@ -615,6 +670,15 @@ body { background: #f6f8fb; }
 }
 
 @media (max-width: 520px) {
+  .form-page { --padding-start: 12px; --padding-end: 12px; }
+  .threshold-control { align-items: flex-start; flex-direction: column; }
+  .stepper { align-self: stretch; grid-template-columns: 1fr 62px 1fr; }
+  .compact-inputs { grid-template-columns: 1fr; }
+  .week-picker { gap: 4px; }
+  .week-picker button { min-height: 52px; }
+  .week-picker button span { font-size: .66rem; }
+  .time-chip-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .section-heading-row { align-items: flex-start; flex-direction: column; }
   .event-page { --padding-start: 12px; --padding-end: 12px; }
   .event-facts { grid-template-columns: 1fr; }
   .event-summary ion-card-content,

@@ -61,6 +61,7 @@ export default function EventPage() {
   const [editingVote, setEditingVote] = useState(false);
   const [savingAdminAction, setSavingAdminAction] = useState(false);
   const [adminSection, setAdminSection] = useState<'overview' | 'manage'>('overview');
+  const [showAllResults, setShowAllResults] = useState(false);
   const hydratedVote = useRef(false);
 
   const isAdmin = Boolean(data?.isAdmin);
@@ -113,6 +114,16 @@ export default function EventPage() {
 
   const availabilitySummary = useMemo(() => data ? slotSummary(data.event, data.votes) : [], [data]);
   const timePreferences = useMemo(() => data?.event.mode === 'mais-tarde' ? preferenceSummary(data.event, data.votes) : [], [data]);
+  const groupedAvailability = useMemo(() => {
+    const visible = showAllResults ? availabilitySummary : availabilitySummary.slice(0, 3);
+    return visible.reduce<Array<{ label: string; items: typeof visible }>>((groups, item) => {
+      const label = new Date(`${item.day.date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+      const group = groups.find((candidate) => candidate.label === label);
+      if (group) group.items.push(item);
+      else groups.push({ label, items: [item] });
+      return groups;
+    }, []);
+  }, [availabilitySummary, showAllResults]);
 
   function toggleSlot(dayId: string, slot: string) {
     setAvailability((current) => {
@@ -387,13 +398,13 @@ export default function EventPage() {
               {event.description && <p className="event-description">{event.description}</p>}
               <div className="status-block">
                 <div className="status-heading">
-                  <strong>{counts.accept >= event.threshold ? 'Bora confirmado!' : `${counts.accept} de ${event.threshold} confirmados`}</strong>
-                  <span>{Math.round(confirmationProgress)}%</span>
+                  <strong>{counts.accept === 1 ? '1 pessoa confirmou' : `${counts.accept} pessoas confirmaram`}</strong>
+                  <span>Meta: {event.threshold}</span>
                 </div>
                 <div className="threshold-progress" role="progressbar" aria-label={`${counts.accept} de ${event.threshold} confirmações`} aria-valuemin={0} aria-valuemax={event.threshold} aria-valuenow={counts.accept}>
                   <span style={{ width: `${confirmationProgress}%` }} />
                 </div>
-                <p>{statusText(event, votes)}</p>
+                <p>Progresso de confirmações · {statusText(event, votes)}</p>
               </div>
             </IonCardContent>
           </IonCard>
@@ -463,7 +474,7 @@ export default function EventPage() {
                       )}
 
                       <div className="vote-actions" aria-label="Registrar voto">
-                        <IonButton className="response-yes" disabled={event.votingClosed || submittingVote} onClick={() => void vote('accept')}><span><b aria-hidden="true">🙌</b>{submittingVote ? 'Salvando...' : 'Bora!'}</span></IonButton>
+                        <IonButton className="response-yes" disabled={event.votingClosed || submittingVote} onClick={() => void vote('accept')}><span><b aria-hidden="true">🙌</b>{submittingVote ? 'Salvando...' : 'Posso'}</span></IonButton>
                         <IonButton className="response-maybe" fill="outline" disabled={event.votingClosed || submittingVote} onClick={() => void vote('maybe')}><span><b aria-hidden="true">🤔</b>Talvez</span></IonButton>
                         <IonButton className="response-no" fill="clear" disabled={event.votingClosed || submittingVote} onClick={() => void vote('decline')}><span><b aria-hidden="true">😔</b>Não posso</span></IonButton>
                       </div>
@@ -526,20 +537,20 @@ export default function EventPage() {
                 <IonCardHeader><IonCardTitle>Melhores horários</IonCardTitle></IonCardHeader>
                 <IonCardContent>
                   {availabilitySummary.length === 0 && <p>Nenhuma disponibilidade enviada ainda.</p>}
-                  {availabilitySummary.slice(0, 8).map((item) => {
-                    const percentage = event.threshold ? Math.min(100, (item.count / event.threshold) * 100) : 0;
-                    return (
-                      <div className="result-row" key={`${item.day.id}-${item.slot}`}>
-                        <strong>{item.day.label} · {item.slot}</strong>
-                        <IonBadge color={item.count >= event.threshold ? 'success' : 'medium'}>{item.count}</IonBadge>
-                        <div className="result-progress" role="progressbar" aria-label={`${item.day.label}, ${item.slot}: ${item.count} pessoas disponíveis`} aria-valuemin={0} aria-valuemax={event.threshold} aria-valuenow={item.count}>
-                          <span style={{ width: `${percentage}%` }} />
-                        </div>
-                        <span>{item.names.join(', ') || 'Sem votos'}</span>
-                        {isAdmin && !event.decidedOption && <IonButton size="small" fill="outline" onClick={() => void decideOption(`${item.day.id}:${item.slot}`)} disabled={savingAdminAction}>Escolher</IonButton>}
-                      </div>
-                    );
-                  })}
+                  {groupedAvailability.map((group) => <section className="result-date-group" key={group.label}>
+                    <h3>{group.label}</h3>
+                    {group.items.map((item) => {
+                      const percentage = event.threshold ? Math.min(100, (item.count / event.threshold) * 100) : 0;
+                      return <div className="result-row" key={`${item.day.id}-${item.slot}`}>
+                        <strong>{item.slot}</strong>
+                        <IonBadge color={item.count >= event.threshold ? 'success' : 'medium'}>{item.count} de {event.threshold}</IonBadge>
+                        <div className="result-progress" role="progressbar" aria-label={`${item.day.label}, ${item.slot}: ${item.count} de ${event.threshold} disponíveis`} aria-valuemin={0} aria-valuemax={event.threshold} aria-valuenow={item.count}><span style={{ width: `${percentage}%` }} /></div>
+                        <span>{item.count === 1 ? '1 pessoa disponível' : `${item.count} pessoas disponíveis`}{item.names.length ? ` · ${item.names.join(', ')}` : ''}</span>
+                        {isAdmin && !event.decidedOption && <IonButton size="small" fill="outline" onClick={() => void decideOption(`${item.day.id}:${item.slot}`)} disabled={savingAdminAction}>Escolher este horário</IonButton>}
+                      </div>;
+                    })}
+                  </section>)}
+                  {availabilitySummary.length > 3 && <IonButton fill="clear" onClick={() => setShowAllResults((current) => !current)}>{showAllResults ? 'Ver menos horários' : `Ver mais horários (${availabilitySummary.length - 3})`}</IonButton>}
                 </IonCardContent>
               </IonCard>
             )}
@@ -548,20 +559,21 @@ export default function EventPage() {
               <IonCard>
                 <IonCardHeader><IonCardTitle>Horários preferidos</IonCardTitle></IonCardHeader>
                 <IonCardContent>
-                  {timePreferences.map((item) => {
+                  {(showAllResults ? timePreferences : timePreferences.slice(0, 3)).map((item) => {
                     const percentage = votes.length ? (item.count / votes.length) * 100 : 0;
                     return (
                       <div className="result-row" key={item.option.id}>
                         <strong>{item.option.primary ? `Horário principal · ${item.option.label}` : item.option.label}</strong>
-                        <IonBadge color={item.count > 0 ? 'primary' : 'medium'}>{item.count}</IonBadge>
+                        <IonBadge color={item.count >= event.threshold ? 'success' : 'medium'}>{item.count} de {event.threshold}</IonBadge>
                         <div className="result-progress" role="progressbar" aria-label={`${item.option.label}: ${item.count} preferências`} aria-valuemin={0} aria-valuemax={votes.length} aria-valuenow={item.count}>
                           <span style={{ width: `${percentage}%` }} />
                         </div>
-                        <span>{item.count === 1 ? '1 preferência' : `${item.count} preferências`}</span>
-                        {isAdmin && !event.decidedOption && <IonButton size="small" fill="outline" onClick={() => void decideOption(item.option.id)} disabled={savingAdminAction}>Escolher</IonButton>}
+                        <span>{item.count === 1 ? '1 pessoa pode' : `${item.count} pessoas podem`}</span>
+                        {isAdmin && !event.decidedOption && <IonButton size="small" fill="outline" onClick={() => void decideOption(item.option.id)} disabled={savingAdminAction}>Escolher este horário</IonButton>}
                       </div>
                     );
                   })}
+                  {timePreferences.length > 3 && <IonButton fill="clear" onClick={() => setShowAllResults((current) => !current)}>{showAllResults ? 'Ver menos horários' : `Ver mais horários (${timePreferences.length - 3})`}</IonButton>}
                 </IonCardContent>
               </IonCard>
             )}

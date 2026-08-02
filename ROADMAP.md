@@ -5,6 +5,32 @@ current code so the scope is concrete rather than aspirational.
 
 ---
 
+## Product UX refresh and responsive validation
+
+**Goal:** make the first impression and the three creation paths match their
+distinct planning jobs, while keeping Bora's no-account promise obvious.
+
+- Add the green Bora graph symbol as the favicon and home-page mark.
+- Home hero: “Bora marcar?” above the symbol and concise no-account copy below
+  it; retain Bora Agora, Bora essa semana and Bora marcar as equal actions.
+- Remove duplicate create-page titles, constrain desktop form width, and use a
+  typed +/- confirmation-count control.
+- Bora Agora: initialise to the present, prohibit past time choices, and show a
+  date once a selection crosses midnight.
+- Bora essa semana: use compact current-week day buttons by default; add sorted,
+  removable time chips for one selected day and keep a full date picker as a
+  secondary route.
+- Bora marcar: use compact collapsible date sections, selectable time chips,
+  duplicate-date/past-time validation, and day duplication, removal, addition,
+  and “same times” actions.
+- Results: group schedule choices by date, show “x de y disponíveis”, expose at
+  most three top options initially, and give only creators compact finalisation
+  controls.
+- Add visual regression coverage at 360px, 768px and 1440px for empty, filled,
+  invalid, loading, and completed flows in pt-BR.
+
+---
+
 ## 1. Multi-option voting and a "decided" event state
 
 **Goal:** invitees pick *several* times that work for them, the creator then locks

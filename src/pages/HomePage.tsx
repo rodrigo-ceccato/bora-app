@@ -17,10 +17,10 @@ export default function HomePage() {
       </IonHeader>
       <IonContent className="ion-padding hero-bg">
         <section className="hero">
+          <h1>Bora marcar?</h1>
           <img className="bora-share-symbol" src={shareSymbol} alt="Símbolo de compartilhamento Bora" />
-          <h1>Crie um convite, mande o link, combine sem fricção.</h1>
           <p>
-            Bora Agora, Bora Essa Semana e Bora Marcar ajudam grupos a decidir se o rolê vai acontecer, sem obrigar convidados a criar conta.
+            Create an invite, send the link, no account needed to create or vote, just make the hangout happen.
           </p>
           <div className="home-mode-actions" role="group" aria-label="Escolha o tipo de Bora">
             <IonButton routerLink="/create?mode=agora" size="large" expand="block" className="home-mode-button">
