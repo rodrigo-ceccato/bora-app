@@ -20,7 +20,7 @@ export default function HomePage() {
           <h1>Bora marcar?</h1>
           <img className="bora-share-symbol" src={shareSymbol} alt="Símbolo de compartilhamento Bora" />
           <p>
-            Create an invite, send the link, no account needed to create or vote, just make the hangout happen.
+            Crie um convite, envie o link, não precisa de conta para criar ou votar, é só fazer o rolê acontecer.
           </p>
           <div className="home-mode-actions" role="group" aria-label="Escolha o tipo de Bora">
             <IonButton routerLink="/create?mode=agora" size="large" expand="block" className="home-mode-button">
