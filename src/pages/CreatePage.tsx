@@ -96,6 +96,28 @@ export default function CreatePage() {
     setThreshold(Math.min(maxThreshold, Math.max(1, Number.isFinite(next) ? Math.round(next) : 1)));
   }
 
+  function updateAgoraTime(time: string) {
+    setAgoraTime(time);
+    if (!/^\d{2}:\d{2}$/.test(time)) return;
+
+    // A time earlier than now means the next occurrence is after midnight.
+    if (agoraDate === today && !futureTime(today, time)) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setAgoraDate(localDateKey(tomorrow));
+    }
+  }
+
+  function updateAgoraDate(date: string) {
+    if (date === today && !futureTime(date, agoraTime)) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setAgoraDate(localDateKey(tomorrow));
+      return;
+    }
+    setAgoraDate(date);
+  }
+
   function addWeekTime(time = timeDraft) {
     if (!/^\d{2}:\d{2}$/.test(time)) return;
     if (!futureTime(weekDate, time)) {
@@ -224,12 +246,11 @@ export default function CreatePage() {
           </section>
 
           {mode === 'agora' && <section className="schedule-section">
-            <h2>Quando?</h2><p className="muted">Começa agora. Escolha outro horário se precisar.</p>
+            <h2>Que horas?</h2><p className="muted">Começa agora. Se escolher um horário que já passou, ele fica para amanhã.</p>
             <div className="compact-inputs">
-              <IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" min={today} value={agoraDate} onIonInput={(event) => setAgoraDate(event.detail.value || today)} /></IonItem>
-              <IonItem><IonLabel position="stacked">Horário (24h)</IonLabel><IonInput type="text" inputMode="numeric" maxlength={5} value={agoraTime} placeholder="18:00" onIonInput={(event) => setAgoraTime(event.detail.value || '')} /></IonItem>
+              <IonItem><IonLabel position="stacked">Horário</IonLabel><IonInput type="time" value={agoraTime} onIonInput={(event) => updateAgoraTime(event.detail.value || '')} /></IonItem>
             </div>
-            {agoraDate !== today && <p className="schedule-summary">{dayLabel(agoraDate, true)} às {agoraTime}</p>}
+            <div className="agora-date-summary"><p className="schedule-summary">{dayLabel(agoraDate, true)} às {agoraTime}</p><IonButton fill="clear" size="small" onClick={() => setCalendarOpen(true)}>Alterar data</IonButton></div>
             {submitted && !agoraValid && <IonNote className="field-error" color="danger">Escolha uma data e horário no futuro.</IonNote>}
           </section>}
 
@@ -266,8 +287,8 @@ export default function CreatePage() {
         </IonCardContent>
       </IonCard>
       <IonModal isOpen={calendarOpen} onDidDismiss={() => setCalendarOpen(false)}>
-        <IonHeader><IonToolbar><IonTitle>Escolher outra data</IonTitle><IonButtons slot="end"><IonButton onClick={() => setCalendarOpen(false)}>Fechar</IonButton></IonButtons></IonToolbar></IonHeader>
-        <IonContent className="ion-padding"><IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" min={today} value={weekDate} onIonInput={(event) => { setWeekDate(event.detail.value || weekDate); setCalendarOpen(false); }} /></IonItem></IonContent>
+        <IonHeader><IonToolbar><IonTitle>{mode === 'agora' ? 'Alterar data' : 'Escolher outra data'}</IonTitle><IonButtons slot="end"><IonButton onClick={() => setCalendarOpen(false)}>Fechar</IonButton></IonButtons></IonToolbar></IonHeader>
+        <IonContent className="ion-padding"><IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" min={today} value={mode === 'agora' ? agoraDate : weekDate} onIonInput={(event) => { const date = event.detail.value || (mode === 'agora' ? agoraDate : weekDate); if (mode === 'agora') updateAgoraDate(date); else setWeekDate(date); setCalendarOpen(false); }} /></IonItem></IonContent>
       </IonModal>
     </IonContent>
   </IonPage>;
