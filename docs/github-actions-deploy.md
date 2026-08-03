@@ -83,7 +83,7 @@ It grants `rocky` passwordless sudo only for the root-owned
    Its notes must include a user-visible summary in this exact shape:
 
    ```md
-   ## O que muda para você
+   ## What users will notice
 
    - A short, concrete change users can notice or use.
    - Another visible improvement, if applicable.
