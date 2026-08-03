@@ -80,6 +80,18 @@ It grants `rocky` passwordless sudo only for the root-owned
 1. Push the Actions/deployment changes to `main` and wait for **Verify** to
    pass.
 2. Create and publish a GitHub Release from a `main` commit using `vX.Y.Z`.
+   Its notes must include a user-visible summary in this exact shape:
+
+   ```md
+   ## O que muda para você
+
+   - A short, concrete change users can notice or use.
+   - Another visible improvement, if applicable.
+   ```
+
+   The release workflow rejects releases without this heading and at least one
+   bullet, so technical-only changes should say plainly that there is no user-
+   visible behavior change.
 3. Watch **Release deploy**. It must pass verification, image publishing, and
    both VM health checks.
 4. Confirm `cat /opt/bora/.deployed-release` and

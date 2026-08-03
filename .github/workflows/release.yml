@@ -23,10 +23,20 @@ jobs:
       - name: Validate stable tag from main
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
         run: |
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
           git fetch origin main:refs/remotes/origin/main
           git merge-base --is-ancestor HEAD origin/main
+          printf '%s\n' "$RELEASE_BODY" | awk '
+            $0 == "## O que muda para você" { in_section = 1; next }
+            in_section && /^## / { exit }
+            in_section && /^[-*] +[^[:space:]]/ { found = 1 }
+            END { exit(found ? 0 : 1) }
+          ' || {
+            echo 'Release notes must include "## O que muda para você" with at least one bullet describing a user-visible change.' >&2
+            exit 1
+          }
       - uses: actions/setup-node@v4
         with:
           node-version: 22

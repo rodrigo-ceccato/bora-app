@@ -76,7 +76,7 @@ docker compose config
 the home page, all creation modes and the results page at 360px, 768px and
 1440px. Set `PLAYWRIGHT_BASE_URL` to target another non-production environment.
 
-See [deployment](docs/deployment.md) and the [MVP test checklist](docs/mvp-test-checklist.md) before sharing the app.
+See the [MVP test checklist](docs/mvp-test-checklist.md) before sharing the app.
 
 ## Production host
 
