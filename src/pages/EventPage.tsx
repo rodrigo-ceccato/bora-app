@@ -419,9 +419,9 @@ export default function EventPage() {
 
           {decidedCalendar && <IonCard className="calendar-card">
             <IonCardContent>
-              <span className="section-eyebrow">Plano confirmado</span>
+              <span className="section-eyebrow">{event.mode === 'agora' ? 'Bora marcado' : 'Plano confirmado'}</span>
               <h2>Coloque na sua agenda</h2>
-              <p>{optionLabel(event, event.decidedOption)} · {event.place}</p>
+              <p>{event.mode === 'agora' ? new Date(event.startsAt!).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }) : optionLabel(event, event.decidedOption)} · {event.place}</p>
               <div className="calendar-actions">
                 <IonButton href={googleCalendarUrl(event, decidedCalendar)} target="_blank" rel="noopener">Adicionar ao Google Agenda</IonButton>
                 <IonButton fill="outline" onClick={downloadCalendar}>Baixar arquivo de agenda</IonButton>

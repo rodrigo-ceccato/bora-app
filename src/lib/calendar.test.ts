@@ -8,6 +8,12 @@ const baseEvent: BoraEvent = {
 };
 
 describe('calendar helpers', () => {
+  it('makes calendar details for a Bora agora fixed time', () => {
+    const event: BoraEvent = { ...baseEvent, mode: 'agora', startsAt: '2099-08-01T21:00:00.000Z', decidedOption: undefined };
+    const details = calendarDetails(event);
+    expect(details?.floating).toBe(false);
+    expect(googleCalendarUrl(event, details!)).toContain('dates=20990801T210000Z%2F20990801T230000Z');
+  });
   it('makes a Google Calendar link from an absolute decided option', () => {
     const details = calendarDetails(baseEvent);
     expect(details?.floating).toBe(false);

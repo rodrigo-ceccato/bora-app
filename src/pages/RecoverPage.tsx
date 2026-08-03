@@ -1,4 +1,4 @@
-import { IonButton, IonCard, IonCardContent, IonCheckbox, IonContent, IonHeader, IonItem, IonLabel, IonPage, IonSpinner, IonTitle, IonToolbar, useIonToast } from '@ionic/react';
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonCheckbox, IonContent, IonHeader, IonItem, IonLabel, IonPage, IonSpinner, IonTitle, IonToolbar, useIonToast } from '@ionic/react';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { createRecoveryLink, recoverParticipant, restoreAdminEvents, type AdminEventAccess } from '../lib/store';
@@ -62,7 +62,7 @@ export default function RecoverPage() {
   }
 
   return <IonPage>
-    <IonHeader><IonToolbar><IonTitle>{status === 'transfer' ? 'Usar meus Boras em outro dispositivo' : 'Recuperar meus Boras'}</IonTitle></IonToolbar></IonHeader>
+    <IonHeader><IonToolbar><IonButtons slot="start"><IonBackButton defaultHref="/my-events" text="Voltar" /></IonButtons><IonTitle>{status === 'transfer' ? 'Usar meus Boras em outro dispositivo' : 'Recuperar meus Boras'}</IonTitle></IonToolbar></IonHeader>
     <IonContent className="ion-padding form-page"><IonCard className="recovery-card"><IonCardContent>
       {status === 'loading' && <><IonSpinner /><h1>Recuperando seus Boras…</h1><p>Estamos restaurando sua lista neste aparelho.</p></>}
       {status === 'ready' && <><h1>Pronto!</h1><p>Seus Boras foram restaurados neste aparelho.{adminAccessRestored ? ' Seus controles de organizador também foram restaurados.' : ' Seus links de administrador continuam privados no aparelho original.'}</p><IonButton expand="block" routerLink="/my-events">Ver meus Boras</IonButton></>}

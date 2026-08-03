@@ -35,6 +35,39 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expect(page.locator('.time-chip-grid button').first()).toBeVisible();
   await expect(page.getByRole('button', { name: /Adicionar dia/ })).toBeVisible();
   await expectNoHorizontalScroll(page);
+
+  await page.goto('/my-events');
+  await page.getByRole('link', { name: 'Usar meus Boras em outro dispositivo' }).click();
+  await expect(page.getByRole('heading', { name: 'Usar meus Boras em outro dispositivo' })).toBeVisible();
+  await expect(page.locator('ion-back-button[default-href="/my-events"]')).toHaveCount(1);
+  await page.locator('ion-back-button[default-href="/my-events"]').click();
+  await expect(page).toHaveURL(/\/my-events$/);
+});
+
+test('Bora agora offers Google Calendar after it is created', async ({ page, request }, testInfo) => {
+  const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const created = await request.post('/api/events', {
+    headers: { 'x-forwarded-for': `e2e-${runId}` },
+    data: {
+      participantId: `criador-${runId}`,
+      event: {
+        mode: 'agora', title: `Agenda ${runId}`, place: 'Centro', description: '', threshold: 2,
+        startsAt: '2099-08-01T21:00:00.000Z', alternatives: [], createdByName: 'Ana', votingClosed: false, days: []
+      }
+    }
+  });
+  expect(created.ok()).toBeTruthy();
+  const body = await created.json();
+  const slug = body.event.slug as string;
+  const token = body.adminToken as string;
+
+  try {
+    await page.goto(`/e/${slug}`);
+    await expect(page.getByText('Coloque na sua agenda')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Adicionar ao Google Agenda' })).toHaveAttribute('href', /calendar\.google\.com/);
+  } finally {
+    await request.delete(`/api/events/${slug}`, { headers: { 'x-forwarded-for': `e2e-${runId}`, authorization: `Bearer ${token}` } });
+  }
 });
 
 test('results stay compact and explain availability', async ({ page, request }, testInfo) => {

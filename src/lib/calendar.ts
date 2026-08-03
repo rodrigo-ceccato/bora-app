@@ -23,6 +23,12 @@ function escapeIcs(value: string) {
 }
 
 export function calendarDetails(event: BoraEvent): CalendarDetails | null {
+  if (event.mode === 'agora') {
+    if (!event.startsAt) return null;
+    const startsAt = new Date(event.startsAt);
+    if (Number.isNaN(startsAt.getTime())) return null;
+    return { startsAt, endsAt: new Date(startsAt.getTime() + 2 * 60 * 60 * 1000), floating: false };
+  }
   if (!event.decidedOption) return null;
   if (event.mode === 'mais-tarde') {
     const startsAt = new Date(event.decidedOption);
