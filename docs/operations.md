@@ -17,7 +17,8 @@ pre-launch verification.
 
 The `rocky` user is in the `docker` group, so `docker` runs without `sudo`.
 Secrets live in `/opt/bora/.env` (mode 600) and `/etc/duckdns.env` (mode 600).
-Neither is tracked in git and neither is overwritten by a sync.
+GitHub Actions regenerates both from the `production` Environment on every
+release; neither is tracked in git or copied from a workstation.
 
 ## Connect
 
@@ -37,50 +38,29 @@ republishes the web container on all interfaces. Always pass both.
 
 ## Deploy a new version
 
-From your workstation, in a checkout of this repository:
-
-```bash
-./deploy/sync.sh
-```
-
-That rsyncs the working tree to `/opt/bora`, rebuilds the images, recreates the
-containers, and checks `/api/health`. It writes the deployed git revision to
-`.deployed-revision` so the host records what it is running.
-
-Skip the image rebuild when only compose or config files changed:
-
-```bash
-./deploy/sync.sh --no-build
-```
-
-Target a different machine with environment variables:
-
-```bash
-BORA_HOST=rocky@203.0.113.10 BORA_REMOTE_DIR=/srv/bora ./deploy/sync.sh
-```
+Publish a GitHub Release with a stable `vX.Y.Z` tag from `main`. The
+**Release deploy** workflow verifies the tag, builds and publishes public GHCR
+images, syncs the deployment assets, pulls the exact image digests on the VM,
+and checks both health endpoints. See [GitHub Actions production
+deployments](github-actions-deploy.md) for the one-time setup.
 
 ### What the sync excludes
 
-`.git`, `node_modules`, `dist`, `android`, `ios`, and `.env`. The sync uses
-`--delete`, so files removed locally are removed on the host — but excluded
-paths are never deleted, which is what protects the production `.env`.
+`.git`, `node_modules`, `dist`, `android`, `ios`, and runtime secrets. The
+release sync uses `--delete`, while excluding `.env`, DuckDNS credentials, and
+the deployed-release marker. GitHub Actions is the source of truth for the
+excluded secret files.
 
 ### Deploying by hand
 
-```bash
-ssh rocky@147.15.84.15
-cd /opt/bora
-docker compose -f compose.yaml -f compose.prod.yaml up -d --build --remove-orphans
-```
-
-Builds run on the VM. With 1 GB of RAM the Vite build leans on swap and takes
-roughly 30 seconds; that is expected, not a fault.
+Do not build or deploy production images by hand. Re-run a prior successful
+**Release deploy** workflow to roll back to its exact image digests.
 
 ## Check what is running
 
 ```bash
 docker compose -f compose.yaml -f compose.prod.yaml ps
-cat /opt/bora/.deployed-revision
+cat /opt/bora/.deployed-release
 curl -fsS http://127.0.0.1:8080/api/health
 curl -fsS https://bora-app.duckdns.org/api/health
 ```
@@ -113,20 +93,11 @@ sudo reboot                           # comes back automatically
 
 ### Credentials
 
-The DuckDNS token goes in **`deploy/duckdns.env`**, which is gitignored. Start
-from the tracked template:
-
-```bash
-cp deploy/duckdns.env.example deploy/duckdns.env
-$EDITOR deploy/duckdns.env      # set DUCKDNS_TOKEN
-./deploy/setup-duckdns.sh
-```
-
-`setup-duckdns.sh` pipes the token over stdin to `/etc/duckdns.env` on the host
-(mode 600, root-owned), enables the timer, and forces one update. The token is
-never passed as a command argument, so it does not appear in the host's process
-list, and `deploy/sync.sh` excludes `deploy/duckdns.env` so it is never copied
-into `/opt/bora`.
+Store `DUCKDNS_TOKEN` as a `production` GitHub Environment secret and
+`DUCKDNS_DOMAIN` as its Environment variable. Every release sends them over
+stdin to the root-owned validated helper, which writes `/etc/duckdns.env` with
+mode 600. The token is never part of the repository, an image, or a command
+argument.
 
 `DUCKDNS_DOMAIN` is the bare label — `bora-app`, not `bora-app.duckdns.org`.
 
@@ -207,13 +178,10 @@ practice a restore there.
 
 ## Rollback
 
-```bash
-git checkout <last-good-commit>
-./deploy/sync.sh
-```
-
-Migrations are forward-only. Rolling code back does not roll the schema back,
-so a rollback across a migration needs a new migration that reverses it.
+Re-run the successful **Release deploy** workflow for the last good GitHub
+Release. It reuses the recorded immutable image digests. Migrations are
+forward-only, so a rollback across a migration needs a new migration that
+reverses it.
 
 ## Firewall and cloud networking
 
@@ -232,5 +200,5 @@ your VCN → Subnets → your subnet → Security Lists → Ingress Rules.
 | Certificate errors | `bora logs caddy`; confirm port 80 is reachable from outside |
 | `502` from Caddy | `bora ps`; the `web` container is down or unhealthy |
 | API `500`s | `bora logs api`; usually the database is unreachable |
-| Build killed mid-deploy | `free -m`; the 4 GB swapfile at `/.swapfile` must be active |
-| Wrong version live | `cat /opt/bora/.deployed-revision` |
+| Image pull fails | Confirm the GHCR packages are public and the VM can reach `ghcr.io` |
+| Wrong version live | `cat /opt/bora/.deployed-release` |

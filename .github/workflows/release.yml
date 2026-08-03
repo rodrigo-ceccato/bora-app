@@ -1,0 +1,122 @@
+name: Release deploy
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+      - name: Validate stable tag from main
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git fetch origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor HEAD origin/main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      - run: docker compose config --quiet
+      - run: npx playwright install --with-deps chromium
+      - run: docker compose up -d --build
+      - run: curl --retry 10 --retry-all-errors --retry-delay 1 --fail http://127.0.0.1:8080/api/health
+      - run: npm run test:e2e
+      - if: always()
+        run: docker compose down -v
+
+  publish:
+    name: Publish release images
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      api_digest: ${{ steps.api.outputs.digest }}
+      web_digest: ${{ steps.web.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          push: true
+          tags: |
+            ghcr.io/rodrigo-ceccato/bora-api:${{ github.event.release.tag_name }}
+            ghcr.io/rodrigo-ceccato/bora-api:${{ github.sha }}
+      - id: web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.web
+          push: true
+          tags: |
+            ghcr.io/rodrigo-ceccato/bora-web:${{ github.event.release.tag_name }}
+            ghcr.io/rodrigo-ceccato/bora-web:${{ github.sha }}
+
+  deploy:
+    name: Deploy production
+    needs: publish
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ vars.BORA_DOMAIN }}
+    env:
+      BORA_HOST: ${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}
+      BORA_REMOTE_DIR: ${{ vars.DEPLOY_PATH }}
+      BORA_API_IMAGE: ghcr.io/rodrigo-ceccato/bora-api@${{ needs.publish.outputs.api_digest }}
+      BORA_WEB_IMAGE: ghcr.io/rodrigo-ceccato/bora-web@${{ needs.publish.outputs.web_digest }}
+      BORA_RELEASE_TAG: ${{ github.event.release.tag_name }}
+      BORA_RELEASE_SHA: ${{ github.sha }}
+      POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+      POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      BORA_PORT: ${{ vars.BORA_PORT }}
+      BORA_BIND: ${{ vars.BORA_BIND }}
+      BORA_DOMAIN: ${{ vars.BORA_DOMAIN }}
+      BORA_TLS_EMAIL: ${{ vars.BORA_TLS_EMAIL }}
+      DUCKDNS_DOMAIN: ${{ vars.DUCKDNS_DOMAIN }}
+      DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - name: Configure verified SSH access
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_SSH_KNOWN_HOSTS: ${{ vars.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Deploy digest-pinned release
+        run: ./deploy/release.sh

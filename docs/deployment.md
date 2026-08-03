@@ -1,6 +1,17 @@
 # Deploying Bora
 
-## Recommended first deployment
+## Production deployment
+
+The Bora production VM is deployed only by the GitHub Release workflow. Follow
+the [GitHub Actions production deployments](github-actions-deploy.md) guide to
+configure the `production` Environment, VM deployment key, and one-time
+DuckDNS helper. The workflow creates the production `/opt/bora/.env` from
+Environment values; do not copy a local secret file to the VM.
+
+## Manual first deployment
+
+This is only for a separate non-production or self-managed host. The current
+production VM uses the release workflow above.
 
 Use one Linux server with Docker and Docker Compose. Put a TLS reverse proxy such as Caddy, Traefik, or your hosting provider's HTTPS proxy in front of Bora.
 
@@ -77,10 +88,12 @@ Restore into an empty database only after testing the backup procedure in a non-
 
 ## Updating
 
-```bash
-git pull
-docker compose -f compose.yaml -f compose.prod.yaml up -d --build
-```
+Publish a stable `vX.Y.Z` GitHub Release from a commit on `main`. GitHub
+Actions verifies the tag, builds digest-pinned API and web images in GHCR, and
+restarts the VM with those images. See [GitHub Actions production
+deployments](github-actions-deploy.md).
+
+Do not build production images on the VM or update it from a workstation.
 
 New SQL files in `server/migrations` run once at API startup and are recorded in the `schema_migrations` table. Never edit a migration that has already reached a shared environment; add a new numbered migration instead.
 

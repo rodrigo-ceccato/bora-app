@@ -80,15 +80,13 @@ See [deployment](docs/deployment.md) and the [MVP test checklist](docs/mvp-test-
 
 ## Production host
 
-The live instance runs on a small Oracle VM behind Caddy. To ship a new version
-from a checkout:
+The live instance runs on a small Oracle VM behind Caddy. Production releases
+are built in GitHub Actions and deployed when a stable GitHub Release is
+published; do not run a production build from a workstation.
 
-```bash
-./deploy/sync.sh
-```
-
-See the [operations runbook](docs/operations.md) for connecting, deploying,
-logs, backups, rollback, and DNS.
+See the [GitHub Actions deployment guide](docs/github-actions-deploy.md) for
+the required Environment configuration and the [operations runbook](docs/operations.md)
+for logs, backups, rollback, and DNS.
 
 ## Mobile packaging
 
