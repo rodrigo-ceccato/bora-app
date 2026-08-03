@@ -6,6 +6,12 @@ const LOCAL_EVENTS_KEY = 'bora_events_v2';
 const PARTICIPANT_KEY = 'bora_participant_id';
 const ADMIN_EVENTS_KEY = 'bora_admin_events';
 
+export interface AdminEventAccess {
+  slug: string;
+  title: string;
+  adminToken: string;
+}
+
 type ApiEventResponse = EventWithVotes & { adminToken?: string };
 
 export interface MyEvents {
@@ -61,12 +67,18 @@ export function usingApi() {
   return Boolean(API_BASE);
 }
 
-export function listAdminEvents() {
-  return JSON.parse(localStorage.getItem(ADMIN_EVENTS_KEY) || '[]') as Array<{
-    slug: string;
-    title: string;
-    adminToken: string;
-  }>;
+export function listAdminEvents(): AdminEventAccess[] {
+  return JSON.parse(localStorage.getItem(ADMIN_EVENTS_KEY) || '[]') as AdminEventAccess[];
+}
+
+export function restoreAdminEvents(events: AdminEventAccess[]) {
+  const validEvents = events.filter((event) =>
+    typeof event.slug === 'string' && typeof event.title === 'string' && typeof event.adminToken === 'string'
+      && event.slug.length > 0 && event.adminToken.length > 0
+  ).slice(0, 30);
+  const existing = listAdminEvents();
+  const merged = [...validEvents, ...existing.filter((event) => !validEvents.some((item) => item.slug === event.slug))];
+  localStorage.setItem(ADMIN_EVENTS_KEY, JSON.stringify(merged.slice(0, 30)));
 }
 
 export async function listMyEvents(): Promise<MyEvents> {
@@ -82,11 +94,15 @@ export async function listMyEvents(): Promise<MyEvents> {
   };
 }
 
-export async function createRecoveryLink(): Promise<string> {
+export async function createRecoveryLink(includeAdminAccess = false): Promise<string> {
   const result = await apiRequest<{ recoveryToken: string }>('/me/recovery-link', {
     method: 'POST', headers: { 'x-participant-id': getParticipantId() }
   });
-  return `${window.location.origin}/recover?token=${encodeURIComponent(result.recoveryToken)}`;
+  const link = `${window.location.origin}/recover?token=${encodeURIComponent(result.recoveryToken)}`;
+  // The fragment is never sent to the server, which keeps these capabilities out of server logs.
+  return includeAdminAccess
+    ? `${link}#admin=${encodeURIComponent(JSON.stringify(listAdminEvents()))}`
+    : link;
 }
 
 export async function recoverParticipant(recoveryToken: string): Promise<void> {

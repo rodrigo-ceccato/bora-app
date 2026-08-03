@@ -420,6 +420,8 @@ body { background: #f6f8fb; }
 .recovery-card h2 { margin-top: 0; color: #17384b; }
 .recovery-card p { color: #5e6e7a; }
 .recovery-link { overflow-wrap: anywhere; font-size: .85rem; }
+.recovery-admin-option { --background: transparent; margin: 8px 0 14px; }
+.recovery-admin-option small { display: block; margin-top: 4px; color: #7a4b12; }
 
 .vote-confirmation p { font-size: 1.05rem; }
 .vote-card-complete { border-color: #b8dfd3 !important; background: #f2fbf8; }
