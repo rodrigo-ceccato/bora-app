@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bora">
+  <g fill="none" stroke="#00a94f" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="4" d="m20.5 28.5 21-11.2m-21 18.2 21 11.2"/>
+    <circle cx="13.5" cy="32" r="8.7" stroke-width="4"/>
+    <circle cx="50.5" cy="13.5" r="8.7" stroke-width="4"/>
+    <circle cx="50.5" cy="50.5" r="8.7" stroke-width="4"/>
+  </g>
+</svg>

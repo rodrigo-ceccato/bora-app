@@ -1,60 +1,46 @@
-import { IonButton, IonCard, IonCardContent, IonContent, IonHeader, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
-import { useState } from 'react';
-import shareSymbol from '../assets/share-sem-bolinha.png';
-import { listAdminEvents } from '../lib/store';
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import type { ReactNode } from 'react';
+import { calendarOutline } from 'ionicons/icons';
+
+type Mode = 'agora' | 'mais-tarde' | 'marcar';
+
+function ModeIcon({ mode }: { mode: Mode }) {
+  const paths: Record<Mode, ReactNode> = {
+    agora: <><circle cx="12" cy="12" r="7" /><path d="M12 8v4l2.5 2" /></>,
+    'mais-tarde': <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16m-9 4h3m-3 3h5" /></>,
+    marcar: <><path d="M5 4v16h14V4H5Z" /><path d="M8 2v4m8-4v4M5 9h14m-8 4h5m-5 3h3" /></>
+  };
+  return <svg className="mode-card-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[mode]}</svg>;
+}
+
+const actions: Array<{ mode: Mode; title: string; description: string }> = [
+  { mode: 'agora', title: 'Bora agora', description: 'Veja quem topa sair hoje.' },
+  { mode: 'mais-tarde', title: 'Bora essa semana', description: 'Encontre um horário que funcione.' },
+  { mode: 'marcar', title: 'Bora marcar', description: 'Compare dias e horários com a turma.' }
+];
 
 export default function HomePage() {
-  const [createdEvents, setCreatedEvents] = useState(listAdminEvents());
-
-  useIonViewWillEnter(() => setCreatedEvents(listAdminEvents()));
-
-  return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Bora</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="ion-padding hero-bg">
-        <section className="hero">
-          <h1>Bora marcar?</h1>
-          <img className="bora-share-symbol" src={shareSymbol} alt="Símbolo de compartilhamento Bora" />
-          <p>
-            Crie um convite, envie o link, não precisa de conta para criar ou votar, é só fazer o rolê acontecer.
-          </p>
-          <div className="home-mode-actions" role="group" aria-label="Escolha o tipo de Bora">
-            <IonButton routerLink="/create?mode=agora" size="large" expand="block" className="home-mode-button">
-              <span className="mode-action-content"><span>BORA AGORA! 🧑‍🤝‍🧑</span><small>Quem topa sair hoje?</small></span>
-            </IonButton>
-            <IonButton routerLink="/create?mode=mais-tarde" size="large" expand="block" className="home-mode-button">
-              <span className="mode-action-content"><span>Bora essa semana? 🗓️</span><small>Qual dia e horário dessa semana funcionam?</small></span>
-            </IonButton>
-            <IonButton routerLink="/create?mode=marcar" size="large" expand="block" className="home-mode-button">
-              <span className="mode-action-content"><span>Bora marcar 📅</span><small>Qual dia funciona para todos?</small></span>
-            </IonButton>
-          </div>
-          <IonButton fill="outline" expand="block" routerLink="/my-events">Meus Boras</IonButton>
-          {createdEvents.length > 0 && (
-            <IonCard className="created-events-card">
-              <IonCardContent>
-                <h2>Meus Boras neste aparelho</h2>
-                <div className="created-events-list">
-                  {createdEvents.map((event) => (
-                    <IonButton
-                      key={event.slug}
-                      fill="outline"
-                      routerLink={`/e/${event.slug}?admin=${event.adminToken}`}
-                    >
-                      {event.title}
-                    </IonButton>
-                  ))}
-                </div>
-                <p className="muted">Os links de criador ficam salvos somente neste navegador.</p>
-              </IonCardContent>
-            </IonCard>
-          )}
-        </section>
-      </IonContent>
-    </IonPage>
-  );
+  return <IonPage>
+    <IonHeader>
+      <IonToolbar>
+        <IonTitle>Bora</IonTitle>
+        <IonButtons slot="end"><IonButton fill="clear" className="toolbar-secondary-action" routerLink="/my-events" aria-label="Meus Boras"><IonIcon icon={calendarOutline} aria-hidden="true" /><span>Meus Boras</span></IonButton></IonButtons>
+      </IonToolbar>
+    </IonHeader>
+    <IonContent className="ion-padding hero-bg">
+      <section className="hero">
+        <span className="hero-kicker">Combine sem complicação</span>
+        <h1>Bora marcar?</h1>
+        <img className="bora-share-symbol" src="/bora-share.svg" alt="Símbolo de compartilhamento Bora" />
+        <p>Crie um convite, envie o link e faça o rolê acontecer. Ninguém precisa criar conta para participar.</p>
+        <div className="home-mode-actions" role="list" aria-label="Escolha o tipo de Bora">
+          {actions.map((action) => <IonButton key={action.mode} fill="clear" routerLink={`/create?mode=${action.mode}`} className="home-mode-card" role="listitem">
+            <ModeIcon mode={action.mode} />
+            <span className="mode-card-copy"><strong>{action.title}</strong><small>{action.description}</small></span>
+            <span className="mode-card-arrow" aria-hidden="true">→</span>
+          </IonButton>)}
+        </div>
+      </section>
+    </IonContent>
+  </IonPage>;
 }

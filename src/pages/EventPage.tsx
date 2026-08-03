@@ -1,6 +1,7 @@
-import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
+import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
+import { logoWhatsapp } from 'ionicons/icons';
 import { deleteEvent, getEvent, getParticipantId, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
 import { responseLabel } from '../lib/schedule';
 import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
@@ -17,11 +18,11 @@ function acceptedCount(votes: BoraVote[]) {
 }
 
 function statusText(event: BoraEvent, votes: BoraVote[]) {
-  if (event.votingClosed) return 'Votação encerrada pelo criador.';
+  if (event.votingClosed) return 'Confirmações encerradas.';
   const accepted = acceptedCount(votes);
-  if (accepted >= event.threshold) return `Vai acontecer! ${accepted}/${event.threshold} confirmações.`;
+  if (accepted >= event.threshold) return 'Meta de confirmações atingida.';
   const remaining = event.threshold - accepted;
-  return `${remaining === 1 ? 'Falta 1 confirmação' : `Faltam ${remaining} confirmações`}. ${accepted}/${event.threshold} até agora.`;
+  return remaining === 1 ? 'Falta 1 confirmação.' : `Faltam ${remaining} confirmações.`;
 }
 
 const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`);
@@ -350,11 +351,6 @@ export default function EventPage() {
     await copyText(url, 'Link dos convidados copiado!');
   }
 
-  async function copyAdminLink() {
-    if (!data) return;
-    await copyText(`${window.location.origin}/e/${slug}?admin=${adminToken}`, 'Link de administrador copiado!');
-  }
-
   function shareOnWhatsApp() {
     const invitationUrl = `${window.location.origin}/e/${slug}`;
     const message = `Bora combinar? ${data?.event.title || 'Participe do meu Bora'}: ${invitationUrl}`;
@@ -389,10 +385,10 @@ export default function EventPage() {
             <IonCard className="success-card ready-card">
               <IonCardContent>
                 <div>
-                  <strong>Seu Bora está pronto! 🎉</strong>
+                  <strong>Seu Bora está pronto!</strong>
                   <p>Agora é só chamar a galera.</p>
                 </div>
-                <IonButton onClick={shareOnWhatsApp}>Compartilhar</IonButton>
+                <IonButton onClick={() => void shareLink()}>Compartilhar</IonButton>
               </IonCardContent>
             </IonCard>
           )}
@@ -411,13 +407,12 @@ export default function EventPage() {
               {event.description && <p className="event-description">{event.description}</p>}
               <div className="status-block">
                 <div className="status-heading">
-                  <strong>{counts.accept === 1 ? '1 pessoa confirmou' : `${counts.accept} pessoas confirmaram`}</strong>
-                  <span>Meta: {event.threshold}</span>
+                  <strong>{counts.accept} de {event.threshold} {event.threshold === 1 ? 'pessoa confirmou' : 'pessoas confirmaram'}</strong>
                 </div>
                 <div className="threshold-progress" role="progressbar" aria-label={`${counts.accept} de ${event.threshold} confirmações`} aria-valuemin={0} aria-valuemax={event.threshold} aria-valuenow={counts.accept}>
                   <span style={{ width: `${confirmationProgress}%` }} />
                 </div>
-                <p>Progresso de confirmações · {statusText(event, votes)}</p>
+                <p>{statusText(event, votes)}</p>
               </div>
             </IonCardContent>
           </IonCard>
@@ -517,41 +512,49 @@ export default function EventPage() {
                   <h2 id="manage-title">Gerenciar evento</h2>
                   <p>Compartilhe, edite ou controle a votação.</p>
                 </div>
-                <IonCard>
+                <div className="manage-grid">
+                <IonCard className="manage-section share-section">
                   <IonCardContent>
-                    <h3>Convidar pessoas</h3>
+                    <span className="section-eyebrow">Convidar pessoas</span>
+                    <h3>Compartilhe o convite com a galera.</h3>
                     <p className="muted">O link de convite não dá acesso aos controles do organizador.</p>
                     <div className="share-actions">
-                      <IonButton expand="block" onClick={shareOnWhatsApp}>Compartilhar no WhatsApp</IonButton>
-                      <IonButton expand="block" fill="outline" onClick={() => void shareLink()}>Copiar link de convite</IonButton>
+                      <IonButton expand="block" onClick={shareOnWhatsApp}><IonIcon slot="start" icon={logoWhatsapp} aria-hidden="true" />Compartilhar no WhatsApp</IonButton>
+                      <IonButton expand="block" fill="outline" onClick={() => void copyText(`${window.location.origin}/e/${slug}`, 'Link dos convidados copiado!')}>Copiar link</IonButton>
                     </div>
-                    <button type="button" className="admin-link-action" onClick={() => void copyAdminLink()}>Copiar link privado do administrador</button>
                   </IonCardContent>
                 </IonCard>
-                <IonCard>
+                <IonCard className="manage-section details-section">
                   <IonCardContent>
-                    <h3>Configurações</h3>
+                    <span className="section-eyebrow">Informações</span>
+                    <h3>Detalhes do evento</h3>
+                    <dl className="event-details-list"><div><dt>Quando</dt><dd>{event.startsAt ? new Date(event.startsAt).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }) : event.mode === 'marcar' ? 'Dias e horários a combinar' : 'Data a combinar'}</dd></div><div><dt>Local</dt><dd>{event.place}</dd></div><div><dt>Meta de confirmações</dt><dd>{event.threshold} confirmações</dd></div></dl>
+                    <IonButton fill="outline" onClick={openEdit}>Editar detalhes</IonButton>
+                  </IonCardContent>
+                </IonCard>
+                <IonCard className="manage-section responses-section">
+                  <IonCardContent>
+                    <span className="section-eyebrow">Respostas</span>
+                    <h3>{event.votingClosed ? 'Confirmações encerradas' : 'Confirmações abertas'}</h3>
+                    <p className="muted">{event.votingClosed ? 'Convidados não podem enviar nem alterar respostas.' : 'Convidados ainda podem responder ao convite.'}</p>
                     <div className="settings-row">
-                      <div><strong>Receber novos votos</strong><span>{event.votingClosed ? 'A votação está encerrada.' : 'Convidados ainda podem responder.'}</span></div>
-                      <IonButton fill="outline" onClick={() => void toggleVoting()} disabled={savingAdminAction}>{event.votingClosed ? 'Reabrir' : 'Encerrar'}</IonButton>
+                      <IonButton fill={event.votingClosed ? 'outline' : 'solid'} onClick={() => void toggleVoting()} disabled={savingAdminAction}>{event.votingClosed ? 'Reabrir confirmações' : 'Encerrar confirmações'}</IonButton>
                     </div>
                     {event.decidedOption && <div className="settings-row">
                       <div><strong>Horário definido</strong><span>{optionLabel(event, event.decidedOption)}</span></div>
-                      <IonButton fill="outline" onClick={() => void clearDecision()} disabled={savingAdminAction}>Alterar decisão</IonButton>
-                    </div>}
-                    <div className="settings-row">
-                      <div><strong>Detalhes do evento</strong><span>Nome, local, meta e horários.</span></div>
-                      <IonButton fill="outline" onClick={openEdit}>Editar</IonButton>
+                      <IonButton fill="clear" onClick={() => void clearDecision()} disabled={savingAdminAction}>Remover decisão</IonButton>
                     </div>
+                    }
                   </IonCardContent>
                 </IonCard>
+                </div>
                 <IonCard className="danger-zone">
                   <IonCardContent>
                     <div>
                       <h3>Excluir evento</h3>
                       <p>Apaga o evento e todos os votos permanentemente.</p>
                     </div>
-                    <IonButton fill="clear" color="danger" onClick={confirmDelete} disabled={savingAdminAction}>Excluir</IonButton>
+                    <IonButton color="danger" onClick={confirmDelete} disabled={savingAdminAction}>Excluir evento</IonButton>
                   </IonCardContent>
                 </IonCard>
               </section>

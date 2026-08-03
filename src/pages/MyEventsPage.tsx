@@ -1,75 +1,66 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonCheckbox, IonContent, IonHeader, IonItem, IonLabel, IonPage, IonSpinner, IonTitle, IonToolbar, useIonToast, useIonViewWillEnter } from '@ionic/react';
+import { IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonPage, IonSpinner, IonTitle, IonToolbar, useIonRouter, useIonToast, useIonViewWillEnter } from '@ionic/react';
 import { useState } from 'react';
-import { createRecoveryLink, listAdminEvents, listMyEvents, type MyEvents } from '../lib/store';
+import { getEvent, listAdminEvents, listMyEvents, type MyEvents } from '../lib/store';
 import type { BoraEvent } from '../lib/types';
 
-function eventDate(event: BoraEvent) {
-  return event.startsAt
-    ? new Date(event.startsAt).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' })
-    : 'Data a combinar';
+type EventListItem = { event: BoraEvent; confirmed: number };
+type EventGroups = { created: EventListItem[]; joined: EventListItem[] };
+
+function modeLabel(event: BoraEvent) { return event.mode === 'agora' ? 'Bora agora' : event.mode === 'mais-tarde' ? 'Bora essa semana' : 'Bora marcar'; }
+function eventStatus(event: BoraEvent) { return event.decidedOption ? 'Definido' : event.votingClosed ? 'Encerrado' : 'Recebendo respostas'; }
+function eventDateParts(event: BoraEvent) {
+  if (event.startsAt) {
+    const date = new Date(event.startsAt);
+    return [date.toLocaleDateString('pt-BR', { dateStyle: 'medium' }), date.toLocaleTimeString('pt-BR', { timeStyle: 'short' })];
+  }
+  if (event.mode === 'marcar' && event.days[0]) return [event.days[0].label, event.days[0].slots.join(', ')];
+  return ['Data a combinar', ''];
+}
+function eventTime(event: BoraEvent) {
+  if (event.startsAt) return new Date(event.startsAt).getTime();
+  if (event.mode === 'marcar' && event.days[0]) return new Date(`${event.days[0].date}T${event.days[0].slots[0] || '00:00'}`).getTime();
+  return Number.POSITIVE_INFINITY;
+}
+function sortEvents(items: EventListItem[]) {
+  const now = Date.now();
+  return [...items].sort((a, b) => {
+    const aTime = eventTime(a.event); const bTime = eventTime(b.event);
+    const aUpcoming = aTime >= now; const bUpcoming = bTime >= now;
+    if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+    return aUpcoming ? aTime - bTime : bTime - aTime;
+  });
 }
 
 export default function MyEventsPage() {
   const [toast] = useIonToast();
-  const [events, setEvents] = useState<MyEvents>({ created: [], joined: [] });
+  const router = useIonRouter();
+  const [events, setEvents] = useState<EventGroups>({ created: [], joined: [] });
   const [loading, setLoading] = useState(true);
-  const [recoveryLink, setRecoveryLink] = useState('');
-  const [creatingRecoveryLink, setCreatingRecoveryLink] = useState(false);
-  const [includeAdminAccess, setIncludeAdminAccess] = useState(false);
 
   useIonViewWillEnter(() => {
     let active = true;
     setLoading(true);
-    void listMyEvents()
-      .then((result) => { if (active) setEvents(result); })
-      .catch((error) => {
-        if (active) toast({ message: error instanceof Error ? error.message : 'Não foi possível carregar seus Boras.', color: 'danger', duration: 2800 });
-      })
-      .finally(() => { if (active) setLoading(false); });
+    void listMyEvents().then(async (result: MyEvents) => {
+      const hydrate = async (event: BoraEvent): Promise<EventListItem> => {
+        const detail = await getEvent(event.slug).catch(() => null);
+        return { event, confirmed: detail?.votes.filter((vote) => vote.response === 'accept').length || 0 };
+      };
+      const [created, joined] = await Promise.all([Promise.all(result.created.map(hydrate)), Promise.all(result.joined.map(hydrate))]);
+      if (active) setEvents({ created: sortEvents(created), joined: sortEvents(joined) });
+    }).catch((error) => {
+      if (active) toast({ message: error instanceof Error ? error.message : 'Não foi possível carregar seus Boras.', color: 'danger', duration: 2800 });
+    }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   });
 
   const adminTokens = new Map(listAdminEvents().map((event) => [event.slug, event.adminToken]));
-  const eventLink = (event: BoraEvent) => {
-    const token = adminTokens.get(event.slug);
-    return `/e/${event.slug}${token ? `?admin=${token}` : ''}`;
-  };
-
-  async function makeRecoveryLink() {
-    setCreatingRecoveryLink(true);
-    try {
-      const link = await createRecoveryLink(includeAdminAccess);
-      setRecoveryLink(link);
-      await navigator.clipboard?.writeText(link);
-      toast({ message: 'Link de recuperação copiado.', color: 'success', duration: 2400 });
-    } catch (error) {
-      toast({ message: error instanceof Error ? error.message : 'Não foi possível criar o link.', color: 'danger', duration: 2800 });
-    } finally { setCreatingRecoveryLink(false); }
+  const eventLink = (event: BoraEvent) => `/e/${event.slug}${adminTokens.get(event.slug) ? `?admin=${adminTokens.get(event.slug)}` : ''}`;
+  function section(title: string, items: EventListItem[], role: string, empty: string, emptyAction = true) {
+    return <section className="my-events-section"><div className="my-events-section-heading"><h2>{title}</h2>{items.length > 0 && <span>{items.length}</span>}</div>
+      {items.length === 0 ? <div className="my-events-empty"><p>{empty}</p>{emptyAction && <IonButton fill="clear" routerLink="/create?mode=agora">Criar um Bora</IonButton>}</div> : items.map(({ event, confirmed }) => {
+        const [date, time] = eventDateParts(event);
+        return <button type="button" key={event.id} className="my-event-card" onClick={() => router.push(eventLink(event), 'forward')}><span className="my-event-heading"><span className="event-mode-tag">{modeLabel(event)}</span><span className={`event-status-tag ${event.votingClosed ? 'closed' : ''}`}>{eventStatus(event)}</span><strong>{event.title}</strong></span><span className="my-event-metadata"><span>{date}</span>{time && <span>{time}</span>}<span>{event.place}</span></span><span className="my-event-card-bottom"><span>{role}</span><span>{confirmed} de {event.threshold} confirmaram</span></span><span className="my-event-chevron" aria-hidden="true">›</span></button>;
+      })}</section>;
   }
-
-  function section(title: string, items: BoraEvent[], empty: string) {
-    return <section className="my-events-section">
-      <h2>{title}</h2>
-      {items.length === 0 ? <p className="muted">{empty}</p> : items.map((event) => (
-        <IonCard key={event.id} className="my-event-card">
-          <IonCardContent>
-            <div><h3>{event.title}</h3><p>{eventDate(event)} · {event.place}</p></div>
-            <IonButton fill="outline" routerLink={eventLink(event)}>Abrir</IonButton>
-          </IonCardContent>
-        </IonCard>
-      ))}
-    </section>;
-  }
-
-  return <IonPage>
-    <IonHeader><IonToolbar><IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons><IonTitle>Meus Boras</IonTitle></IonToolbar></IonHeader>
-    <IonContent className="ion-padding form-page">
-      <section className="my-events-intro"><h1>Meus Boras</h1><p>Eventos criados ou respondidos neste aparelho.</p></section>
-      <IonCard className="recovery-card"><IonCardContent><h2>Levar meus Boras para outro aparelho</h2><p>Crie um link de recuperação para ver sua lista de Boras no novo aparelho.</p><IonItem lines="none" className="recovery-admin-option"><IonCheckbox checked={includeAdminAccess} onIonChange={(event) => setIncludeAdminAccess(event.detail.checked)} /><IonLabel className="ion-margin-start">Manter permissões de organização no novo dispositivo<small>Inclui os links de administrador deste aparelho. Compartilhe-o somente com você.</small></IonLabel></IonItem><IonButton fill="outline" onClick={() => void makeRecoveryLink()} disabled={creatingRecoveryLink}>{creatingRecoveryLink ? 'Criando...' : 'Criar link de recuperação'}</IonButton>{recoveryLink && <p className="recovery-link"><a href={recoveryLink}>{recoveryLink}</a></p>}</IonCardContent></IonCard>
-      {loading ? <div className="center"><IonSpinner /><p>Carregando...</p></div> : <>
-        {section('Criados por mim', events.created, 'Você ainda não criou nenhum Bora neste aparelho.')}
-        {section('Participo', events.joined, 'Os Boras em que você responder aparecerão aqui.')}
-      </>}
-    </IonContent>
-  </IonPage>;
+  return <IonPage><IonHeader><IonToolbar><IonButtons slot="start"><IonBackButton defaultHref="/home" /></IonButtons><IonTitle>Meus Boras</IonTitle></IonToolbar></IonHeader><IonContent className="ion-padding form-page"><section className="my-events-intro"><span className="section-eyebrow">Sua agenda</span><p>Eventos que você criou ou em que está participando.</p></section>{loading ? <div className="center"><IonSpinner /><p>Carregando...</p></div> : <><>{section('Criados por mim', events.created, 'Organizador', 'Você ainda não criou nenhum Bora.')}</>{section('Participo', events.joined, 'Convidado', 'Os Boras em que você responder aparecerão aqui. Abra um link de convite para participar.', false)}</>}<IonButton fill="outline" className="other-device-action" routerLink="/recover">Usar meus Boras em outro dispositivo</IonButton></IonContent></IonPage>;
 }
