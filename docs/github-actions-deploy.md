@@ -30,6 +30,7 @@ ancestor of `main`. Pre-release tags do not deploy.
    | `DEPLOY_SSH_PRIVATE_KEY` | Dedicated passphrase-free Ed25519 private key for the `rocky` account. |
    | `POSTGRES_PASSWORD` | The existing production PostgreSQL password. Do not change it during the first deployment; it must be a single-line Compose value (a 64-character hex password is ideal). |
    | `DUCKDNS_TOKEN` | The existing DuckDNS token. |
+   | `BORA_TLS_EMAIL` | Your certificate-contact email address. |
 
 4. Add these **Environment variables**:
 
@@ -44,7 +45,6 @@ ancestor of `main`. Pre-release tags do not deploy.
    | `BORA_BIND` | `127.0.0.1` |
    | `BORA_PORT` | `8080` |
    | `BORA_DOMAIN` | `bora-app.duckdns.org` |
-   | `BORA_TLS_EMAIL` | Your certificate-contact email address |
    | `DUCKDNS_DOMAIN` | `bora-app` |
 
 `DEPLOY_SSH_KNOWN_HOSTS` is not a secret. Confirm its fingerprint against the

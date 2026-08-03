@@ -101,7 +101,7 @@ jobs:
       BORA_PORT: ${{ vars.BORA_PORT }}
       BORA_BIND: ${{ vars.BORA_BIND }}
       BORA_DOMAIN: ${{ vars.BORA_DOMAIN }}
-      BORA_TLS_EMAIL: ${{ vars.BORA_TLS_EMAIL }}
+      BORA_TLS_EMAIL: ${{ secrets.BORA_TLS_EMAIL }}
       DUCKDNS_DOMAIN: ${{ vars.DUCKDNS_DOMAIN }}
       DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
     steps:
