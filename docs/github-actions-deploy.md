@@ -1,9 +1,9 @@
 # GitHub Actions production deployments
 
-Production deployments are created by publishing a GitHub Release with a stable
-tag such as `v1.0.0`. The release workflow verifies the tagged checkout, builds
-the API and web images in GitHub Actions, publishes them to GHCR, and deploys
-their immutable digests to the Oracle VM.
+Production deployments begin when an annotated stable tag such as `v1.0.0` is
+pushed. The workflow verifies the tagged checkout, builds the API and web
+images in GitHub Actions, publishes them to GHCR, deploys their immutable
+digests to the Oracle VM, and only then publishes the GitHub Release.
 
 Only tags matching `vX.Y.Z` are accepted, and the tagged commit must be an
 ancestor of `main`. Pre-release tags do not deploy.
@@ -90,8 +90,9 @@ It grants `rocky` passwordless sudo only for the root-owned
 
 1. Push the Actions/deployment changes to `main` and wait for **Verify** to
    pass.
-2. Create and publish a GitHub Release from a `main` commit using `vX.Y.Z`.
-   Its notes must include a user-visible summary in this exact shape:
+2. Create and push an **annotated** `vX.Y.Z` tag from the verified `main`
+   commit. Its annotation becomes the GitHub Release notes and must include a
+   user-visible summary in this exact shape:
 
    ```md
    ## What users will notice
@@ -100,11 +101,13 @@ It grants `rocky` passwordless sudo only for the root-owned
    - Another visible improvement, if applicable.
    ```
 
-   The release workflow rejects releases without this heading and at least one
-   bullet, so technical-only changes should say plainly that there is no user-
-   visible behavior change.
-3. Watch **Release deploy**. It must pass verification, image publishing, and
-   both VM health checks.
+   For example, create it with `git tag -a vX.Y.Z` (your editor opens for the
+   annotation) and then run `git push origin vX.Y.Z`. The release workflow
+   rejects tags without this heading and at least one bullet, so technical-only
+   changes should say plainly that there is no user-visible behavior change.
+3. Pushing the tag starts **Release deploy** automatically. Watch the run
+   through verification, image publishing, deployment, and GitHub Release
+   publication. No public GitHub Release is created if any earlier stage fails.
 4. Confirm `cat /opt/bora/.deployed-release` and
    `docker compose -f compose.yaml -f compose.prod.yaml ps` on the VM.
 5. Reboot the VM once and verify the health endpoint again. Compose reads the
@@ -115,5 +118,5 @@ The Docker images are public because this repository is public, so the VM pulls
 them anonymously; no registry token is stored on the host. Runtime secrets are
 not part of either image.
 
-To roll back, re-run the successful **Release deploy** workflow for the prior
-release. The workflow deploys the exact digest that it originally published.
+To roll back, push a new annotated stable tag that points to the prior commit.
+The workflow deploys the corresponding images, then publishes that new release.

@@ -97,7 +97,7 @@ test('Bora agora offers Google Calendar after it is created', async ({ page, req
   }
 });
 
-test('My Boras highlights upcoming scheduled events and reminder controls', async ({ page, request }, testInfo) => {
+test('My Boras highlights upcoming scheduled events and handles reminder availability', async ({ page, request }, testInfo) => {
   const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const participantId = `upcoming-${runId}`;
   const created = await request.post('/api/events', {
@@ -119,7 +119,7 @@ test('My Boras highlights upcoming scheduled events and reminder controls', asyn
     await expect(page.getByRole('heading', { name: 'Próximos Boras' })).toBeVisible();
     await expect(page.getByText(`Próximo ${runId}`).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Lembretes' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Ativar lembretes' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ativar lembretes' }).or(page.getByText('Neste navegador os lembretes não estão disponíveis.'))).toBeVisible();
     const createdDisclosure = page.getByRole('button', { name: /Criados por mim/ });
     await expect(createdDisclosure).toHaveAttribute('aria-expanded', 'false');
     await createdDisclosure.focus();

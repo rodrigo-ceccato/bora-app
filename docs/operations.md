@@ -54,11 +54,12 @@ republishes the web container on all interfaces. Always pass both.
 
 ## Deploy a new version
 
-Publish a GitHub Release with a stable `vX.Y.Z` tag from `main`. The
-**Release deploy** workflow verifies the tag, builds and publishes public GHCR
+Create and push an annotated stable `vX.Y.Z` tag from `main`. **Release deploy**
+starts automatically, verifies the tag, builds and publishes public GHCR
 images, syncs the deployment assets, pulls the exact image digests on the VM,
-and checks both health endpoints. See [GitHub Actions production
-deployments](github-actions-deploy.md) for the one-time setup.
+checks both health endpoints, and only then publishes the GitHub Release. See
+[GitHub Actions production deployments](github-actions-deploy.md) for the
+one-time setup.
 
 ### What the sync excludes
 
@@ -194,8 +195,8 @@ practice a restore there.
 
 ## Rollback
 
-Re-run the successful **Release deploy** workflow for the last good GitHub
-Release. It reuses the recorded immutable image digests. Migrations are
+Push a new annotated stable tag that points to the last good commit. The
+workflow uses the corresponding immutable image digests. Migrations are
 forward-only, so a rollback across a migration needs a new migration that
 reverses it.
 

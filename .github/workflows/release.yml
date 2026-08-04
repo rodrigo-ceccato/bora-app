@@ -1,8 +1,9 @@
 name: Release deploy
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
@@ -15,28 +16,33 @@ jobs:
   verify:
     name: Verify release tag
     runs-on: ubuntu-latest
+    outputs:
+      tag_sha: ${{ steps.tag.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
       - name: Validate stable tag from main
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_BODY: ${{ github.event.release.body }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$(git cat-file -t "refs/tags/$RELEASE_TAG")" == tag ]]
           git fetch origin main:refs/remotes/origin/main
           git merge-base --is-ancestor HEAD origin/main
-          printf '%s\n' "$RELEASE_BODY" | awk '
+          git for-each-ref --format='%(contents)' "refs/tags/$RELEASE_TAG" > release-notes.md
+          awk '
             $0 == "## What users will notice" { in_section = 1; next }
             in_section && /^## / { exit }
             in_section && /^[-*] +[^[:space:]]/ { found = 1 }
             END { exit(found ? 0 : 1) }
-          ' || {
-            echo 'Release notes must include "## What users will notice" with at least one bullet describing a user-visible change.' >&2
+          ' release-notes.md || {
+            echo 'The annotated tag message must include "## What users will notice" with at least one bullet describing a user-visible change.' >&2
             exit 1
           }
+      - id: tag
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -66,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.ref_name }}
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -79,8 +85,8 @@ jobs:
           file: Dockerfile.api
           push: true
           tags: |
-            ghcr.io/rodrigo-ceccato/bora-api:${{ github.event.release.tag_name }}
-            ghcr.io/rodrigo-ceccato/bora-api:${{ github.sha }}
+            ghcr.io/rodrigo-ceccato/bora-api:${{ github.ref_name }}
+            ghcr.io/rodrigo-ceccato/bora-api:${{ needs.verify.outputs.tag_sha }}
       - id: web
         uses: docker/build-push-action@v6
         with:
@@ -88,8 +94,8 @@ jobs:
           file: Dockerfile.web
           push: true
           tags: |
-            ghcr.io/rodrigo-ceccato/bora-web:${{ github.event.release.tag_name }}
-            ghcr.io/rodrigo-ceccato/bora-web:${{ github.sha }}
+            ghcr.io/rodrigo-ceccato/bora-web:${{ github.ref_name }}
+            ghcr.io/rodrigo-ceccato/bora-web:${{ needs.verify.outputs.tag_sha }}
 
   deploy:
     name: Deploy production
@@ -103,8 +109,8 @@ jobs:
       BORA_REMOTE_DIR: ${{ vars.DEPLOY_PATH }}
       BORA_API_IMAGE: ghcr.io/rodrigo-ceccato/bora-api@${{ needs.publish.outputs.api_digest }}
       BORA_WEB_IMAGE: ghcr.io/rodrigo-ceccato/bora-web@${{ needs.publish.outputs.web_digest }}
-      BORA_RELEASE_TAG: ${{ github.event.release.tag_name }}
-      BORA_RELEASE_SHA: ${{ github.sha }}
+      BORA_RELEASE_TAG: ${{ github.ref_name }}
+      BORA_RELEASE_SHA: ${{ needs.verify.outputs.tag_sha }}
       POSTGRES_DB: ${{ vars.POSTGRES_DB }}
       POSTGRES_USER: ${{ vars.POSTGRES_USER }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -120,7 +126,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.ref_name }}
       - name: Configure verified SSH access
         env:
           DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
@@ -133,3 +139,27 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
       - name: Deploy digest-pinned release
         run: ./deploy/release.sh
+
+  release:
+    name: Publish GitHub Release
+    needs: [verify, deploy]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ needs.verify.outputs.tag_sha }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists."
+            exit 0
+          fi
+          git for-each-ref --format='%(contents)' "refs/tags/$RELEASE_TAG" > release-notes.md
+          gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file release-notes.md --target "$RELEASE_SHA"

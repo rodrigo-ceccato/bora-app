@@ -81,8 +81,9 @@ See the [MVP test checklist](docs/mvp-test-checklist.md) before sharing the app.
 ## Production host
 
 The live instance runs on a small Oracle VM behind Caddy. Production releases
-are built in GitHub Actions and deployed when a stable GitHub Release is
-published; do not run a production build from a workstation.
+are built in GitHub Actions from an annotated stable tag; the workflow publishes
+the GitHub Release only after deployment succeeds. Do not run a production
+build from a workstation.
 
 See the [GitHub Actions deployment guide](docs/github-actions-deploy.md) for
 the required Environment configuration and the [operations runbook](docs/operations.md)
