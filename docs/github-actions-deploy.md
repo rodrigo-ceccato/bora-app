@@ -31,6 +31,7 @@ ancestor of `main`. Pre-release tags do not deploy.
    | `POSTGRES_PASSWORD` | The existing production PostgreSQL password. Do not change it during the first deployment; it must be a single-line Compose value (a 64-character hex password is ideal). |
    | `DUCKDNS_TOKEN` | The existing DuckDNS token. |
    | `BORA_TLS_EMAIL` | Your certificate-contact email address. |
+   | `BORA_VAPID_PRIVATE_KEY` | Private half of the Web Push VAPID key pair. |
 
 4. Add these **Environment variables**:
 
@@ -46,6 +47,16 @@ ancestor of `main`. Pre-release tags do not deploy.
    | `BORA_PORT` | `8080` |
    | `BORA_DOMAIN` | `bora-app.duckdns.org` |
    | `DUCKDNS_DOMAIN` | `bora-app` |
+   | `BORA_VAPID_PUBLIC_KEY` | Public half of the Web Push VAPID key pair. |
+
+Generate the VAPID key pair on a trusted machine, then put the private value
+in the secret and the public value in the variable above. Bora uses
+`BORA_TLS_EMAIL` as its required Web Push contact address. Never commit either
+value or paste the private value into an issue or chat:
+
+```bash
+npx web-push generate-vapid-keys
+```
 
 `DEPLOY_SSH_KNOWN_HOSTS` is not a secret. Confirm its fingerprint against the
 server over an existing trusted SSH connection before adding it; the workflow

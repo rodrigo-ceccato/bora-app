@@ -8,13 +8,20 @@ export default tseslint.config(
     ignores: ['dist', 'android', 'ios']
   },
   {
+    files: ['public/sw.js'],
+    languageOptions: {
+      globals: { self: 'readonly', clients: 'readonly' }
+    }
+  },
+  {
     files: ['server/**/*.mjs'],
     languageOptions: {
       globals: {
         Buffer: 'readonly',
         URL: 'readonly',
         console: 'readonly',
-        process: 'readonly'
+        process: 'readonly',
+        setInterval: 'readonly'
       }
     }
   }

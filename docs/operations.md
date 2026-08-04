@@ -20,6 +20,22 @@ Secrets live in `/opt/bora/.env` (mode 600) and `/etc/duckdns.env` (mode 600).
 GitHub Actions regenerates both from the `production` Environment on every
 release; neither is tracked in git or copied from a workstation.
 
+## Web Push reminders
+
+Web Push is optional but enabled in production when these GitHub `production`
+Environment values are present: `BORA_VAPID_PUBLIC_KEY` (variable) and
+`BORA_VAPID_PRIVATE_KEY` (secret). Bora reuses `BORA_TLS_EMAIL` as the required
+Web Push contact address. Generate the pair with:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+After the next release, users can opt in through **Meus Boras → Ativar
+lembretes neste aparelho**. The API sends confirmation and change notices,
+plus reminders about 24 hours and two hours before a scheduled Bora. iPhone
+users must add Bora to the Home Screen before Safari offers notifications.
+
 ## Connect
 
 ```bash

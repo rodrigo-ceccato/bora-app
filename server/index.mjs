@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pool, withTransaction } from './db.mjs';
+import { pushEnabled, sendPush, validSubscription, vapidPublicKey } from './push.mjs';
 
 const port = Number(process.env.PORT || 8787);
 const allowedOrigin = process.env.CORS_ORIGIN || '';
@@ -249,6 +250,61 @@ function send(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
+function eventStartAt(event) {
+  if (event.mode !== 'marcar') return event.starts_at ? new Date(event.starts_at) : null;
+  if (!event.decided_option) return null;
+  const separator = event.decided_option.lastIndexOf(':');
+  const dayId = event.decided_option.slice(0, separator);
+  const time = event.decided_option.slice(separator + 1);
+  const day = (event.days || []).find((item) => item.id === dayId);
+  if (!day || !/^\d{2}:\d{2}$/.test(time || '')) return null;
+  const value = new Date(`${day.date}T${time}`);
+  return Number.isNaN(value.getTime()) ? null : value;
+}
+
+async function sendEventPush(event, kind, title, body) {
+  if (!pushEnabled) return;
+  const subscriptions = await pool.query(
+    `select distinct push_subscriptions.* from push_subscriptions
+     where participant_id = $1 or participant_id in (
+       select participant_id from votes where event_id = $2 and response in ('accept', 'maybe')
+     )`,
+    [event.created_by_participant_id, event.id]
+  );
+  await Promise.all(subscriptions.rows.map(async (subscription) => {
+    try {
+      const alreadySent = await pool.query(
+        'select 1 from push_notifications where subscription_id = $1 and event_id = $2 and kind = $3',
+        [subscription.id, event.id, kind]
+      );
+      if (alreadySent.rowCount) return;
+      await sendPush(subscription, { title, body, url: `/e/${event.slug}` });
+      await pool.query(
+        `insert into push_notifications (subscription_id, event_id, kind) values ($1,$2,$3)
+         on conflict (subscription_id, event_id, kind) do nothing`,
+        [subscription.id, event.id, kind]
+      );
+    } catch (error) {
+      if (error?.statusCode === 404 || error?.statusCode === 410) {
+        await pool.query('delete from push_subscriptions where id = $1', [subscription.id]);
+      } else console.error('Unable to send web push notification', error);
+    }
+  }));
+}
+
+async function sendDueReminders() {
+  if (!pushEnabled) return;
+  const result = await pool.query("select * from events where (mode = 'agora' or decided_option is not null) and (starts_at is not null or decided_option is not null)");
+  const now = Date.now();
+  for (const event of result.rows) {
+    const startsAt = eventStartAt(event)?.getTime();
+    if (!startsAt || startsAt <= now) continue;
+    const hours = (startsAt - now) / 3_600_000;
+    if (hours <= 24 && hours > 23.75) await sendEventPush(event, 'reminder-24h', `Amanhã: ${event.title}`, `Seu Bora começa amanhã em ${event.place}.`);
+    if (hours <= 2 && hours > 1.75) await sendEventPush(event, 'reminder-2h', `Em breve: ${event.title}`, `Seu Bora começa em cerca de 2 horas, em ${event.place}.`);
+  }
+}
+
 async function findEvent(slug) {
   const result = await pool.query('select * from events where slug = $1', [slug]);
   if (!result.rows[0]) throw httpError(404, 'Evento não encontrado.');
@@ -270,6 +326,25 @@ async function route(request, response) {
   if (request.method === 'GET' && url.pathname === '/api/health') {
     await pool.query('select 1');
     return send(response, 200, { status: 'ok' });
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/push/public-key') {
+    if (!pushEnabled) throw httpError(503, 'Os lembretes ainda não foram configurados.');
+    return send(response, 200, { publicKey: vapidPublicKey() });
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/push/subscriptions') {
+    if (!pushEnabled) throw httpError(503, 'Os lembretes ainda não foram configurados.');
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const subscription = await readJson(request);
+    if (!validSubscription(subscription)) throw httpError(400, 'Assinatura de lembrete inválida.');
+    await pool.query(
+      `insert into push_subscriptions (id, participant_id, endpoint, p256dh, auth, updated_at)
+       values ($1,$2,$3,$4,$5,now())
+       on conflict (endpoint) do update set participant_id=excluded.participant_id, p256dh=excluded.p256dh, auth=excluded.auth, updated_at=now()`,
+      [uid('push'), participantId, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]
+    );
+    return send(response, 201, { status: 'subscribed' });
   }
 
   if (request.method === 'GET' && url.pathname === '/api/me/events') {
@@ -406,7 +481,15 @@ async function route(request, response) {
           JSON.stringify(input.alternatives), JSON.stringify(input.days), input.decidedOption ? true : input.votingClosed,
           input.decidedOption, current.id]
       );
-      return send(response, 200, { event: mapEvent(result.rows[0]), isAdmin: true });
+      const updated = result.rows[0];
+      const wasDecided = Boolean(current.decided_option);
+      const isDecided = Boolean(updated.decided_option);
+      if (!wasDecided && isDecided) {
+        void sendEventPush(updated, 'confirmed', `Bora confirmado: ${updated.title}`, `O encontro foi definido em ${updated.place}.`);
+      } else if (wasDecided && (current.starts_at?.getTime?.() !== updated.starts_at?.getTime?.() || current.decided_option !== updated.decided_option || current.place !== updated.place)) {
+        void sendEventPush(updated, `changed-${Date.now()}`, `Bora alterado: ${updated.title}`, `Confira a nova data, horário ou local em ${updated.place}.`);
+      }
+      return send(response, 200, { event: mapEvent(updated), isAdmin: true });
     }
 
     if (request.method === 'DELETE' && parts.length === 3) {
@@ -452,6 +535,10 @@ async function shutdown() {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   server.listen(port, () => console.log(`Bora API listening on http://0.0.0.0:${port}`));
+  if (pushEnabled) {
+    void sendDueReminders();
+    setInterval(() => void sendDueReminders(), 15 * 60_000).unref();
+  }
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 }

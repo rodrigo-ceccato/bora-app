@@ -30,6 +30,9 @@ services:
       PGUSER: ${POSTGRES_USER:-bora}
       PGPASSWORD: ${POSTGRES_PASSWORD:-change-this-password}
       DATABASE_POOL_SIZE: 10
+      BORA_VAPID_PUBLIC_KEY: ${BORA_VAPID_PUBLIC_KEY:-}
+      BORA_VAPID_PRIVATE_KEY: ${BORA_VAPID_PRIVATE_KEY:-}
+      BORA_VAPID_SUBJECT: ${BORA_VAPID_SUBJECT:-}
     depends_on:
       database:
         condition: service_healthy

@@ -97,6 +97,34 @@ test('Bora agora offers Google Calendar after it is created', async ({ page, req
   }
 });
 
+test('My Boras highlights upcoming scheduled events and reminder controls', async ({ page, request }, testInfo) => {
+  const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const participantId = `upcoming-${runId}`;
+  const created = await request.post('/api/events', {
+    headers: { 'x-forwarded-for': `e2e-${runId}` },
+    data: {
+      participantId,
+      event: {
+        mode: 'agora', title: `Próximo ${runId}`, place: 'Praça', description: '', threshold: 2,
+        startsAt: '2099-08-01T21:00:00.000Z', alternatives: [], createdByName: 'Ana', votingClosed: false, days: []
+      }
+    }
+  });
+  expect(created.ok()).toBeTruthy();
+  const body = await created.json();
+  try {
+    await page.goto('/my-events');
+    await page.evaluate((id) => localStorage.setItem('bora_participant_id', id), participantId);
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Próximos Boras' })).toBeVisible();
+    await expect(page.getByText(`Próximo ${runId}`).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Lembretes' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ativar lembretes neste aparelho' })).toBeVisible();
+  } finally {
+    await request.delete(`/api/events/${body.event.slug as string}`, { headers: { 'x-forwarded-for': `e2e-${runId}`, authorization: `Bearer ${body.adminToken as string}` } });
+  }
+});
+
 test('results stay compact and explain availability', async ({ page, request }, testInfo) => {
   const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const title = `Teste visual ${runId}`;

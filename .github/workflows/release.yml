@@ -114,6 +114,9 @@ jobs:
       BORA_TLS_EMAIL: ${{ secrets.BORA_TLS_EMAIL }}
       DUCKDNS_DOMAIN: ${{ vars.DUCKDNS_DOMAIN }}
       DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
+      BORA_VAPID_PUBLIC_KEY: ${{ vars.BORA_VAPID_PUBLIC_KEY }}
+      BORA_VAPID_PRIVATE_KEY: ${{ secrets.BORA_VAPID_PRIVATE_KEY }}
+      BORA_VAPID_SUBJECT: mailto:${{ secrets.BORA_TLS_EMAIL }}
     steps:
       - uses: actions/checkout@v4
         with:

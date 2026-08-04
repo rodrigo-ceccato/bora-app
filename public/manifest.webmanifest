@@ -4,5 +4,6 @@
   "icons": [{ "src": "/bora-share.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }],
   "theme_color": "#00a94f",
   "background_color": "#f6f8fb",
-  "display": "standalone"
+  "display": "standalone",
+  "start_url": "/home"
 }
