@@ -99,7 +99,7 @@ jobs:
 
   deploy:
     name: Deploy production
-    needs: publish
+    needs: [verify, publish]
     runs-on: ubuntu-latest
     environment:
       name: production
