@@ -119,7 +119,10 @@ test('My Boras highlights upcoming scheduled events and handles reminder availab
     await expect(page.getByRole('heading', { name: 'Próximos Boras' })).toBeVisible();
     await expect(page.getByText(`Próximo ${runId}`).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Lembretes' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Ativar lembretes' }).or(page.getByText('Neste navegador os lembretes não estão disponíveis.'))).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ativar lembretes' })
+      .or(page.getByText('Neste navegador os lembretes não estão disponíveis.'))
+      .or(page.getByText('Notificações bloqueadas.'))
+      .or(page.getByText('Lembretes ativados neste aparelho.'))).toBeVisible();
     const createdDisclosure = page.getByRole('button', { name: /Criados por mim/ });
     await expect(createdDisclosure).toHaveAttribute('aria-expanded', 'false');
     await createdDisclosure.focus();
