@@ -4,6 +4,7 @@ import { slugify, uid } from './schedule';
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
 const LOCAL_EVENTS_KEY = 'bora_events_v2';
 const PARTICIPANT_KEY = 'bora_participant_id';
+const PARTICIPANT_NAME_KEY = 'bora_participant_name';
 const ADMIN_EVENTS_KEY = 'bora_admin_events';
 
 export interface AdminEventAccess {
@@ -63,6 +64,20 @@ export function restoreParticipantId(participantId: string) {
   localStorage.setItem(PARTICIPANT_KEY, participantId);
 }
 
+export function getParticipantName() {
+  return localStorage.getItem(PARTICIPANT_NAME_KEY) || '';
+}
+
+export function saveParticipantName(name: string) {
+  const value = name.trim().slice(0, 80);
+  if (value) localStorage.setItem(PARTICIPANT_NAME_KEY, value);
+  else localStorage.removeItem(PARTICIPANT_NAME_KEY);
+}
+
+export function restoreParticipantName(name: string) {
+  saveParticipantName(name);
+}
+
 export function usingApi() {
   return Boolean(API_BASE);
 }
@@ -100,9 +115,11 @@ export async function createRecoveryLink(includeAdminAccess = false): Promise<st
   });
   const link = `${window.location.origin}/recover?token=${encodeURIComponent(result.recoveryToken)}`;
   // The fragment is never sent to the server, which keeps these capabilities out of server logs.
-  return includeAdminAccess
-    ? `${link}#admin=${encodeURIComponent(JSON.stringify(listAdminEvents()))}`
-    : link;
+  const fragment = new URLSearchParams();
+  if (includeAdminAccess) fragment.set('admin', JSON.stringify(listAdminEvents()));
+  const name = getParticipantName();
+  if (name) fragment.set('name', name);
+  return fragment.size ? `${link}#${fragment.toString()}` : link;
 }
 
 export async function recoverParticipant(recoveryToken: string): Promise<void> {

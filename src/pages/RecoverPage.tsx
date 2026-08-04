@@ -1,7 +1,7 @@
 import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonCheckbox, IonContent, IonHeader, IonItem, IonLabel, IonPage, IonSpinner, IonTitle, IonToolbar, useIonToast } from '@ionic/react';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { createRecoveryLink, recoverParticipant, restoreAdminEvents, type AdminEventAccess } from '../lib/store';
+import { createRecoveryLink, recoverParticipant, restoreAdminEvents, restoreParticipantName, type AdminEventAccess } from '../lib/store';
 
 function adminEventsFromFragment(hash: string): AdminEventAccess[] {
   try {
@@ -9,6 +9,10 @@ function adminEventsFromFragment(hash: string): AdminEventAccess[] {
     const events = value ? JSON.parse(value) : [];
     return Array.isArray(events) ? events : [];
   } catch { return []; }
+}
+
+function participantNameFromFragment(hash: string) {
+  return new URLSearchParams(hash.replace(/^#/, '')).get('name') || '';
 }
 
 export default function RecoverPage() {
@@ -24,9 +28,11 @@ export default function RecoverPage() {
     const token = new URLSearchParams(location.search).get('token');
     if (!token) { setStatus('transfer'); return; }
     const adminEvents = adminEventsFromFragment(location.hash);
+    const participantName = participantNameFromFragment(location.hash);
     void recoverParticipant(token)
       .then(() => {
         restoreAdminEvents(adminEvents);
+        if (participantName) restoreParticipantName(participantName);
         setAdminAccessRestored(adminEvents.length > 0);
         window.history.replaceState({}, '', '/recover');
         setStatus('ready');

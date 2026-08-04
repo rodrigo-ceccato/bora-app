@@ -6,6 +6,8 @@ async function expectNoHorizontalScroll(page: import('@playwright/test').Page) {
 
 test('home and every creation mode are usable at this viewport', async ({ page }) => {
   await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('bora_participant_name', 'Ana'));
+  await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Bora marcar?' })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Símbolo de compartilhamento Bora' })).toBeVisible();
   await expect(page.locator('.home-mode-card')).toHaveCount(3);
@@ -16,6 +18,17 @@ test('home and every creation mode are usable at this viewport', async ({ page }
 
   await page.goto('/create?mode=agora');
   await expect(page.getByRole('heading', { name: 'Bora agora' })).toBeVisible();
+  const nameInput = page.locator('ion-item:has-text("Seu nome") input');
+  await expect(nameInput).toHaveValue('Ana');
+  await nameInput.fill('Bia');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Bia');
+  const initialTime = await page.locator('.time-picker-trigger strong').innerText();
+  const [hours, minutes] = initialTime.split(':').map(Number);
+  const initialMinutes = hours * 60 + minutes;
+  const current = new Date();
+  const expectedMinutes = ((current.getHours() + 1) * 60 + current.getMinutes()) % (24 * 60);
+  const minuteDifference = Math.abs(initialMinutes - expectedMinutes);
+  expect(Math.min(minuteDifference, 24 * 60 - minuteDifference)).toBeLessThanOrEqual(1);
   await page.locator('.time-picker-trigger').click();
   await expect(page.getByText('Escolha o horário')).toBeVisible();
   await expect(page.locator('ion-datetime[presentation="time"]')).toBeVisible();
@@ -42,6 +55,20 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expect(page.locator('ion-back-button[default-href="/my-events"]')).toHaveCount(1);
   await page.locator('ion-back-button[default-href="/my-events"]').click();
   await expect(page).toHaveURL(/\/my-events$/);
+});
+
+test('device-transfer links restore the saved participant name', async ({ page }) => {
+  await page.goto('/recover');
+  await page.evaluate(() => localStorage.setItem('bora_participant_name', 'Bia'));
+  await page.getByRole('button', { name: 'Criar link para outro dispositivo' }).click();
+  const link = await page.locator('.recovery-link a').getAttribute('href');
+  expect(link).toBeTruthy();
+  expect(new URL(link!).hash).toContain('name=Bia');
+
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(link!);
+  await expect(page.getByRole('heading', { name: 'Pronto!' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Bia');
 });
 
 test('Bora agora offers Google Calendar after it is created', async ({ page, request }, testInfo) => {

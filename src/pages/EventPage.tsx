@@ -2,7 +2,7 @@ import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { logoWhatsapp } from 'ionicons/icons';
-import { deleteEvent, getEvent, getParticipantId, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
+import { deleteEvent, getEvent, getParticipantId, getParticipantName, saveParticipantName, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
 import { responseLabel } from '../lib/schedule';
 import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
 import { eventOptions, optionLabel } from '../lib/options';
@@ -53,7 +53,7 @@ export default function EventPage() {
   const adminToken = query.get('admin') || '';
   const [data, setData] = useState<EventWithVotes | null>(null);
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState(localStorage.getItem('bora_voter_name') || '');
+  const [name, setName] = useState(getParticipantName);
   const [preferredOptions, setPreferredOptions] = useState<string[]>([]);
   const [availability, setAvailability] = useState<Record<string, string[]>>({});
   const [editEvent, setEditEvent] = useState<BoraEvent | null>(null);
@@ -81,7 +81,10 @@ export default function EventPage() {
         setData(result);
         const ownVote = result?.votes.find((vote) => vote.isOwn || vote.participantId === getParticipantId());
         if (!hydratedVote.current && result) {
-          if (ownVote) setName(ownVote.voterName);
+          if (ownVote && !getParticipantName()) {
+            setName(ownVote.voterName);
+            saveParticipantName(ownVote.voterName);
+          }
           if (result.event.mode === 'mais-tarde') {
             setPreferredOptions(ownVote?.preferredOptions || (result.event.startsAt ? [result.event.startsAt] : []));
           }
@@ -127,6 +130,11 @@ export default function EventPage() {
       return groups;
     }, []);
   }, [availabilitySummary, showAllResults]);
+
+  function updateName(value: string) {
+    setName(value);
+    saveParticipantName(value);
+  }
 
   function toggleSlot(dayId: string, slot: string) {
     setAvailability((current) => {
@@ -234,7 +242,7 @@ export default function EventPage() {
       toast({ message: 'Marque pelo menos um horário ou selecione “Não posso”.', color: 'danger', duration: 2600 });
       return;
     }
-    localStorage.setItem('bora_voter_name', name.trim());
+    saveParticipantName(name);
     setSubmittingVote(true);
     try {
       await submitVote(data.event, {
@@ -460,7 +468,7 @@ export default function EventPage() {
                         <h2>{event.mode === 'agora' ? 'Você topa?' : event.mode === 'mais-tarde' ? 'Qual horário funciona?' : 'Quando você pode?'}</h2>
                         <p>Leva menos de um minuto.</p>
                       </div>
-                      <IonItem className="name-field" lines="none"><IonLabel position="stacked">Seu nome</IonLabel><IonInput value={name} onIonInput={(e) => setName(e.detail.value || '')} placeholder="Como a galera te chama?" required /></IonItem>
+                      <IonItem className="name-field" lines="none"><IonLabel position="stacked">Seu nome</IonLabel><IonInput value={name} onIonInput={(e) => updateName(e.detail.value || '')} placeholder="Como a galera te chama?" required /></IonItem>
 
                       {event.mode === 'mais-tarde' && (
                         <div className="time-options">

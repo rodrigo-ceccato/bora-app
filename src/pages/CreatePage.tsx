@@ -1,7 +1,7 @@
 import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonModal, IonNote, IonPage, IonTextarea, IonTitle, IonToolbar, useIonRouter, useIonToast, useIonViewWillEnter } from '@ionic/react';
 import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { createEvent } from '../lib/store';
+import { createEvent, getParticipantName, saveParticipantName } from '../lib/store';
 import { localDateKey, toInstantIso } from '../lib/datetime';
 import { uid } from '../lib/schedule';
 import type { BoraMode, ScheduleDay } from '../lib/types';
@@ -45,6 +45,15 @@ function futureTime(date: string, time: string) {
   return new Date(dateTimeValue(date, time)).getTime() > Date.now();
 }
 
+function oneHourFromNow() {
+  const result = new Date();
+  result.setHours(result.getHours() + 1);
+  return {
+    date: localDateKey(result),
+    time: `${String(result.getHours()).padStart(2, '0')}:${String(result.getMinutes()).padStart(2, '0')}`
+  };
+}
+
 function sortedTimes(times: string[]) {
   return Array.from(new Set(times)).sort((left, right) => left.localeCompare(right));
 }
@@ -59,14 +68,14 @@ export default function CreatePage() {
   const [toast] = useIonToast();
   const requestedMode = new URLSearchParams(location.search).get('mode');
   const mode: BoraMode = requestedMode === 'mais-tarde' || requestedMode === 'marcar' ? requestedMode : 'agora';
-  const now = new Date();
+  const initialAgora = oneHourFromNow();
   const [title, setTitle] = useState('');
   const [place, setPlace] = useState('');
   const [description, setDescription] = useState('');
   const [threshold, setThreshold] = useState(3);
-  const [createdByName, setCreatedByName] = useState('');
-  const [agoraDate, setAgoraDate] = useState(() => localDateKey());
-  const [agoraTime, setAgoraTime] = useState(() => `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+  const [createdByName, setCreatedByName] = useState(getParticipantName);
+  const [agoraDate, setAgoraDate] = useState(initialAgora.date);
+  const [agoraTime, setAgoraTime] = useState(initialAgora.time);
   const [weekDate, setWeekDate] = useState(() => localDateKey());
   const [weekTimes, setWeekTimes] = useState<string[]>([]);
   const [timeDraft, setTimeDraft] = useState('18:00');
@@ -78,9 +87,9 @@ export default function CreatePage() {
 
   useIonViewWillEnter(() => {
     if (mode === 'agora') {
-      const current = new Date();
-      setAgoraDate(localDateKey(current));
-      setAgoraTime(`${String(current.getHours()).padStart(2, '0')}:${String(current.getMinutes()).padStart(2, '0')}`);
+      const nextStart = oneHourFromNow();
+      setAgoraDate(nextStart.date);
+      setAgoraTime(nextStart.time);
     }
   }, [mode]);
 
@@ -95,6 +104,11 @@ export default function CreatePage() {
 
   function changeThreshold(next: number) {
     setThreshold(Math.min(maxThreshold, Math.max(1, Number.isFinite(next) ? Math.round(next) : 1)));
+  }
+
+  function updateCreatedByName(value: string) {
+    setCreatedByName(value);
+    saveParticipantName(value);
   }
 
   function updateAgoraTime(time: string) {
@@ -236,7 +250,7 @@ export default function CreatePage() {
           </IonItem>
           <IonItem className={submitted && !createdByName.trim() ? 'ion-invalid' : ''}>
             <IonLabel position="stacked">Seu nome *</IonLabel>
-            <IonInput value={createdByName} onIonInput={(event) => setCreatedByName(event.detail.value || '')} placeholder="Ex: Ana" required />
+            <IonInput value={createdByName} onIonInput={(event) => updateCreatedByName(event.detail.value || '')} placeholder="Ex: Ana" required />
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Descrição <span className="optional-label">(opcional)</span></IonLabel>
