@@ -10,6 +10,15 @@ Bora is a mobile-first link for deciding short social events without requiring g
 
 The creator is automatically counted as confirmed. Guests receive a public link, enter a name, and can change their response from the same browser.
 
+## What is included
+
+- Invitees can choose every time that works; creators can select the final time.
+- Decided events offer Google Calendar and downloadable ICS calendar entries.
+- **Meus Boras** keeps created and joined events available on the same device.
+- A recovery link can move that participant identity (and optionally saved
+  creator links) to another device.
+- Web Push reminders are optional and require VAPID configuration on the host.
+
 ## Stack
 
 - Ionic React, Vite, and Capacitor
@@ -87,7 +96,7 @@ build from a workstation.
 
 See the [GitHub Actions deployment guide](docs/github-actions-deploy.md) for
 the required Environment configuration and the [operations runbook](docs/operations.md)
-for logs, backups, rollback, and DNS.
+for logs, backups, rollback, DNS, and Web Push setup.
 
 ## Mobile packaging
 

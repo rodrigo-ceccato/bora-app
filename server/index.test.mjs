@@ -22,4 +22,24 @@ describe('multi-option event API validation', () => {
     expect(() => validateEvent({ ...eventInput, decidedOption: '2026-08-04T22:00:00.000Z' }))
       .toThrow('não pertence');
   });
+
+  it('requires timezone-aware instants and constrains untrusted fields', () => {
+    expect(() => validateEvent({ ...eventInput, startsAt: '2026-08-03T21:00:00' }))
+      .toThrow('incluir o fuso horário');
+    expect(() => validateEvent({ ...eventInput, threshold: 0 })).toThrow('entre 1 e 999');
+    expect(() => validateEvent({ ...eventInput, title: 'x'.repeat(121) })).toThrow('no máximo 120');
+  });
+
+  it('does not persist availability or preferences for a decline', () => {
+    const event = validateEvent({
+      mode: 'marcar', title: 'Jantar', place: 'Centro', description: '', threshold: 2,
+      startsAt: null, alternatives: [], createdByName: 'Ana', votingClosed: false,
+      days: [{ id: 'sexta', label: 'sex. 03', date: '2026-08-03', slots: ['18:00'] }]
+    });
+    const vote = validateVote({
+      participantId: 'p1', voterName: 'Bia', response: 'decline',
+      preferredOptions: ['sexta:18:00'], availability: { sexta: ['18:00'] }
+    }, event);
+    expect(vote).toMatchObject({ response: 'decline', preferredOptions: [], availability: {} });
+  });
 });

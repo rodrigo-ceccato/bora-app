@@ -7,48 +7,14 @@ import { responseLabel } from '../lib/schedule';
 import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
 import { eventOptions, optionLabel } from '../lib/options';
 import { calendarDetails, calendarIcs, googleCalendarUrl } from '../lib/calendar';
-import type { BoraEvent, BoraVote, EventWithVotes, VoteResponse } from '../lib/types';
+import { availabilityResults, eventStatusText, groupAvailabilityResults, preferenceResults, resultDateLabel } from '../lib/results';
+import type { BoraEvent, EventWithVotes, VoteResponse } from '../lib/types';
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
-function acceptedCount(votes: BoraVote[]) {
-  return votes.filter((vote) => vote.response === 'accept').length;
-}
-
-function statusText(event: BoraEvent, votes: BoraVote[]) {
-  if (event.votingClosed) return 'Confirmações encerradas.';
-  const accepted = acceptedCount(votes);
-  if (accepted >= event.threshold) return 'Meta de confirmações atingida.';
-  const remaining = event.threshold - accepted;
-  return remaining === 1 ? 'Falta 1 confirmação.' : `Faltam ${remaining} confirmações.`;
-}
-
 const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`);
-
-function slotSummary(event: BoraEvent, votes: BoraVote[]) {
-  return event.days.flatMap((day) => day.slots.map((slot) => {
-    const names = votes
-      .filter((vote) => vote.response === 'accept' && (vote.availability[day.id] || []).includes(slot))
-      .map((vote) => vote.voterName);
-    return { day, slot, names, count: names.length };
-  })).sort((a, b) => b.count - a.count);
-}
-
-function preferenceSummary(event: BoraEvent, votes: BoraVote[]) {
-  const options = eventOptions(event);
-  return options.map((option) => ({
-    option,
-    count: votes.filter((vote) => vote.response === 'accept' && vote.preferredOptions.includes(option.id)).length
-  })).sort((a, b) => b.count - a.count);
-}
-
-function dayLabel(date: string, long = false) {
-  return new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', long
-    ? { weekday: 'long', day: 'numeric', month: 'long' }
-    : { weekday: 'short', day: '2-digit' });
-}
 
 export default function EventPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -125,17 +91,11 @@ export default function EventPage() {
     };
   }, [data]);
 
-  const availabilitySummary = useMemo(() => data ? slotSummary(data.event, data.votes) : [], [data]);
-  const timePreferences = useMemo(() => data?.event.mode === 'mais-tarde' ? preferenceSummary(data.event, data.votes) : [], [data]);
+  const availabilitySummary = useMemo(() => data ? availabilityResults(data.event, data.votes) : [], [data]);
+  const timePreferences = useMemo(() => data?.event.mode === 'mais-tarde' ? preferenceResults(data.event, data.votes) : [], [data]);
   const decidedCalendar = useMemo(() => data ? calendarDetails(data.event) : null, [data]);
   const groupedAvailability = useMemo(() => {
-    return availabilitySummary.reduce<Array<{ label: string; items: typeof availabilitySummary }>>((groups, item) => {
-      const label = dayLabel(item.day.date, true);
-      const group = groups.find((candidate) => candidate.label === label);
-      if (group) group.items.push(item);
-      else groups.push({ label, items: [item] });
-      return groups;
-    }, []);
+    return groupAvailabilityResults(availabilitySummary);
   }, [availabilitySummary]);
   const maxAvailabilityCount = availabilitySummary[0]?.count || 0;
 
@@ -186,7 +146,7 @@ export default function EventPage() {
   }
 
   function updateEditDayDate(dayId: string, date: string) {
-    updateEditDay(dayId, { date, label: dayLabel(date) });
+    updateEditDay(dayId, { date, label: resultDateLabel(date) });
   }
 
   function toggleEditSlot(dayId: string, slot: string, checked: boolean) {
@@ -198,7 +158,7 @@ export default function EventPage() {
   function addEditDay() {
     setEditEvent((current) => current ? {
       ...current,
-      days: [...current.days, { id: `day_${Date.now()}`, label: dayLabel(localDateKey()), date: localDateKey(), slots: [] }]
+      days: [...current.days, { id: `day_${Date.now()}`, label: resultDateLabel(localDateKey()), date: localDateKey(), slots: [] }]
     } : current);
   }
 
@@ -209,7 +169,7 @@ export default function EventPage() {
       const nextDate = new Date(`${source.date}T12:00:00`);
       nextDate.setDate(nextDate.getDate() + 1);
       const date = localDateKey(nextDate);
-      return { ...current, days: [...current.days, { ...source, id: `day_${Date.now()}`, date, label: dayLabel(date), slots: [...source.slots] }] };
+      return { ...current, days: [...current.days, { ...source, id: `day_${Date.now()}`, date, label: resultDateLabel(date), slots: [...source.slots] }] };
     });
   }
 
@@ -471,7 +431,7 @@ export default function EventPage() {
                 <div className="threshold-progress" role="progressbar" aria-label={`${counts.accept} de ${event.threshold} confirmações`} aria-valuemin={0} aria-valuemax={event.threshold} aria-valuenow={counts.accept}>
                   <span style={{ width: `${confirmationProgress}%` }} />
                 </div>
-                <p>{statusText(event, votes)}</p>
+                <p>{eventStatusText(event, votes)}</p>
               </div>
             </IonCardContent>
           </IonCard>
@@ -730,7 +690,7 @@ export default function EventPage() {
                     <div className="section-heading-row"><div><h2 id="edit-schedule-title">Dias e horários</h2><p className="muted">Abra cada dia para ajustar os horários.</p></div><IonButton fill="outline" size="small" onClick={useSameEditTimes}>Usar os mesmos horários</IonButton></div>
                     {editEvent.days.map((day) => (
                       <details key={day.id} className="day-accordion" open={editEvent.days.length === 1}>
-                        <summary><span><strong>{dayLabel(day.date, true)}</strong><small>{day.slots.length === 0 ? 'Sem horários' : `${day.slots.length} horário${day.slots.length === 1 ? '' : 's'}`}</small></span><span aria-hidden="true">⌄</span></summary>
+                        <summary><span><strong>{resultDateLabel(day.date, true)}</strong><small>{day.slots.length === 0 ? 'Sem horários' : `${day.slots.length} horário${day.slots.length === 1 ? '' : 's'}`}</small></span><span aria-hidden="true">⌄</span></summary>
                         <div className="day-accordion-content">
                           <IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" value={day.date} onIonInput={(item) => updateEditDayDate(day.id, item.detail.value || day.date)} /></IonItem>
                           <div className="time-chip-grid">{scheduleTimes.map((slot) => <button type="button" key={slot} className={day.slots.includes(slot) ? 'selected' : ''} aria-pressed={day.slots.includes(slot)} onClick={() => toggleEditSlot(day.id, slot, !day.slots.includes(slot))}>{day.slots.includes(slot) ? '✓ ' : ''}{slot}</button>)}</div>

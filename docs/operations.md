@@ -1,6 +1,6 @@
 # Operating the Bora VM
 
-Runbook for the production host. See [deployment](deployment.md) for how the
+Runbook for the production host. See [GitHub Actions deployment](github-actions-deploy.md) for how the
 stack is put together and [the MVP checklist](mvp-test-checklist.md) for
 pre-launch verification.
 

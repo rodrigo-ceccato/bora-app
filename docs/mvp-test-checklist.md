@@ -73,4 +73,7 @@ Start with 5–10 trusted people and Bora Agora. Record:
 - failed or duplicate submissions;
 - confusion about creator versus invite links.
 
-Do not treat this build as a public anonymous service until rate limiting and operational backups are configured.
+The API includes an in-memory mutation rate limit and the production runbook
+covers automated backups. Before a wider public launch, verify both on the
+deployed host and decide whether the expected traffic warrants a shared,
+durable rate-limit store.
