@@ -174,7 +174,7 @@ test('results stay compact and explain availability', async ({ page, request }, 
 
     await page.goto(`/e/${slug}?admin=${token}`);
     await expect(page.getByRole('heading', { name: 'Melhores horários' })).toBeVisible();
-    await expect(page.getByText('3 de 3')).toHaveCount(2);
+    await expect(page.getByText('3 de 3')).toHaveCount(3);
     await expect(page.locator('.result-progress')).toHaveCount(4);
     await expect(page.getByRole('button', { name: 'Escolher este horário' })).toHaveCount(4);
     await expectNoHorizontalScroll(page);

@@ -9,9 +9,14 @@ test('captures the UI screen gallery', async ({ page, request }, testInfo) => {
   await expect(page.getByRole('heading', { name: 'Bora marcar?' })).toBeVisible();
   await capture('home');
 
-  for (const mode of ['agora', 'mais-tarde', 'marcar']) {
+  const createModes = {
+    agora: 'Bora agora',
+    'mais-tarde': 'Bora essa semana',
+    marcar: 'Bora marcar'
+  } as const;
+  for (const [mode, heading] of Object.entries(createModes)) {
     await page.goto(`/create?mode=${mode}`);
-    await expect(page.getByRole('heading')).toBeVisible();
+    await expect(page.getByRole('heading', { name: heading })).toBeVisible();
     await capture(`create-${mode}`);
   }
 
