@@ -30,7 +30,7 @@ const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index +
 function slotSummary(event: BoraEvent, votes: BoraVote[]) {
   return event.days.flatMap((day) => day.slots.map((slot) => {
     const names = votes
-      .filter((vote) => vote.response !== 'decline' && (vote.availability[day.id] || []).includes(slot))
+      .filter((vote) => vote.response === 'accept' && (vote.availability[day.id] || []).includes(slot))
       .map((vote) => vote.voterName);
     return { day, slot, names, count: names.length };
   })).sort((a, b) => b.count - a.count);
@@ -40,8 +40,14 @@ function preferenceSummary(event: BoraEvent, votes: BoraVote[]) {
   const options = eventOptions(event);
   return options.map((option) => ({
     option,
-    count: votes.filter((vote) => vote.response !== 'decline' && vote.preferredOptions.includes(option.id)).length
+    count: votes.filter((vote) => vote.response === 'accept' && vote.preferredOptions.includes(option.id)).length
   })).sort((a, b) => b.count - a.count);
+}
+
+function dayLabel(date: string, long = false) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', long
+    ? { weekday: 'long', day: 'numeric', month: 'long' }
+    : { weekday: 'short', day: '2-digit' });
 }
 
 export default function EventPage() {
@@ -64,6 +70,7 @@ export default function EventPage() {
   const [savingAdminAction, setSavingAdminAction] = useState(false);
   const [adminSection, setAdminSection] = useState<'overview' | 'manage'>('overview');
   const [showAllResults, setShowAllResults] = useState(false);
+  const [expandedResultDays, setExpandedResultDays] = useState<Record<string, boolean>>({});
   const hydratedVote = useRef(false);
 
   const isAdmin = Boolean(data?.isAdmin);
@@ -122,15 +129,15 @@ export default function EventPage() {
   const timePreferences = useMemo(() => data?.event.mode === 'mais-tarde' ? preferenceSummary(data.event, data.votes) : [], [data]);
   const decidedCalendar = useMemo(() => data ? calendarDetails(data.event) : null, [data]);
   const groupedAvailability = useMemo(() => {
-    const visible = showAllResults ? availabilitySummary : availabilitySummary.slice(0, 3);
-    return visible.reduce<Array<{ label: string; items: typeof visible }>>((groups, item) => {
-      const label = new Date(`${item.day.date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    return availabilitySummary.reduce<Array<{ label: string; items: typeof availabilitySummary }>>((groups, item) => {
+      const label = dayLabel(item.day.date, true);
       const group = groups.find((candidate) => candidate.label === label);
       if (group) group.items.push(item);
       else groups.push({ label, items: [item] });
       return groups;
     }, []);
-  }, [availabilitySummary, showAllResults]);
+  }, [availabilitySummary]);
+  const maxAvailabilityCount = availabilitySummary[0]?.count || 0;
 
   function updateName(value: string) {
     setName(value);
@@ -178,6 +185,10 @@ export default function EventPage() {
     } : current);
   }
 
+  function updateEditDayDate(dayId: string, date: string) {
+    updateEditDay(dayId, { date, label: dayLabel(date) });
+  }
+
   function toggleEditSlot(dayId: string, slot: string, checked: boolean) {
     const day = editEvent?.days.find((item) => item.id === dayId);
     if (!day) return;
@@ -185,11 +196,32 @@ export default function EventPage() {
   }
 
   function addEditDay() {
-    const date = localDateKey();
     setEditEvent((current) => current ? {
       ...current,
-      days: [...current.days, { id: `day_${Date.now()}`, label: 'Novo dia', date, slots: [] }]
+      days: [...current.days, { id: `day_${Date.now()}`, label: dayLabel(localDateKey()), date: localDateKey(), slots: [] }]
     } : current);
+  }
+
+  function duplicateEditDay(dayId: string) {
+    setEditEvent((current) => {
+      const source = current?.days.find((day) => day.id === dayId);
+      if (!current || !source) return current;
+      const nextDate = new Date(`${source.date}T12:00:00`);
+      nextDate.setDate(nextDate.getDate() + 1);
+      const date = localDateKey(nextDate);
+      return { ...current, days: [...current.days, { ...source, id: `day_${Date.now()}`, date, label: dayLabel(date), slots: [...source.slots] }] };
+    });
+  }
+
+  function useSameEditTimes() {
+    setEditEvent((current) => {
+      const slots = current?.days.find((day) => day.slots.length)?.slots;
+      return current && slots ? { ...current, days: current.days.map((day) => ({ ...day, slots: [...slots] })) } : current;
+    });
+  }
+
+  function setResultDayExpanded(day: string, expanded: boolean) {
+    setExpandedResultDays((current) => current[day] === expanded ? current : { ...current, [day]: expanded });
   }
 
   function removeEditDay(dayId: string) {
@@ -347,16 +379,40 @@ export default function EventPage() {
     }
   }
 
+  function invitationText() {
+    if (!data) return 'Bora combinar?';
+    const { event } = data;
+    const when = event.mode === 'marcar'
+      ? event.days.length
+        ? event.days.map((day) => `${new Date(`${day.date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}: ${day.slots.join(', ')}`).join('\n')
+        : 'Dias e horários a combinar'
+      : event.mode === 'agora' && event.startsAt
+        ? new Date(event.startsAt).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' })
+        : event.startsAt
+          ? eventOptions(event).map((option) => optionLabel(event, option.id)).join(' ou ')
+          : 'Data e horário a combinar';
+    const details = [
+      `📅 ${when}`,
+      `📍 ${event.place}`,
+      event.description ? `\n${event.description}` : '',
+      '\nConfirma sua presença no Bora:'
+    ].filter(Boolean);
+    return `Bora? ${event.title}\n\n${details.join('\n')}`;
+  }
+
+  function invitationUrl() {
+    return `${window.location.origin}/e/${slug}`;
+  }
+
   async function shareLink() {
-    const url = `${window.location.origin}/e/${slug}`;
-    if (!navigator.share) return copyText(url, 'Link dos convidados copiado!');
-    try { await navigator.share({ title: data?.event.title || 'Bora', text: 'Bora combinar?', url }); }
+    const url = invitationUrl();
+    if (!navigator.share) return copyText(`${invitationText()}\n${url}`, 'Convite copiado!');
+    try { await navigator.share({ title: data?.event.title || 'Bora', text: invitationText(), url }); }
     catch (error) { if (!(error instanceof DOMException && error.name === 'AbortError')) toast({ message: 'Não foi possível compartilhar o convite.', color: 'danger', duration: 2800 }); }
   }
 
   function shareOnWhatsApp() {
-    const invitationUrl = `${window.location.origin}/e/${slug}`;
-    const message = `Bora combinar? ${data?.event.title || 'Participe do meu Bora'}: ${invitationUrl}`;
+    const message = `${invitationText()}\n${invitationUrl()}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   }
 
@@ -391,7 +447,7 @@ export default function EventPage() {
                   <strong>Seu Bora está pronto!</strong>
                   <p>Agora é só chamar a galera.</p>
                 </div>
-                <div className="ready-card-actions"><IonButton onClick={() => void shareLink()}>{canShare ? 'Compartilhar' : 'Copiar link'}</IonButton><IonButton fill="outline" onClick={shareOnWhatsApp}><IonIcon slot="start" icon={logoWhatsapp} aria-hidden="true" />Compartilhar no WhatsApp</IonButton></div>
+                <div className="ready-card-actions"><IonButton onClick={() => void shareLink()}>{canShare ? 'Compartilhar' : 'Copiar convite'}</IonButton><IonButton fill="outline" onClick={shareOnWhatsApp}><IonIcon slot="start" icon={logoWhatsapp} aria-hidden="true" />Compartilhar no WhatsApp</IonButton></div>
               </IonCardContent>
             </IonCard>
           )}
@@ -523,7 +579,7 @@ export default function EventPage() {
                     <p className="muted">O link de convite não dá acesso aos controles do organizador.</p>
                     <div className="share-actions">
                       <IonButton expand="block" onClick={shareOnWhatsApp}><IonIcon slot="start" icon={logoWhatsapp} aria-hidden="true" />Compartilhar no WhatsApp</IonButton>
-                      <IonButton expand="block" fill="outline" onClick={() => void copyText(`${window.location.origin}/e/${slug}`, 'Link dos convidados copiado!')}>Copiar link</IonButton>
+                      <IonButton expand="block" fill="outline" onClick={() => void copyText(`${invitationText()}\n${invitationUrl()}`, 'Convite copiado!')}>Copiar convite</IonButton>
                     </div>
                   </IonCardContent>
                 </IonCard>
@@ -564,24 +620,27 @@ export default function EventPage() {
             )}
 
             {(!isAdmin || adminSection === 'overview') && event.mode === 'marcar' && (
-              <IonCard>
+                <IonCard>
                 <IonCardHeader><IonCardTitle>Melhores horários</IonCardTitle></IonCardHeader>
                 <IonCardContent>
                   {availabilitySummary.length === 0 && <p>Nenhuma disponibilidade enviada ainda.</p>}
-                  {groupedAvailability.map((group) => <section className="result-date-group" key={group.label}>
-                    <h3>{group.label}</h3>
+                  {availabilitySummary.length > 0 && <p className="results-note">Só respostas “Posso” entram na contagem dos horários.</p>}
+                  {groupedAvailability.map((group) => <details className="result-date-group" key={group.label} open={expandedResultDays[group.label] ?? group.items.some((item) => item.count === maxAvailabilityCount)} onToggle={(item) => setResultDayExpanded(group.label, item.currentTarget.open)}>
+                    <summary><span>{group.label}</span><span>{group.items.length} horário{group.items.length === 1 ? '' : 's'} <b aria-hidden="true">⌄</b></span></summary>
+                    <div className="result-date-content">
                     {group.items.map((item) => {
                       const percentage = event.threshold ? Math.min(100, (item.count / event.threshold) * 100) : 0;
+                      const isBestTime = maxAvailabilityCount > 0 && item.count === maxAvailabilityCount;
                       return <div className="result-row" key={`${item.day.id}-${item.slot}`}>
                         <strong>{item.slot}</strong>
-                        <IonBadge color={item.count >= event.threshold ? 'success' : 'medium'}>{item.count} de {event.threshold}</IonBadge>
+                        <IonBadge className={isBestTime ? 'result-count-best' : ''} color={item.count >= event.threshold ? 'success' : 'medium'}>{item.count} de {event.threshold}</IonBadge>
                         <div className="result-progress" role="progressbar" aria-label={`${item.day.label}, ${item.slot}: ${item.count} de ${event.threshold} disponíveis`} aria-valuemin={0} aria-valuemax={event.threshold} aria-valuenow={item.count}><span style={{ width: `${percentage}%` }} /></div>
                         <span>{item.count === 1 ? '1 pessoa disponível' : `${item.count} pessoas disponíveis`}{item.names.length ? ` · ${item.names.join(', ')}` : ''}</span>
                         {isAdmin && !event.decidedOption && <IonButton size="small" fill="outline" onClick={() => void decideOption(`${item.day.id}:${item.slot}`)} disabled={savingAdminAction}>Escolher este horário</IonButton>}
                       </div>;
                     })}
-                  </section>)}
-                  {availabilitySummary.length > 3 && <IonButton fill="clear" onClick={() => setShowAllResults((current) => !current)}>{showAllResults ? 'Ver menos horários' : `Ver mais horários (${availabilitySummary.length - 3})`}</IonButton>}
+                    </div>
+                  </details>)}
                 </IonCardContent>
               </IonCard>
             )}
@@ -636,47 +695,55 @@ export default function EventPage() {
 
         </section>
 
-        <IonModal isOpen={Boolean(editEvent)} onDidDismiss={() => setEditEvent(null)}>
+        <IonModal isOpen={Boolean(editEvent)} onDidDismiss={() => setEditEvent(null)} className="event-editor-modal">
           <IonHeader>
             <IonToolbar>
               <IonTitle>Editar evento</IonTitle>
               <IonButtons slot="end"><IonButton onClick={() => setEditEvent(null)}>Fechar</IonButton></IonButtons>
             </IonToolbar>
           </IonHeader>
-          <IonContent className="ion-padding">
+          <IonContent className="ion-padding form-page">
             {editEvent && (
-              <div className="event-editor">
-                <IonItem><IonLabel position="stacked">Nome do evento *</IonLabel><IonInput value={editEvent.title} onIonInput={(item) => updateEdit({ title: item.detail.value || '' })} /></IonItem>
-                <IonItem><IonLabel position="stacked">Local *</IonLabel><IonInput value={editEvent.place} onIonInput={(item) => updateEdit({ place: item.detail.value || '' })} /></IonItem>
-                <IonItem><IonLabel position="stacked">Descrição</IonLabel><IonTextarea value={editEvent.description || ''} onIonInput={(item) => updateEdit({ description: item.detail.value || '' })} /></IonItem>
-                <IonItem><IonLabel position="stacked">Mínimo de confirmações *</IonLabel><IonInput type="number" min={1} value={String(editEvent.threshold)} onIonInput={(item) => updateEdit({ threshold: Number(item.detail.value || 0) })} /></IonItem>
+              <div className="event-editor form-page">
+                <section className="event-editor-intro">
+                  <span className="section-eyebrow">Organizador</span>
+                  <h1>Ajustar evento</h1>
+                  <p>Atualize os detalhes que seus convidados vão receber.</p>
+                </section>
+                <IonCard className="event-editor-card"><IonCardContent>
+                <section className="editor-section" aria-labelledby="editor-details-title">
+                  <h2 id="editor-details-title">Detalhes do convite</h2>
+                  <IonItem><IonLabel position="stacked">Nome do evento *</IonLabel><IonInput value={editEvent.title} onIonInput={(item) => updateEdit({ title: item.detail.value || '' })} /></IonItem>
+                  <IonItem><IonLabel position="stacked">Local *</IonLabel><IonInput value={editEvent.place} onIonInput={(item) => updateEdit({ place: item.detail.value || '' })} /></IonItem>
+                  <IonItem><IonLabel position="stacked">Descrição <span className="optional-label">(opcional)</span></IonLabel><IonTextarea value={editEvent.description || ''} onIonInput={(item) => updateEdit({ description: item.detail.value || '' })} /></IonItem>
+                </section>
+                <section className="editor-section editor-threshold" aria-labelledby="editor-threshold-title">
+                  <div><h2 id="editor-threshold-title">Meta de confirmações</h2><p>Quantas pessoas precisam confirmar?</p></div>
+                  <IonItem><IonLabel position="stacked">Mínimo *</IonLabel><IonInput type="number" min={1} value={String(editEvent.threshold)} onIonInput={(item) => updateEdit({ threshold: Number(item.detail.value || 0) })} /></IonItem>
+                </section>
 
-                {editEvent.mode === 'agora' && <IonItem><IonLabel position="stacked">Horário</IonLabel><IonDatetime presentation="time" value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem>}
-                {editEvent.mode === 'mais-tarde' && <IonItem><IonLabel position="stacked">Dia e horário principal</IonLabel><IonDatetime value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem>}
+                {editEvent.mode === 'agora' && <section className="editor-section"><h2>Horário</h2><IonItem><IonLabel position="stacked">Início</IonLabel><IonDatetime presentation="time" value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
+                {editEvent.mode === 'mais-tarde' && <section className="editor-section"><h2>Dia e horário principal</h2><IonItem><IonDatetime value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
 
                 {editEvent.mode === 'marcar' && (
                   <section className="day-editor" aria-labelledby="edit-schedule-title">
-                    <h2 id="edit-schedule-title">Dias e horários</h2>
+                    <div className="section-heading-row"><div><h2 id="edit-schedule-title">Dias e horários</h2><p className="muted">Abra cada dia para ajustar os horários.</p></div><IonButton fill="outline" size="small" onClick={useSameEditTimes}>Usar os mesmos horários</IonButton></div>
                     {editEvent.days.map((day) => (
-                      <IonCard key={day.id}>
-                        <IonCardContent>
-                          <IonItem><IonLabel position="stacked">Rótulo do dia *</IonLabel><IonInput value={day.label} onIonInput={(item) => updateEditDay(day.id, { label: item.detail.value || '' })} /></IonItem>
-                          <IonItem><IonLabel position="stacked">Data *</IonLabel><IonInput type="date" value={day.date} onIonInput={(item) => updateEditDay(day.id, { date: item.detail.value || '' })} /></IonItem>
-                          <div className="schedule-time-picker">
-                            <IonLabel>Horários *</IonLabel>
-                            <div className="schedule-time-grid">
-                              {scheduleTimes.map((slot) => <IonCheckbox key={slot} checked={day.slots.includes(slot)} onIonChange={(item) => toggleEditSlot(day.id, slot, item.detail.checked)}>{slot}</IonCheckbox>)}
-                            </div>
-                          </div>
-                          <IonButton color="danger" fill="clear" size="small" onClick={() => removeEditDay(day.id)}>Remover dia</IonButton>
-                        </IonCardContent>
-                      </IonCard>
+                      <details key={day.id} className="day-accordion" open={editEvent.days.length === 1}>
+                        <summary><span><strong>{dayLabel(day.date, true)}</strong><small>{day.slots.length === 0 ? 'Sem horários' : `${day.slots.length} horário${day.slots.length === 1 ? '' : 's'}`}</small></span><span aria-hidden="true">⌄</span></summary>
+                        <div className="day-accordion-content">
+                          <IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" value={day.date} onIonInput={(item) => updateEditDayDate(day.id, item.detail.value || day.date)} /></IonItem>
+                          <div className="time-chip-grid">{scheduleTimes.map((slot) => <button type="button" key={slot} className={day.slots.includes(slot) ? 'selected' : ''} aria-pressed={day.slots.includes(slot)} onClick={() => toggleEditSlot(day.id, slot, !day.slots.includes(slot))}>{day.slots.includes(slot) ? '✓ ' : ''}{slot}</button>)}</div>
+                          <div className="day-actions"><IonButton fill="clear" size="small" onClick={() => duplicateEditDay(day.id)}>Duplicar dia</IonButton><IonButton color="danger" fill="clear" size="small" onClick={() => removeEditDay(day.id)}>Remover dia</IonButton></div>
+                        </div>
+                      </details>
                     ))}
                     <IonButton fill="outline" onClick={addEditDay}>+ Adicionar dia</IonButton>
                   </section>
                 )}
 
-                <IonButton expand="block" onClick={() => void saveEdit()} disabled={savingEdit}>{savingEdit ? 'Salvando...' : 'Salvar alterações'}</IonButton>
+                <IonButton expand="block" size="large" onClick={() => void saveEdit()} disabled={savingEdit}>{savingEdit ? 'Salvando...' : 'Salvar alterações'}</IonButton>
+                </IonCardContent></IonCard>
               </div>
             )}
           </IonContent>

@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
-import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
+import { IonApp, IonContent, IonPage, IonRouterOutlet, IonSpinner, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { Redirect, Route } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import CreatePage from './pages/CreatePage';
-import EventPage from './pages/EventPage';
-import MyEventsPage from './pages/MyEventsPage';
-import RecoverPage from './pages/RecoverPage';
+
+const HomePage = lazy(() => import('./pages/HomePage'));
+const CreatePage = lazy(() => import('./pages/CreatePage'));
+const EventPage = lazy(() => import('./pages/EventPage'));
+const MyEventsPage = lazy(() => import('./pages/MyEventsPage'));
+const RecoverPage = lazy(() => import('./pages/RecoverPage'));
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -19,16 +20,24 @@ import './styles.css';
 
 setupIonicReact();
 
+function PageLoader() {
+  return <IonPage><IonContent className="ion-padding center"><IonSpinner /><p>Carregando...</p></IonContent></IonPage>;
+}
+
+function LazyPage({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
+
 function App() {
   return (
     <IonApp>
       <IonReactRouter>
         <IonRouterOutlet>
-          <Route exact path="/home" component={HomePage} />
-          <Route exact path="/create" component={CreatePage} />
-          <Route exact path="/e/:slug" component={EventPage} />
-          <Route exact path="/my-events" component={MyEventsPage} />
-          <Route exact path="/recover" component={RecoverPage} />
+          <Route exact path="/home" render={() => <LazyPage><HomePage /></LazyPage>} />
+          <Route exact path="/create" render={() => <LazyPage><CreatePage /></LazyPage>} />
+          <Route exact path="/e/:slug" render={() => <LazyPage><EventPage /></LazyPage>} />
+          <Route exact path="/my-events" render={() => <LazyPage><MyEventsPage /></LazyPage>} />
+          <Route exact path="/recover" render={() => <LazyPage><RecoverPage /></LazyPage>} />
           <Route exact path="/">
             <Redirect to="/home" />
           </Route>

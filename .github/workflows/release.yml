@@ -56,6 +56,14 @@ jobs:
       - run: docker compose up -d --build
       - run: curl --retry 10 --retry-all-errors --retry-delay 1 --fail http://127.0.0.1:8080/api/health
       - run: npm run test:e2e
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bora-ui-screenshots-${{ github.ref_name }}
+          path: test-results/**/*.png
+          if-no-files-found: warn
+          retention-days: 14
       - if: always()
         run: docker compose down -v
 

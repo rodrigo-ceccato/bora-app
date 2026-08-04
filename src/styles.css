@@ -319,8 +319,16 @@ body { background: #f6f8fb; }
   grid-column: 1 / -1;
   color: #5f6368;
 }
-.result-date-group + .result-date-group { margin-top: 18px; }
-.result-date-group h3 { margin: 0 0 4px; color: #52616d; font-size: .9rem; }
+.results-note { margin: 0 0 12px; color: #66717d; font-size: .86rem; }
+.result-date-group { overflow: hidden; margin: 8px 0; border: 1px solid #d8e3e9; border-radius: 13px; background: #fff; }
+.result-date-group summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 12px 14px; color: #263641; cursor: pointer; font-weight: 750; list-style: none; }
+.result-date-group summary::-webkit-details-marker { display: none; }
+.result-date-group summary > span:last-child { color: #687681; font-size: .82rem; font-weight: 600; }
+.result-date-group summary b { display: inline-block; margin-left: 6px; color: #17664b; font-size: 1rem; transition: transform 150ms ease; }
+.result-date-group[open] summary { border-bottom: 1px solid #e3e9ed; }
+.result-date-group[open] summary b { transform: rotate(180deg); }
+.result-date-content { padding: 0 14px; }
+.result-count-best { font-weight: 850; }
 .result-row ion-button { justify-self: start; margin: 4px 0 0; text-transform: none; }
 
 .result-progress {
@@ -525,6 +533,23 @@ body { background: #f6f8fb; }
 
 .day-editor ion-card { margin: 12px 0; }
 
+.event-editor { max-width: 680px; margin: 0 auto; }
+.event-editor-intro { margin: 0 0 16px; }
+.event-editor-intro h1 { margin: 4px 0; color: #1b2a34; font-size: clamp(1.8rem, 5vw, 2.35rem); letter-spacing: -0.04em; }
+.event-editor-intro p { margin: 0; color: #5f6368; }
+.event-editor-card { margin: 0 !important; border: 1px solid #dce7e1; border-radius: 18px; box-shadow: 0 4px 18px rgba(33, 43, 54, .06); }
+.event-editor-card ion-card-content { padding: 18px; }
+.editor-section { margin: 0 0 22px; padding-bottom: 22px; border-bottom: 1px solid #e3e9ed; }
+.editor-section:last-of-type { border-bottom: 0; }
+.editor-section h2 { margin: 0 0 10px; color: #1b2a34; font-size: 1.13rem; }
+.editor-threshold { display: flex; align-items: end; justify-content: space-between; gap: 14px; padding: 16px; border: 1px solid #dfe6ec; border-radius: 16px; background: #fbfcfd; }
+.editor-threshold h2 { margin-bottom: 3px; }
+.editor-threshold p { margin: 0; color: #66717d; font-size: .88rem; }
+.editor-threshold ion-item { flex: 0 0 112px; border: 1px solid #d5e0e7; border-radius: 10px; --background: #fff; }
+.event-editor .day-editor { margin: 0 0 22px; padding: 18px; border: 1px solid #dfe6ec; border-radius: 16px; background: #fbfcfd; }
+.event-editor .day-editor h2 { margin: 0 0 8px; color: #1b2a34; font-size: 1.13rem; }
+.event-editor .day-editor ion-card { border: 1px solid #d8e3e9; border-radius: 13px; box-shadow: none; }
+
 .schedule-time-picker { padding: 16px; }
 .schedule-time-picker ion-label { display: block; margin-bottom: 12px; }
 .schedule-time-grid {
@@ -723,4 +748,6 @@ body { background: #f6f8fb; }
   .ready-card ion-card-content { align-items: flex-start; }
   .ready-card ion-button { --padding-start: 12px; --padding-end: 12px; }
   .votes-card ion-card-header { align-items: flex-start; flex-direction: column; }
+  .editor-threshold { align-items: stretch; flex-direction: column; }
+  .editor-threshold ion-item { flex-basis: auto; }
 }

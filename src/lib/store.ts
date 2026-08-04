@@ -154,7 +154,10 @@ export function subscribeToEvent(_eventId: string, onChange: () => void) {
 export async function createEvent(draft: EventDraft): Promise<BoraEvent> {
   const participantId = getParticipantId();
   if (API_BASE) {
-    const creatorPreferredOptions = draft.mode === 'mais-tarde' && draft.startsAt ? [draft.startsAt] : [];
+    // Quem cria o Bora está disponível em todos os horários que ofereceu.
+    const creatorPreferredOptions = draft.mode === 'mais-tarde'
+      ? [draft.startsAt, ...draft.alternatives].filter((option): option is string => Boolean(option))
+      : [];
     const result = await apiRequest<ApiEventResponse>('/events', {
       method: 'POST',
       body: JSON.stringify({ event: draft, participantId, creatorPreferredOptions })
@@ -178,7 +181,9 @@ export async function createEvent(draft: EventDraft): Promise<BoraEvent> {
     participantId,
     voterName: event.createdByName || '',
     response: 'accept',
-    preferredOptions: event.mode === 'mais-tarde' && event.startsAt ? [event.startsAt] : [],
+    preferredOptions: event.mode === 'mais-tarde'
+      ? [event.startsAt, ...event.alternatives].filter((option): option is string => Boolean(option))
+      : [],
     availability: event.mode === 'marcar'
       ? Object.fromEntries(event.days.map((day) => [day.id, [...day.slots]]))
       : {},
