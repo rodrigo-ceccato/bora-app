@@ -68,6 +68,7 @@ export default function EventPage() {
 
   const isAdmin = Boolean(data?.isAdmin);
   const wasJustCreated = query.get('created') === '1';
+  const canShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
 
   useEffect(() => {
     let active = true;
@@ -348,15 +349,9 @@ export default function EventPage() {
 
   async function shareLink() {
     const url = `${window.location.origin}/e/${slug}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: data?.event.title || 'Bora', text: 'Bora combinar?', url });
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') return;
-      }
-    }
-    await copyText(url, 'Link dos convidados copiado!');
+    if (!navigator.share) return copyText(url, 'Link dos convidados copiado!');
+    try { await navigator.share({ title: data?.event.title || 'Bora', text: 'Bora combinar?', url }); }
+    catch (error) { if (!(error instanceof DOMException && error.name === 'AbortError')) toast({ message: 'Não foi possível compartilhar o convite.', color: 'danger', duration: 2800 }); }
   }
 
   function shareOnWhatsApp() {
@@ -396,7 +391,7 @@ export default function EventPage() {
                   <strong>Seu Bora está pronto!</strong>
                   <p>Agora é só chamar a galera.</p>
                 </div>
-                <IonButton onClick={() => void shareLink()}>Compartilhar</IonButton>
+                <div className="ready-card-actions"><IonButton onClick={() => void shareLink()}>{canShare ? 'Compartilhar' : 'Copiar link'}</IonButton><IonButton fill="outline" onClick={shareOnWhatsApp}><IonIcon slot="start" icon={logoWhatsapp} aria-hidden="true" />Compartilhar no WhatsApp</IonButton></div>
               </IonCardContent>
             </IonCard>
           )}

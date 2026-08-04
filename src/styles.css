@@ -99,9 +99,11 @@ body { background: #f6f8fb; }
 .calendar-card p { margin: 0; color: #587064; }
 .calendar-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .calendar-actions ion-button { margin: 0; text-transform: none; }
-.reminders-card { margin: 22px 0; padding: 18px; border: 1px solid #b9ddce; border-radius: 16px; background: #f1fbf6; }
+.reminders-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 22px 0; padding: 14px 16px; border: 1px solid #b9ddce; border-radius: 14px; background: #f1fbf6; }
 .reminders-card h2 { margin: 0 0 6px; color: #164a38; font-size: 1.15rem; }
-.reminders-card p { margin: 0 0 13px; color: #587064; }
+.reminders-card p { margin: 0; color: #587064; }
+.reminders-card .muted { margin-top: 5px; font-size: .84rem; }
+.reminders-card ion-button { flex: 0 0 auto; margin: 0; text-transform: none; }
 .time-picker-trigger { display: grid; grid-template-columns: 1fr auto auto; align-items: center; width: 100%; min-height: 72px; margin-top: 14px; border: 1px solid #b8d8cc; border-radius: 14px; background: linear-gradient(135deg, #f3fbf7, #fff); color: #145f46; padding: 12px 15px; font: inherit; text-align: left; box-shadow: 0 2px 5px rgba(18, 92, 68, .05); }
 .time-picker-trigger span:first-child { color: #587064; font-size: .82rem; font-weight: 700; }
 .time-picker-trigger strong { margin-right: 14px; color: #123f30; font-size: 1.55rem; letter-spacing: .02em; }
@@ -287,6 +289,7 @@ body { background: #f6f8fb; }
 
 .ready-card p { margin: 3px 0 0; color: #52616f; font-size: 0.88rem; }
 .ready-card ion-button { flex: 0 0 auto; margin: 0; text-transform: none; }
+.ready-card-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .decided-message {
   margin: 10px 0 0;
   padding: 10px 12px;
@@ -381,7 +384,8 @@ body { background: #f6f8fb; }
   --background: #fff;
 }
 
-.my-events-intro, .my-events-section, .recovery-details { max-width: 760px; margin-left: auto; margin-right: auto; }
+.my-events-container, .recovery-details { max-width: 820px; margin-left: auto; margin-right: auto; }
+.my-events-intro, .my-events-section { max-width: none; margin-left: 0; margin-right: 0; }
 .my-events-intro { margin-top: 0; margin-bottom: 16px; }
 .my-events-intro h1, .my-events-section h2 { color: #17212b; }
 .my-events-intro p { margin: 4px 0 0; color: #66717d; }
@@ -389,6 +393,10 @@ body { background: #f6f8fb; }
 .my-events-section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .my-events-section-heading h2 { margin: 0; font-size: 1.08rem; }
 .my-events-section-heading span { display: grid; min-width: 24px; height: 24px; place-items: center; border-radius: 999px; background: #e7f2ec; color: #17664b; font-size: .8rem; font-weight: 800; }
+.my-events-disclosure { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 6px 0; border: 0; background: transparent; color: #17212b; font: inherit; font-size: 1.08rem; font-weight: 700; text-align: left; cursor: pointer; }
+.my-events-disclosure:focus-visible { outline: 3px solid #4fa67e; outline-offset: 3px; border-radius: 6px; }
+.disclosure-meta { display: flex; align-items: center; gap: 12px; color: #17664b; }
+.disclosure-meta b { display: grid; min-width: 24px; height: 24px; place-items: center; border-radius: 999px; background: #e7f2ec; font-size: .8rem; }
 .my-event-card { position: relative; display: block; width: 100%; min-height: 0; margin: 8px 0; padding: 12px 14px; border: 1px solid #e0e8e4; border-radius: 15px; background: #fff; box-shadow: 0 1px 5px rgba(28, 45, 57, .07); color: #26333d; font: inherit; text-align: left; cursor: pointer; }
 .my-event-card:hover { border-color: #b8d7c8; background: #f7fbf9; }
 .my-event-card:active { background: #edf7f1; }

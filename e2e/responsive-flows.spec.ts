@@ -119,7 +119,12 @@ test('My Boras highlights upcoming scheduled events and reminder controls', asyn
     await expect(page.getByRole('heading', { name: 'Próximos Boras' })).toBeVisible();
     await expect(page.getByText(`Próximo ${runId}`).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Lembretes' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Ativar lembretes neste aparelho' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ativar lembretes' })).toBeVisible();
+    const createdDisclosure = page.getByRole('button', { name: /Criados por mim/ });
+    await expect(createdDisclosure).toHaveAttribute('aria-expanded', 'false');
+    await createdDisclosure.focus();
+    await page.keyboard.press('Enter');
+    await expect(createdDisclosure).toHaveAttribute('aria-expanded', 'true');
   } finally {
     await request.delete(`/api/events/${body.event.slug as string}`, { headers: { 'x-forwarded-for': `e2e-${runId}`, authorization: `Bearer ${body.adminToken as string}` } });
   }

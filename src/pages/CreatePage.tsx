@@ -218,7 +218,7 @@ export default function CreatePage() {
         days: mode === 'marcar' ? sortedDays.map((day) => ({ ...day, label: dayLabel(day.date) })) : [],
         createdByName: createdByName.trim()
       });
-      router.push(`/e/${event.slug}?admin=${event.adminToken}&created=1`, 'forward');
+      router.push(`/e/${event.slug}?admin=${event.adminToken}&created=1`, 'forward', 'replace');
     } catch (error) {
       toast({ message: error instanceof Error ? error.message : 'Não foi possível criar o Bora.', color: 'danger', duration: 3000 });
       setCreating(false);
