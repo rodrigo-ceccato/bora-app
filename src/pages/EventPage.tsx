@@ -15,6 +15,7 @@ function useQuery() {
 }
 
 const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`);
+const overnightScheduleTimes = Array.from({ length: 7 }, (_, index) => `0${index + 1}:00`);
 
 export default function EventPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -37,6 +38,7 @@ export default function EventPage() {
   const [adminSection, setAdminSection] = useState<'overview' | 'manage'>('overview');
   const [showAllResults, setShowAllResults] = useState(false);
   const [expandedResultDays, setExpandedResultDays] = useState<Record<string, boolean>>({});
+  const [overnightEditDays, setOvernightEditDays] = useState<Record<string, boolean>>({});
   const hydratedVote = useRef(false);
 
   const isAdmin = Boolean(data?.isAdmin);
@@ -131,6 +133,7 @@ export default function EventPage() {
 
   function openEdit() {
     if (!data) return;
+    setOvernightEditDays({});
     setEditEvent({ ...data.event, startsAt: toPickerValue(data.event.startsAt), days: data.event.days.map((day) => ({ ...day, slots: [...day.slots] })), alternatives: [...data.event.alternatives] });
   }
 
@@ -186,6 +189,11 @@ export default function EventPage() {
 
   function removeEditDay(dayId: string) {
     setEditEvent((current) => current ? { ...current, days: current.days.filter((day) => day.id !== dayId) } : current);
+    setOvernightEditDays((current) => Object.fromEntries(Object.entries(current).filter(([id]) => id !== dayId)));
+  }
+
+  function toggleEditOvernightTimes(dayId: string) {
+    setOvernightEditDays((current) => ({ ...current, [dayId]: !current[dayId] }));
   }
 
   async function saveEdit() {
@@ -693,8 +701,8 @@ export default function EventPage() {
                         <summary><span><strong>{resultDateLabel(day.date, true)}</strong><small>{day.slots.length === 0 ? 'Sem horários' : `${day.slots.length} horário${day.slots.length === 1 ? '' : 's'}`}</small></span><span aria-hidden="true">⌄</span></summary>
                         <div className="day-accordion-content">
                           <IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" value={day.date} onIonInput={(item) => updateEditDayDate(day.id, item.detail.value || day.date)} /></IonItem>
-                          <div className="time-chip-grid">{scheduleTimes.map((slot) => <button type="button" key={slot} className={day.slots.includes(slot) ? 'selected' : ''} aria-pressed={day.slots.includes(slot)} onClick={() => toggleEditSlot(day.id, slot, !day.slots.includes(slot))}>{day.slots.includes(slot) ? '✓ ' : ''}{slot}</button>)}</div>
-                          <div className="day-actions"><IonButton fill="clear" size="small" onClick={() => duplicateEditDay(day.id)}>Duplicar dia</IonButton><IonButton color="danger" fill="clear" size="small" onClick={() => removeEditDay(day.id)}>Remover dia</IonButton></div>
+                          <div className="time-chip-grid">{(overnightEditDays[day.id] || day.slots.some((slot) => overnightScheduleTimes.includes(slot)) ? [...overnightScheduleTimes, ...scheduleTimes] : scheduleTimes).map((slot) => <button type="button" key={slot} className={day.slots.includes(slot) ? 'selected' : ''} aria-pressed={day.slots.includes(slot)} onClick={() => toggleEditSlot(day.id, slot, !day.slots.includes(slot))}>{day.slots.includes(slot) ? '✓ ' : ''}{slot}</button>)}</div>
+                          <div className="day-actions"><IonButton fill="clear" size="small" onClick={() => duplicateEditDay(day.id)}>Duplicar dia</IonButton><IonButton fill="clear" size="small" onClick={() => toggleEditOvernightTimes(day.id)} aria-expanded={Boolean(overnightEditDays[day.id])}>{overnightEditDays[day.id] ? 'Ocultar madrugada' : 'Mostrar madrugada'}</IonButton><IonButton color="danger" fill="clear" size="small" onClick={() => removeEditDay(day.id)}>Remover dia</IonButton></div>
                         </div>
                       </details>
                     ))}

@@ -13,6 +13,7 @@ const modeDetails: Record<BoraMode, { title: string; description: string }> = {
 };
 
 const timeChoices = Array.from({ length: 16 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`);
+const overnightTimeChoices = Array.from({ length: 7 }, (_, index) => `0${index + 1}:00`);
 const maxThreshold = 999;
 
 function dateTimeValue(date: string, time: string) {
@@ -80,6 +81,7 @@ export default function CreatePage() {
   const [weekTimes, setWeekTimes] = useState<string[]>([]);
   const [timeDraft, setTimeDraft] = useState('18:00');
   const [days, setDays] = useState<ScheduleDay[]>(() => [newDay()]);
+  const [overnightDays, setOvernightDays] = useState<Record<string, boolean>>({});
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -177,6 +179,11 @@ export default function CreatePage() {
 
   function removeDay(dayId: string) {
     setDays((current) => current.filter((day) => day.id !== dayId));
+    setOvernightDays((current) => Object.fromEntries(Object.entries(current).filter(([id]) => id !== dayId)));
+  }
+
+  function toggleOvernightTimes(dayId: string) {
+    setOvernightDays((current) => ({ ...current, [dayId]: !current[dayId] }));
   }
 
   function useSameTimes() {
@@ -293,8 +300,8 @@ export default function CreatePage() {
               <summary><span><strong>{dayLabel(day.date, true)}</strong><small>{day.slots.length === 0 ? 'Sem horários' : `${day.slots.length} horário${day.slots.length === 1 ? '' : 's'}`}</small></span><span aria-hidden="true">⌄</span></summary>
               <div className="day-accordion-content">
                 <IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" min={today} value={day.date} onIonInput={(event) => { const date = event.detail.value || day.date; updateDay(day.id, { date, label: dayLabel(date), slots: day.slots.filter((slot) => futureTime(date, slot)) }); }} /></IonItem>
-                <div className="time-chip-grid">{timeChoices.map((slot) => <button key={slot} type="button" className={day.slots.includes(slot) ? 'selected' : ''} aria-pressed={day.slots.includes(slot)} onClick={() => toggleDayTime(day.id, slot)}>{day.slots.includes(slot) ? '✓ ' : ''}{slot}</button>)}</div>
-                <div className="day-actions"><IonButton fill="clear" size="small" onClick={() => duplicateDay(day)}>Duplicar dia</IonButton><IonButton fill="clear" color="danger" size="small" onClick={() => removeDay(day.id)}>Remover dia</IonButton></div>
+                <div className="time-chip-grid">{(overnightDays[day.id] || day.slots.some((slot) => overnightTimeChoices.includes(slot)) ? [...overnightTimeChoices, ...timeChoices] : timeChoices).map((slot) => <button key={slot} type="button" className={day.slots.includes(slot) ? 'selected' : ''} aria-pressed={day.slots.includes(slot)} onClick={() => toggleDayTime(day.id, slot)}>{day.slots.includes(slot) ? '✓ ' : ''}{slot}</button>)}</div>
+                <div className="day-actions"><IonButton fill="clear" size="small" onClick={() => duplicateDay(day)}>Duplicar dia</IonButton><IonButton fill="clear" size="small" onClick={() => toggleOvernightTimes(day.id)} aria-expanded={Boolean(overnightDays[day.id])}>{overnightDays[day.id] ? 'Ocultar madrugada' : 'Mostrar madrugada'}</IonButton><IonButton fill="clear" color="danger" size="small" onClick={() => removeDay(day.id)}>Remover dia</IonButton></div>
               </div>
             </details>)}
             <IonButton fill="outline" onClick={addDay}>+ Adicionar dia</IonButton>
