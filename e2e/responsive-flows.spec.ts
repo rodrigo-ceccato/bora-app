@@ -180,6 +180,29 @@ test('My Boras highlights upcoming scheduled events and handles reminder availab
   }
 });
 
+test('past events are archived outside the active My Boras lists', async ({ page, request }, testInfo) => {
+  const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const participantId = `past-${runId}`;
+  const title = `Passado ${runId}`;
+  const created = await request.post('/api/events', {
+    headers: { 'x-forwarded-for': `e2e-${runId}` },
+    data: { participantId, event: { mode: 'agora', title, place: 'Praça', description: '', threshold: 2, startsAt: '2020-08-01T21:00:00.000Z', alternatives: [], createdByName: 'Ana', votingClosed: false, days: [] } }
+  });
+  expect(created.ok()).toBeTruthy();
+  const body = await created.json();
+  try {
+    await page.goto('/my-events');
+    await page.evaluate((id) => localStorage.setItem('bora_participant_id', id), participantId);
+    await page.reload();
+    await expect(page.getByText(title)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Boras passados' }).click();
+    await expect(page).toHaveURL(/\/past-events$/);
+    await expect(page.getByText(title)).toBeVisible();
+  } finally {
+    await request.delete(`/api/events/${body.event.slug as string}`, { headers: { 'x-forwarded-for': `e2e-${runId}`, authorization: `Bearer ${body.adminToken as string}` } });
+  }
+});
+
 test('results stay compact and explain availability', async ({ page, request }, testInfo) => {
   const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const title = `Teste visual ${runId}`;
