@@ -417,7 +417,7 @@ body { background: #f6f8fb; }
 .my-events-static-heading { margin: 6px 0 10px; color: #17212b; font-size: 1.08rem; }
 .disclosure-meta { display: flex; align-items: center; gap: 12px; color: #17664b; }
 .disclosure-meta b { display: grid; min-width: 24px; height: 24px; place-items: center; border-radius: 999px; background: #e7f2ec; font-size: .8rem; }
-.disclosure-meta em { display: grid; width: 20px; height: 20px; place-items: center; border-radius: 999px; background: #fff1df; color: #a75a12; font-size: .82rem; font-style: normal; font-weight: 850; }
+.disclosure-meta em { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 999px; background: #fff1df; color: #a75a12; font-size: .82rem; font-style: normal; font-weight: 850; }
 .my-event-card { position: relative; display: block; width: 100%; min-height: 0; margin: 8px 0; padding: 12px 14px; border: 1px solid #e0e8e4; border-radius: 15px; background: #fff; box-shadow: 0 1px 5px rgba(28, 45, 57, .07); color: #26333d; font: inherit; text-align: left; cursor: pointer; }
 .my-event-card:hover { border-color: #b8d7c8; background: #f7fbf9; }
 .my-event-card:active { background: #edf7f1; }
