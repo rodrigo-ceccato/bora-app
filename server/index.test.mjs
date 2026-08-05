@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateEvent, validateVote } from './index.mjs';
+import { deletionNotificationPlan, eventUpdateNotificationPlan, validateEvent, validateVote, voteNotificationPlan } from './index.mjs';
 
 const eventInput = {
   mode: 'mais-tarde', title: 'Cinema', place: 'Centro', description: '', threshold: 2,
@@ -41,5 +41,32 @@ describe('multi-option event API validation', () => {
       preferredOptions: ['sexta:18:00'], availability: { sexta: ['18:00'] }
     }, event);
     expect(vote).toMatchObject({ response: 'decline', preferredOptions: [], availability: {} });
+  });
+});
+
+describe('event notification rules', () => {
+  const event = { id: 'evt_1', title: 'Cinema', threshold: 2, created_by_participant_id: 'ana', notify_creator_on_vote: true, starts_at: new Date('2099-08-03T21:00:00.000Z'), place: 'Centro', days: [], decided_option: null };
+
+  it('notifies the creator about another participant vote and everyone when the threshold is reached', () => {
+    const notifications = voteNotificationPlan(event, { id: 'vote_1', participantId: 'bia', voterName: 'Bia' }, 2, 'request_1');
+    expect(notifications).toEqual(expect.arrayContaining([
+      expect.objectContaining({ audience: 'creator', kind: 'vote-request_1' }),
+      expect.objectContaining({ audience: 'participants', kind: 'threshold-reached' })
+    ]));
+  });
+
+  it('respects the creator vote preference and never notifies them about their own vote', () => {
+    expect(voteNotificationPlan({ ...event, notify_creator_on_vote: false }, { id: 'vote_1', participantId: 'bia', voterName: 'Bia' }, 1)).toEqual([]);
+    expect(voteNotificationPlan(event, { id: 'vote_1', participantId: 'ana', voterName: 'Ana' }, 1)).toEqual([]);
+  });
+
+  it('notifies participants about confirmation and schedule or location changes', () => {
+    expect(eventUpdateNotificationPlan(event, { ...event, decided_option: '2099-08-03T21:00:00.000Z' })).toEqual([expect.objectContaining({ kind: 'confirmed' })]);
+    expect(eventUpdateNotificationPlan(event, { ...event, place: 'Outro lugar' })).toEqual([expect.objectContaining({ audience: 'participants', kind: expect.stringMatching(/^changed-/) })]);
+  });
+
+  it('notifies participants when an event is deleted before it starts', () => {
+    expect(deletionNotificationPlan(event, new Date('2099-08-03T20:00:00.000Z').getTime())).toEqual([expect.objectContaining({ audience: 'participants', kind: 'cancelled' })]);
+    expect(deletionNotificationPlan(event, new Date('2099-08-03T22:00:00.000Z').getTime())).toEqual([]);
   });
 });
