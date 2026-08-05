@@ -167,7 +167,7 @@ test('My Boras highlights upcoming scheduled events and handles reminder availab
     await page.goto('/my-events');
     await page.evaluate((id) => localStorage.setItem('bora_participant_id', id), participantId);
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Próximos Boras' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Próximos Boras' })).toBeVisible();
     await expect(page.getByText(`Próximo ${runId}`).first()).toBeVisible();
     await expect(page.getByRole('switch', { name: 'Ativar lembretes neste aparelho' })).toBeVisible();
     const createdDisclosure = page.getByRole('button', { name: /Criados por mim/ });
