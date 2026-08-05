@@ -381,6 +381,13 @@ async function route(request, response) {
     return send(response, 201, { status: 'subscribed' });
   }
 
+  if (request.method === 'DELETE' && url.pathname === '/api/push/subscriptions') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const endpoint = text((await readJson(request)).endpoint, 2000, true);
+    await pool.query('delete from push_subscriptions where participant_id = $1 and endpoint = $2', [participantId, endpoint]);
+    return send(response, 204);
+  }
+
   if (request.method === 'GET' && url.pathname === '/api/me/events') {
     const participantId = text(request.headers['x-participant-id'], 100, true);
     const [created, joined] = await Promise.all([

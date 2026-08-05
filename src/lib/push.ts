@@ -1,7 +1,6 @@
 import { getParticipantId } from './store';
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
-const registeredEndpointKey = 'bora_push_registered_endpoint';
 export type PushReminderState = 'unsupported' | 'permission-required' | 'permission-denied' | 'permission-granted-but-not-subscribed' | 'subscribed';
 
 function supported() { return Boolean(API_BASE && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window); }
@@ -26,10 +25,20 @@ export async function enablePushReminders() {
   if (!publicKey) throw new Error('Os lembretes ainda não foram configurados no Bora.');
   const registration = await navigator.serviceWorker.register('/sw.js');
   const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToUint8Array(publicKey) });
-  if (localStorage.getItem(registeredEndpointKey) !== subscription.endpoint) {
-    const response = await fetch(`${API_BASE}/push/subscriptions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-participant-id': getParticipantId() }, body: JSON.stringify(subscription) });
-    if (!response.ok) { const body = await response.json().catch(() => ({})) as { error?: string }; throw new Error(body.error || 'Não foi possível ativar os lembretes.'); }
-    localStorage.setItem(registeredEndpointKey, subscription.endpoint);
-  }
+  const response = await fetch(`${API_BASE}/push/subscriptions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-participant-id': getParticipantId() }, body: JSON.stringify(subscription) });
+  if (!response.ok) { const body = await response.json().catch(() => ({})) as { error?: string }; throw new Error(body.error || 'Não foi possível ativar os lembretes.'); }
   return 'subscribed' as const;
+}
+
+export async function disablePushReminders() {
+  if (!supported()) throw new Error('Este navegador não oferece lembretes.');
+  const subscription = await existingSubscription();
+  if (!subscription) return 'permission-granted-but-not-subscribed' as const;
+  const response = await fetch(`${API_BASE}/push/subscriptions`, { method: 'DELETE', headers: { 'content-type': 'application/json', 'x-participant-id': getParticipantId() }, body: JSON.stringify({ endpoint: subscription.endpoint }) });
+  if (!response.ok) { const body = await response.json().catch(() => ({})) as { error?: string }; throw new Error(body.error || 'Não foi possível desativar os lembretes.'); }
+  if (!await subscription.unsubscribe()) {
+    await fetch(`${API_BASE}/push/subscriptions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-participant-id': getParticipantId() }, body: JSON.stringify(subscription) });
+    throw new Error('Não foi possível desativar os lembretes neste navegador.');
+  }
+  return 'permission-granted-but-not-subscribed' as const;
 }
