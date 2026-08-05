@@ -189,6 +189,7 @@ export async function createEvent(draft: EventDraft): Promise<BoraEvent> {
     id: uid('evt'),
     slug: slugify(draft.title),
     adminToken: uid('adm'),
+    notifyCreatorOnVote: draft.notifyCreatorOnVote !== false,
     votingClosed: false,
     createdAt: new Date().toISOString()
   };

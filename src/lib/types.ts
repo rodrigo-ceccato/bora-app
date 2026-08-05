@@ -21,6 +21,7 @@ export interface BoraEvent {
   alternatives: string[];
   days: ScheduleDay[];
   createdByName?: string;
+  notifyCreatorOnVote?: boolean;
   votingClosed: boolean;
   decidedOption?: string;
   decidedAt?: string;
@@ -55,4 +56,5 @@ export interface EventDraft {
   alternatives: string[];
   days: ScheduleDay[];
   createdByName?: string;
+  notifyCreatorOnVote?: boolean;
 }

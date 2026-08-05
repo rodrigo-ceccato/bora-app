@@ -101,6 +101,7 @@ export function validateEvent(input) {
       : [],
     days: mode === 'marcar' ? validateDays(input.days) : [],
     createdByName: text(input.createdByName, 80, true),
+    notifyCreatorOnVote: input.notifyCreatorOnVote !== false,
     votingClosed: Boolean(input.votingClosed)
   };
   const decidedOption = text(input.decidedOption, 200);
@@ -179,6 +180,7 @@ function mapEvent(row) {
     alternatives: row.alternatives || [],
     days: row.days || [],
     createdByName: row.created_by_name,
+    notifyCreatorOnVote: row.notify_creator_on_vote !== false,
     votingClosed: row.voting_closed,
     decidedOption: row.decided_option || undefined,
     decidedAt: row.decided_at?.toISOString?.() || row.decided_at || undefined,
@@ -266,13 +268,43 @@ function eventStartAt(event) {
   return Number.isNaN(value.getTime()) ? null : value;
 }
 
-async function sendEventPush(event, kind, title, body) {
+export function voteNotificationPlan(event, vote, acceptedCount, nonce = '') {
+  const notifications = [];
+  if (event.notify_creator_on_vote !== false && vote.participantId !== event.created_by_participant_id) {
+    notifications.push({ audience: 'creator', kind: `vote-${nonce || vote.id}`, title: `Novo voto: ${event.title}`, body: `${vote.voterName} respondeu ao seu Bora.` });
+  }
+  if (acceptedCount >= event.threshold) {
+    notifications.push({ audience: 'participants', kind: 'threshold-reached', title: `Meta atingida: ${event.title}`, body: 'O mínimo de confirmações foi alcançado.' });
+  }
+  return notifications;
+}
+
+export function eventUpdateNotificationPlan(current, updated) {
+  if (!current.decided_option && updated.decided_option) {
+    return [{ audience: 'participants', kind: 'confirmed', title: `Bora confirmado: ${updated.title}`, body: `O encontro foi definido em ${updated.place}.` }];
+  }
+  const changed = current.starts_at?.getTime?.() !== updated.starts_at?.getTime?.()
+    || current.decided_option !== updated.decided_option
+    || JSON.stringify(current.days) !== JSON.stringify(updated.days)
+    || current.place !== updated.place;
+  return changed ? [{ audience: 'participants', kind: `changed-${Date.now()}`, title: `Bora alterado: ${updated.title}`, body: `Confira a nova data, horário ou local em ${updated.place}.` }] : [];
+}
+
+export function deletionNotificationPlan(event, now = Date.now()) {
+  const startsAt = eventStartAt(event)?.getTime();
+  return startsAt && startsAt > now
+    ? [{ audience: 'participants', kind: 'cancelled', title: `Bora cancelado: ${event.title}`, body: 'Este Bora foi cancelado pelo organizador.' }]
+    : [];
+}
+
+async function sendEventPush(event, kind, title, body, audience = 'participants') {
   if (!pushEnabled) return;
+  const participantClause = audience === 'creator'
+    ? 'participant_id = $1'
+    : `participant_id = $1 or participant_id in (select participant_id from votes where event_id = $2)`;
   const subscriptions = await pool.query(
     `select distinct push_subscriptions.* from push_subscriptions
-     where participant_id = $1 or participant_id in (
-       select participant_id from votes where event_id = $2 and response in ('accept', 'maybe')
-     )`,
+     where ${participantClause}`,
     [event.created_by_participant_id, event.id]
   );
   await Promise.all(subscriptions.rows.map(async (subscription) => {
@@ -451,11 +483,11 @@ async function route(request, response) {
     const result = await withTransaction(async (client) => {
       const insertedEvent = await client.query(
         `insert into events
-          (id, slug, admin_token_hash, mode, title, place, description, threshold, starts_at, alternatives, days, created_by_name, created_by_participant_id)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) returning *`,
+          (id, slug, admin_token_hash, mode, title, place, description, threshold, starts_at, alternatives, days, created_by_name, created_by_participant_id, notify_creator_on_vote)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) returning *`,
         [eventId, slug, tokenHash(adminToken), eventInput.mode, eventInput.title, eventInput.place,
           eventInput.description, eventInput.threshold, eventInput.startsAt,
-          JSON.stringify(eventInput.alternatives), JSON.stringify(eventInput.days), eventInput.createdByName, participantId]
+          JSON.stringify(eventInput.alternatives), JSON.stringify(eventInput.days), eventInput.createdByName, participantId, eventInput.notifyCreatorOnVote]
       );
       const insertedVote = await client.query(
         `insert into votes
@@ -506,6 +538,10 @@ async function route(request, response) {
         [uid('vote'), event.id, vote.participantId, vote.voterName, vote.response,
           JSON.stringify(vote.preferredOptions), JSON.stringify(vote.availability)]
       );
+      const accepted = await pool.query("select count(*)::int as count from votes where event_id = $1 and response = 'accept'", [event.id]);
+      for (const notification of voteNotificationPlan(eventRow, { ...vote, id: result.rows[0].id }, accepted.rows[0].count, `${Date.now()}-${result.rows[0].id}`)) {
+        void sendEventPush(eventRow, notification.kind, notification.title, notification.body, notification.audience);
+      }
       return send(response, 200, { vote: mapVote(result.rows[0], vote.participantId) });
     }
 
@@ -515,26 +551,25 @@ async function route(request, response) {
       const result = await pool.query(
         `update events set
           title=$1, place=$2, description=$3, threshold=$4, starts_at=$5,
-          alternatives=$6, days=$7, voting_closed=$8, decided_option=$9,
+          alternatives=$6, days=$7, voting_closed=$8, decided_option=$9, notify_creator_on_vote=$10,
           decided_at=case when $9::text is null then null when decided_option is distinct from $9 then now() else decided_at end
-         where id=$10 returning *`,
+         where id=$11 returning *`,
         [input.title, input.place, input.description, input.threshold, input.startsAt,
           JSON.stringify(input.alternatives), JSON.stringify(input.days), input.decidedOption ? true : input.votingClosed,
-          input.decidedOption, current.id]
+          input.decidedOption, input.notifyCreatorOnVote, current.id]
       );
       const updated = result.rows[0];
-      const wasDecided = Boolean(current.decided_option);
-      const isDecided = Boolean(updated.decided_option);
-      if (!wasDecided && isDecided) {
-        void sendEventPush(updated, 'confirmed', `Bora confirmado: ${updated.title}`, `O encontro foi definido em ${updated.place}.`);
-      } else if (wasDecided && (current.starts_at?.getTime?.() !== updated.starts_at?.getTime?.() || current.decided_option !== updated.decided_option || current.place !== updated.place)) {
-        void sendEventPush(updated, `changed-${Date.now()}`, `Bora alterado: ${updated.title}`, `Confira a nova data, horário ou local em ${updated.place}.`);
+      for (const notification of eventUpdateNotificationPlan(current, updated)) {
+        void sendEventPush(updated, notification.kind, notification.title, notification.body, notification.audience);
       }
       return send(response, 200, { event: mapEvent(updated), isAdmin: true });
     }
 
     if (request.method === 'DELETE' && parts.length === 3) {
       const current = await requireAdmin(request, slug);
+      for (const notification of deletionNotificationPlan(current)) {
+        await sendEventPush(current, notification.kind, notification.title, notification.body, notification.audience);
+      }
       await pool.query('delete from events where id = $1', [current.id]);
       response.writeHead(204);
       return response.end();
