@@ -8,6 +8,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const CreatePage = lazy(() => import('./pages/CreatePage'));
 const EventPage = lazy(() => import('./pages/EventPage'));
 const MyEventsPage = lazy(() => import('./pages/MyEventsPage'));
+const PastEventsPage = lazy(() => import('./pages/PastEventsPage'));
 const RecoverPage = lazy(() => import('./pages/RecoverPage'));
 const MetricsPage = lazy(() => import('./pages/MetricsPage'));
 import { startPresence } from './lib/presence';
@@ -39,6 +40,7 @@ function App() {
           <Route exact path="/create" render={() => <LazyPage><CreatePage /></LazyPage>} />
           <Route exact path="/e/:slug" render={() => <LazyPage><EventPage /></LazyPage>} />
           <Route exact path="/my-events" render={() => <LazyPage><MyEventsPage /></LazyPage>} />
+          <Route exact path="/past-events" render={() => <LazyPage><PastEventsPage /></LazyPage>} />
           <Route exact path="/recover" render={() => <LazyPage><RecoverPage /></LazyPage>} />
           <Route exact path="/metrics" render={() => <LazyPage><MetricsPage /></LazyPage>} />
           <Route exact path="/">
