@@ -51,7 +51,7 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expectNoHorizontalScroll(page);
 
   await page.goto('/my-events');
-  await page.getByRole('link', { name: 'Usar meus Boras em outro dispositivo' }).click();
+  await page.getByRole('link', { name: 'Usar em outro dispositivo' }).click();
   await expect(page.getByText('Crie um link para acessar seus Boras em outro aparelho. Este aparelho continuará com acesso normalmente.')).toBeVisible();
   await expect(page.locator('ion-back-button[default-href="/my-events"]')).toHaveCount(1);
   await page.locator('ion-back-button[default-href="/my-events"]').click();
@@ -118,6 +118,7 @@ test('My Boras can remove this device access', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_id'))).not.toBeNull();
   await page.getByRole('button', { name: 'Remover acesso deste aparelho' }).click();
   await expect(page.getByRole('heading', { name: 'Remover acesso deste aparelho?' })).toBeVisible();
+  await expect(page.getByText('Este aparelho deixará de mostrar seus Boras e perderá os acessos de organizador salvos. Os eventos não serão excluídos e outros dispositivos continuarão funcionando.')).toBeVisible();
   await page.getByRole('button', { name: 'Remover acesso' }).click();
   await expect(page).toHaveURL(/\/home$/);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_id'))).toBeNull();

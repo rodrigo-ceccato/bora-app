@@ -100,13 +100,15 @@ body { background: #f6f8fb; }
 .calendar-card p { margin: 0; color: #587064; }
 .calendar-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .calendar-actions ion-button { margin: 0; text-transform: none; }
-.reminders-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 22px 0; padding: 14px 16px; border: 1px solid #b9ddce; border-radius: 14px; background: #f1fbf6; }
-.reminders-card h2 { margin: 0 0 6px; color: #164a38; font-size: 1.15rem; }
-.reminders-card p { margin: 0; color: #587064; }
+.reminders-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 20px 0; padding: 12px 14px; border: 1px solid #d6e5dd; border-radius: 12px; background: #fbfdfc; }
+.reminders-card h2 { margin: 0 0 4px; color: #284c3e; font-size: 1rem; }
+.reminders-card p { margin: 0; color: #587064; font-size: .9rem; }
 .reminders-card .muted { margin-top: 5px; font-size: .84rem; }
 .reminders-card ion-button { flex: 0 0 auto; margin: 0; text-transform: none; }
-.reminder-status-row { display: flex; align-items: center; gap: 9px; margin: 18px 0; padding: 10px 0; color: #17664b; font-size: .93rem; font-weight: 700; }
-.reminder-status-row ion-icon { font-size: 1.15rem; }
+.reminder-status-row { display: flex; align-items: flex-start; gap: 10px; margin: 20px 0; padding: 10px 0; color: #17664b; }
+.reminder-status-row ion-icon { flex: 0 0 auto; margin-top: 2px; font-size: 1.15rem; }
+.reminder-status-row strong { display: block; font-size: .93rem; }
+.reminder-status-row p { margin: 2px 0 0; color: #66717d; font-size: .86rem; }
 .time-picker-trigger { display: grid; grid-template-columns: 1fr auto auto; align-items: center; width: 100%; min-height: 72px; margin-top: 14px; border: 1px solid #b8d8cc; border-radius: 14px; background: linear-gradient(135deg, #f3fbf7, #fff); color: #145f46; padding: 12px 15px; font: inherit; text-align: left; box-shadow: 0 2px 5px rgba(18, 92, 68, .05); }
 .time-picker-trigger span:first-child { color: #587064; font-size: .82rem; font-weight: 700; }
 .time-picker-trigger strong { margin-right: 14px; color: #123f30; font-size: 1.55rem; letter-spacing: .02em; }
@@ -431,15 +433,20 @@ body { background: #f6f8fb; }
 .my-events-empty { padding: 4px 0; }
 .my-events-empty p { margin: 0 0 4px; color: #66717d; }
 .my-events-empty ion-button { min-height: 44px; margin: 0 -10px; text-transform: none; }
-.device-access-actions { margin-top: 28px; border-top: 1px solid #dde6e1; }
-.device-access-row { display: flex; width: 100%; min-height: 70px; margin: 0; padding: 10px 2px; color: #26333d; text-align: left; text-transform: none; }
+.pending-events-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0; padding: 10px 12px; border-radius: 10px; background: #f4f8f6; color: #355163; }
+.pending-events-notice p { margin: 0; font-size: .9rem; }
+.pending-events-notice ion-button { flex: 0 0 auto; min-height: 40px; margin: 0 -8px; text-transform: none; }
+.device-access-actions { margin-top: 32px; border-top: 1px solid #dde6e1; }
+.device-access-actions h2 { margin: 20px 0 8px; color: #17212b; font-size: 1.08rem; }
+.device-access-row { display: flex; width: 100%; min-height: 70px; margin: 0; padding: 10px 2px; border-bottom: 1px solid #e7ece9; color: #26333d; text-align: left; text-transform: none; }
 .device-access-row::part(native) { padding: 0; }
 .device-access-row ion-icon[slot="start"] { margin-right: 12px; color: #356b56; font-size: 1.4rem; }
 .device-access-row ion-icon[slot="end"] { margin-left: 10px; color: #6b7b85; font-size: 1.15rem; }
 .device-access-copy { display: grid; flex: 1; gap: 3px; min-width: 0; }
 .device-access-copy strong { font-size: .98rem; }
-.device-access-copy small { color: #66717d; font-size: .83rem; white-space: normal; }
-.remove-device-action { min-height: 44px; margin: 0 -10px; text-transform: none; }
+.device-access-copy small { margin-top: 5px; color: #66717d; font-size: .83rem; line-height: 1.35; white-space: normal; }
+.destructive-device-action { --color: #a43730; }
+.destructive-device-action ion-icon[slot="start"] { color: #a43730; }
 .recovery-details { margin-top: 24px; margin-bottom: 0; border-top: 1px solid #dde6e1; }
 .recovery-details summary { min-height: 52px; padding: 16px 0; color: #355163; cursor: pointer; font-weight: 750; }
 .recovery-card { padding: 0 0 12px; }
@@ -752,6 +759,8 @@ body { background: #f6f8fb; }
 
 @media (max-width: 767px) {
   .my-event-heading strong { font-size: 1.08rem; }
+  .reminders-card, .pending-events-notice { align-items: flex-start; flex-direction: column; }
+  .reminders-card ion-button { align-self: stretch; }
 }
 
 @media (max-width: 520px) {
