@@ -1,6 +1,5 @@
 import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonCheckbox, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonPage, IonSpinner, IonTitle, IonToolbar, useIonToast } from '@ionic/react';
 import { shieldCheckmarkOutline } from 'ionicons/icons';
-import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { clearDeviceAuthentication, createRecoveryLink, hasRegisteredParticipant, recoverParticipant, restoreAdminEvents, restoreParticipantId, restoreParticipantName, type AdminEventAccess } from '../lib/store';
@@ -15,7 +14,17 @@ export default function RecoverPage() {
   async function recoverFromLink() { const token = new URLSearchParams(location.search).get('token'); if (!token) { setStatus('transfer'); return; } const adminEvents = adminEventsFromFragment(location.hash); const participantName = participantNameFromFragment(location.hash); setStatus('loading'); try { const participantId = await recoverParticipant(token); clearDeviceAuthentication(); restoreParticipantId(participantId); restoreAdminEvents(adminEvents); if (participantName) restoreParticipantName(participantName); setAdminAccessRestored(adminEvents.length > 0); window.history.replaceState({}, '', '/recover'); setStatus('ready'); } catch { setStatus('error'); } }
   function cancelRecovery() { window.history.replaceState({}, '', '/recover'); setStatus('transfer'); }
   useEffect(() => { const token = new URLSearchParams(location.search).get('token'); if (!token) { setStatus('transfer'); return; } if (hasRegisteredParticipant()) setStatus('confirm'); else void recoverFromLink(); }, [location.search, location.hash]);
-  useEffect(() => { if (!link) { setQrCode(''); return; } void QRCode.toDataURL(link, { width: 220, margin: 1, errorCorrectionLevel: 'M' }).then(setQrCode).catch(() => setQrCode('')); }, [link]);
+  useEffect(() => {
+    if (!link) { setQrCode(''); return; }
+
+    // QR generation is an optional enhancement. Keep it out of the route's
+    // initial bundle so a failure to load it cannot prevent this page from
+    // opening or from creating a recovery link.
+    void import('qrcode')
+      .then(({ default: QRCode }) => QRCode.toDataURL(link, { width: 220, margin: 1, errorCorrectionLevel: 'M' }))
+      .then(setQrCode)
+      .catch(() => setQrCode(''));
+  }, [link]);
   async function createLink() { setCreating(true); try { const nextLink = await createRecoveryLink(includeAdminAccess); setLink(nextLink); toast({ message: 'Link criado.', color: 'success', duration: 1800 }); } catch (error) { toast({ message: error instanceof Error ? error.message : 'Não foi possível criar o link.', color: 'danger', duration: 2800 }); } finally { setCreating(false); } }
   async function copyLink() { try { await navigator.clipboard.writeText(link); toast({ message: 'Link copiado.', color: 'success', duration: 1800 }); } catch { toast({ message: 'Não foi possível copiar o link.', color: 'danger', duration: 2200 }); } }
   async function shareLink() { if (navigator.share) { try { await navigator.share({ title: 'Meus Boras', text: 'Use meus Boras em outro dispositivo', url: link }); return; } catch (error) { if (error instanceof DOMException && error.name === 'AbortError') return; } } await copyLink(); }
