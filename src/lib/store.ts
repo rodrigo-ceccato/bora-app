@@ -7,6 +7,10 @@ const PARTICIPANT_KEY = 'bora_participant_id';
 const PARTICIPANT_NAME_KEY = 'bora_participant_name';
 const ADMIN_EVENTS_KEY = 'bora_admin_events';
 
+function notifyParticipantNameChange() {
+  window.dispatchEvent(new Event('bora:participant-name-updated'));
+}
+
 export interface AdminEventAccess {
   slug: string;
   title: string;
@@ -60,18 +64,31 @@ export function getParticipantId() {
   return participantId;
 }
 
+export function hasRegisteredParticipant() {
+  return Boolean(localStorage.getItem(PARTICIPANT_KEY));
+}
+
 export function restoreParticipantId(participantId: string) {
   localStorage.setItem(PARTICIPANT_KEY, participantId);
 }
 
+export function clearDeviceAuthentication() {
+  localStorage.removeItem(PARTICIPANT_KEY);
+  localStorage.removeItem(PARTICIPANT_NAME_KEY);
+  localStorage.removeItem(ADMIN_EVENTS_KEY);
+  localStorage.removeItem(LOCAL_EVENTS_KEY);
+  notifyParticipantNameChange();
+}
+
 export function getParticipantName() {
-  return localStorage.getItem(PARTICIPANT_NAME_KEY) || '';
+  return (localStorage.getItem(PARTICIPANT_NAME_KEY) || '').trim();
 }
 
 export function saveParticipantName(name: string) {
   const value = name.trim().slice(0, 80);
   if (value) localStorage.setItem(PARTICIPANT_NAME_KEY, value);
   else localStorage.removeItem(PARTICIPANT_NAME_KEY);
+  notifyParticipantNameChange();
 }
 
 export function restoreParticipantName(name: string) {
@@ -122,11 +139,11 @@ export async function createRecoveryLink(includeAdminAccess = false): Promise<st
   return fragment.size ? `${link}#${fragment.toString()}` : link;
 }
 
-export async function recoverParticipant(recoveryToken: string): Promise<void> {
+export async function recoverParticipant(recoveryToken: string): Promise<string> {
   const result = await apiRequest<{ participantId: string }>('/recover', {
     method: 'POST', body: JSON.stringify({ recoveryToken })
   });
-  restoreParticipantId(result.participantId);
+  return result.participantId;
 }
 
 async function apiRequest<T>(path: string, init: RequestInit = {}, adminToken?: string): Promise<T> {
