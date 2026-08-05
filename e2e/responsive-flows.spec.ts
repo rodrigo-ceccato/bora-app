@@ -8,6 +8,7 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await page.goto('/');
   await page.evaluate(() => localStorage.setItem('bora_participant_name', 'Ana'));
   await page.goto('/');
+  await expect(page.locator('ion-title.home-toolbar-title')).toHaveText('Bora, Ana?');
   await expect(page.getByRole('heading', { name: 'Bora marcar?' })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Símbolo de compartilhamento Bora' })).toBeVisible();
   await expect(page.locator('.home-mode-card')).toHaveCount(3);
@@ -51,24 +52,75 @@ test('home and every creation mode are usable at this viewport', async ({ page }
 
   await page.goto('/my-events');
   await page.getByRole('link', { name: 'Usar meus Boras em outro dispositivo' }).click();
-  await expect(page.getByRole('heading', { name: 'Usar meus Boras em outro dispositivo' })).toBeVisible();
+  await expect(page.getByText('Crie um link para acessar seus Boras em outro aparelho. Este aparelho continuará com acesso normalmente.')).toBeVisible();
   await expect(page.locator('ion-back-button[default-href="/my-events"]')).toHaveCount(1);
   await page.locator('ion-back-button[default-href="/my-events"]').click();
   await expect(page).toHaveURL(/\/my-events$/);
 });
 
-test('device-transfer links restore the saved participant name', async ({ page }) => {
+test('device-transfer links restore the saved participant name', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: 'name-transfer-token' } }));
+  await page.route('**/api/recover', (route) => route.fulfill({ json: { participantId: 'name-transfer-participant' } }));
   await page.goto('/recover');
   await page.evaluate(() => localStorage.setItem('bora_participant_name', 'Bia'));
-  await page.getByRole('button', { name: 'Criar link para outro dispositivo' }).click();
-  const link = await page.locator('.recovery-link a').getAttribute('href');
-  expect(link).toBeTruthy();
-  expect(new URL(link!).hash).toContain('name=Bia');
+  await page.getByRole('button', { name: 'Criar link de acesso' }).click();
+  await page.getByRole('button', { name: 'Copiar link' }).click();
+  const link = await page.evaluate(() => navigator.clipboard.readText());
+  expect(new URL(link).hash).toContain('name=Bia');
 
   await page.evaluate(() => localStorage.clear());
-  await page.goto(link!);
+  await page.goto(link);
   await expect(page.getByRole('heading', { name: 'Pronto!' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Bia');
+});
+
+test('recovery confirms before replacing an existing Bora on this device', async ({ page, context }, testInfo) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const originalParticipant = `original-participant-${testInfo.project.name}-${Date.now()}`;
+  const currentParticipant = `participant-on-this-device-${testInfo.project.name}-${Date.now()}`;
+  await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: `confirm-token-${testInfo.project.name}` } }));
+  await page.route('**/api/recover', (route) => route.fulfill({ json: { participantId: originalParticipant } }));
+  await page.goto('/recover');
+  await page.evaluate((participantId) => localStorage.setItem('bora_participant_id', participantId), originalParticipant);
+  await page.getByRole('button', { name: 'Criar link de acesso' }).click();
+  await page.getByRole('button', { name: 'Copiar link' }).click();
+  const link = await page.evaluate(() => navigator.clipboard.readText());
+
+  await page.evaluate((participantId) => localStorage.setItem('bora_participant_id', participantId), currentParticipant);
+  await page.goto(link);
+  await expect(page.getByRole('heading', { name: 'Usar este link de recuperação?' })).toBeVisible();
+  await expect(page.getByText('Ele vai remover os Boras registrados neste aparelho e substituí-los pelos deste link.')).toBeVisible();
+  await page.getByRole('button', { name: 'Usar link' }).click();
+  await expect(page.getByRole('heading', { name: 'Pronto!' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_id'))).toBe(originalParticipant);
+});
+
+test('device-transfer links can include organizer controls', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: 'organizer-transfer-token' } }));
+  await page.goto('/recover');
+  await page.evaluate(() => {
+    localStorage.setItem('bora_participant_id', 'organizer-participant');
+    localStorage.setItem('bora_admin_events', JSON.stringify([{ slug: 'meu-bora', title: 'Meu Bora', adminToken: 'admin-token' }]));
+  });
+  await page.getByText('Opções avançadas').click();
+  await page.getByText('Incluir controles de organizador').click();
+  await expect(page.getByText('Quem receber este link poderá editar e excluir os eventos que você organizou.')).toBeVisible();
+  await page.getByRole('button', { name: 'Criar link de acesso' }).click();
+  await page.getByRole('button', { name: 'Copiar link' }).click();
+  const link = await page.evaluate(() => navigator.clipboard.readText());
+  expect(new URL(link).hash).toContain('admin=');
+});
+
+test('My Boras can remove this device access', async ({ page }) => {
+  await page.goto('/my-events');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_id'))).not.toBeNull();
+  await page.getByRole('button', { name: 'Remover acesso deste aparelho' }).click();
+  await expect(page.getByRole('heading', { name: 'Remover acesso deste aparelho?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Remover acesso' }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_id'))).toBeNull();
 });
 
 test('Bora agora offers Google Calendar after it is created', async ({ page, request }, testInfo) => {
@@ -118,11 +170,10 @@ test('My Boras highlights upcoming scheduled events and handles reminder availab
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Próximos Boras' })).toBeVisible();
     await expect(page.getByText(`Próximo ${runId}`).first()).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Lembretes' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ativar lembretes' })
       .or(page.getByText('Neste navegador os lembretes não estão disponíveis.'))
       .or(page.getByText('Notificações bloqueadas.'))
-      .or(page.getByText('Lembretes ativados neste aparelho.'))).toBeVisible();
+      .or(page.getByText('Lembretes ativos neste aparelho'))).toBeVisible();
     const createdDisclosure = page.getByRole('button', { name: /Criados por mim/ });
     await expect(createdDisclosure).toHaveAttribute('aria-expanded', 'false');
     await createdDisclosure.focus();
