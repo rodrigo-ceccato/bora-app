@@ -51,7 +51,7 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expectNoHorizontalScroll(page);
 
   await page.goto('/my-events');
-  await page.getByRole('link', { name: 'Usar em outro dispositivo' }).click();
+  await page.getByRole('button', { name: 'Usar em outro dispositivo' }).click();
   await expect(page.getByText('Crie um link para acessar seus Boras em outro aparelho. Este aparelho continuará com acesso normalmente.')).toBeVisible();
   await expect(page.locator('ion-back-button[default-href="/my-events"]')).toHaveCount(1);
   await page.locator('ion-back-button[default-href="/my-events"]').click();

@@ -438,15 +438,18 @@ body { background: #f6f8fb; }
 .pending-events-notice ion-button { flex: 0 0 auto; min-height: 40px; margin: 0 -8px; text-transform: none; }
 .device-access-actions { margin-top: 32px; border-top: 1px solid #dde6e1; }
 .device-access-actions h2 { margin: 20px 0 8px; color: #17212b; font-size: 1.08rem; }
-.device-access-row { display: flex; width: 100%; min-height: 70px; margin: 0; padding: 10px 2px; border-bottom: 1px solid #e7ece9; color: #26333d; text-align: left; text-transform: none; }
-.device-access-row::part(native) { padding: 0; }
-.device-access-row ion-icon[slot="start"] { margin-right: 12px; color: #356b56; font-size: 1.4rem; }
-.device-access-row ion-icon[slot="end"] { margin-left: 10px; color: #6b7b85; font-size: 1.15rem; }
+.device-setting-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 20px; align-items: center; gap: 14px; width: 100%; min-height: 78px; margin: 0; padding: 12px 14px; border: 0; border-bottom: 1px solid #e7ece9; background: transparent; color: #26333d; font: inherit; text-align: left; text-transform: none; cursor: pointer; }
+.device-setting-row:focus-visible { outline: 3px solid #4fa67e; outline-offset: -3px; }
+.device-setting-row:hover { background: #f7fbf9; }
+.device-setting-icon { display: grid; width: 28px; height: 28px; place-items: center; overflow: visible; color: #356b56; }
+.device-setting-icon ion-icon { width: 22px; height: 22px; min-width: 22px; min-height: 22px; overflow: visible; }
+.device-setting-chevron { width: 20px; height: 20px; color: #6b7b85; }
 .device-access-copy { display: grid; flex: 1; gap: 3px; min-width: 0; }
 .device-access-copy strong { font-size: .98rem; }
 .device-access-copy small { margin-top: 5px; color: #66717d; font-size: .83rem; line-height: 1.35; white-space: normal; }
 .destructive-device-action { --color: #a43730; }
-.destructive-device-action ion-icon[slot="start"] { color: #a43730; }
+.destructive-device-action { color: #a43730; }
+.destructive-device-action .device-setting-icon { color: #a43730; }
 .recovery-details { margin-top: 24px; margin-bottom: 0; border-top: 1px solid #dde6e1; }
 .recovery-details summary { min-height: 52px; padding: 16px 0; color: #355163; cursor: pointer; font-weight: 750; }
 .recovery-card { padding: 0 0 12px; }
