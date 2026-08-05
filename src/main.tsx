@@ -9,6 +9,8 @@ const CreatePage = lazy(() => import('./pages/CreatePage'));
 const EventPage = lazy(() => import('./pages/EventPage'));
 const MyEventsPage = lazy(() => import('./pages/MyEventsPage'));
 const RecoverPage = lazy(() => import('./pages/RecoverPage'));
+const MetricsPage = lazy(() => import('./pages/MetricsPage'));
+import { startPresence } from './lib/presence';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -38,6 +40,7 @@ function App() {
           <Route exact path="/e/:slug" render={() => <LazyPage><EventPage /></LazyPage>} />
           <Route exact path="/my-events" render={() => <LazyPage><MyEventsPage /></LazyPage>} />
           <Route exact path="/recover" render={() => <LazyPage><RecoverPage /></LazyPage>} />
+          <Route exact path="/metrics" render={() => <LazyPage><MetricsPage /></LazyPage>} />
           <Route exact path="/">
             <Redirect to="/home" />
           </Route>
@@ -47,6 +50,8 @@ function App() {
   );
 }
 
+const stopPresence = startPresence();
+window.addEventListener('pagehide', stopPresence, { once: true });
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

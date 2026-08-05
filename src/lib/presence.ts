@@ -1,0 +1,3 @@
+import { getParticipantId } from './store';
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
+export function startPresence() { if (!API_BASE) return () => undefined; let timer: number | undefined; const heartbeat = () => { if (document.visibilityState === 'visible') void fetch(`${API_BASE}/presence`, { method: 'POST', headers: { 'x-participant-id': getParticipantId() } }); }; const visibilityChange = () => { if (document.visibilityState === 'visible') heartbeat(); }; heartbeat(); timer = window.setInterval(heartbeat, 60_000); document.addEventListener('visibilitychange', visibilityChange); return () => { if (timer) window.clearInterval(timer); document.removeEventListener('visibilitychange', visibilityChange); }; }

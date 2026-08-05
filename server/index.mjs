@@ -11,10 +11,14 @@ const maxBodyBytes = 256 * 1024;
 const modes = new Set(['agora', 'mais-tarde', 'marcar']);
 const responses = new Set(['accept', 'decline', 'maybe']);
 const rateBuckets = new Map();
+let metricsCache = null;
+let lastPresenceCleanup = 0;
 
 function tokenHash(token) {
   return createHash('sha256').update(token).digest('hex');
 }
+
+function participantHash(participantId) { return createHash('sha256').update(`presence:${participantId}`).digest('hex'); }
 
 function tokenMatches(token, expectedHash) {
   if (!token || !expectedHash) return false;
@@ -326,6 +330,36 @@ async function route(request, response) {
   if (request.method === 'GET' && url.pathname === '/api/health') {
     await pool.query('select 1');
     return send(response, 200, { status: 'ok' });
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/presence') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    await pool.query(
+      `insert into participant_presence (participant_hash, last_seen_at) values ($1, now())
+       on conflict (participant_hash) do update set last_seen_at = excluded.last_seen_at
+       where participant_presence.last_seen_at < now() - interval '45 seconds'`,
+      [participantHash(participantId)]
+    );
+    if (Date.now() - lastPresenceCleanup > 60 * 60_000) { lastPresenceCleanup = Date.now(); void pool.query(`delete from participant_presence where last_seen_at < now() - interval '24 hours'`); }
+    return send(response, 204);
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/metrics') {
+    if (metricsCache && Date.now() - metricsCache.at < 20_000) return send(response, 200, metricsCache.value);
+    const result = await pool.query(`
+      select
+        (select count(*)::int from participant_presence where last_seen_at >= now() - interval '5 minutes') as "onlineNow",
+        (select count(*)::int from events) as "totalEvents",
+        (select count(*)::int from events where voting_closed = false) as "openEvents",
+        (select count(distinct participant_id)::int from (
+          select created_by_participant_id as participant_id from events
+          union
+          select participant_id from votes
+        ) identities where participant_id is not null) as "uniqueParticipants"
+    `);
+    const value = { ...result.rows[0], onlineWindowMinutes: 5, generatedAt: new Date().toISOString() };
+    metricsCache = { at: Date.now(), value };
+    return send(response, 200, value);
   }
 
   if (request.method === 'GET' && url.pathname === '/api/push/public-key') {
