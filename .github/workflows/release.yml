@@ -31,16 +31,7 @@ jobs:
           [[ "$(git cat-file -t "refs/tags/$RELEASE_TAG")" == tag ]]
           git fetch origin main:refs/remotes/origin/main
           git merge-base --is-ancestor HEAD origin/main
-          git for-each-ref --format='%(contents)' "refs/tags/$RELEASE_TAG" > release-notes.md
-          awk '
-            $0 == "## What users will notice" { in_section = 1; next }
-            in_section && /^## / { exit }
-            in_section && /^[-*] +[^[:space:]]/ { found = 1 }
-            END { exit(found ? 0 : 1) }
-          ' release-notes.md || {
-            echo 'The annotated tag message must include "## What users will notice" with at least one bullet describing a user-visible change.' >&2
-            exit 1
-          }
+          node scripts/validate-release-tag.mjs "$RELEASE_TAG"
       - id: tag
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
@@ -169,5 +160,5 @@ jobs:
             echo "Release $RELEASE_TAG already exists."
             exit 0
           fi
-          git for-each-ref --format='%(contents)' "refs/tags/$RELEASE_TAG" > release-notes.md
+          git cat-file -p "refs/tags/$RELEASE_TAG" | sed '1,/^$/d' > release-notes.md
           gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file release-notes.md --target "$RELEASE_SHA"

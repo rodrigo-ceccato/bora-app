@@ -101,10 +101,14 @@ It grants `rocky` passwordless sudo only for the root-owned
    - Another visible improvement, if applicable.
    ```
 
-   For example, create it with `git tag -a vX.Y.Z` (your editor opens for the
-   annotation) and then run `git push origin vX.Y.Z`. The release workflow
-   rejects tags without this heading and at least one bullet, so technical-only
-   changes should say plainly that there is no user-visible behavior change.
+   Create it with `npm run release:tag -- vX.Y.Z` (your editor opens for the
+   annotation), then run `git push origin vX.Y.Z`. This command preserves
+   Markdown headings verbatim—Git's default tag cleanup would otherwise
+   discard the required `##` heading—and validates the tag before it can be
+   pushed. The checked-in pre-push hook repeats the preflight automatically
+   for every version tag, and the release workflow is the final safeguard.
+   Technical-only changes should say plainly that there is no user-visible
+   behavior change.
 3. Pushing the tag starts **Release deploy** automatically. Watch the run
    through verification, image publishing, deployment, and GitHub Release
    publication. No public GitHub Release is created if any earlier stage fails.

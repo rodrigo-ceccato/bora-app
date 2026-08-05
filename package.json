@@ -16,6 +16,9 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lint": "eslint .",
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "release:check": "node scripts/validate-release-tag.mjs",
+    "release:tag": "node scripts/create-release-tag.mjs",
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",
     "cap:sync": "cap sync"

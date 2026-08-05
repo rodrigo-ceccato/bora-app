@@ -24,5 +24,14 @@ export default tseslint.config(
         setInterval: 'readonly'
       }
     }
+  },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly'
+      }
+    }
   }
 );

@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Validate version tags before they leave this checkout. CI repeats this check
+# so a missing local hook can never result in a production deployment.
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$local_ref" in
+    refs/tags/v*)
+      [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+      tag=${local_ref#refs/tags/}
+      node scripts/validate-release-tag.mjs "$tag" || exit 1
+      ;;
+  esac
+done
