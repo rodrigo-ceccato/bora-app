@@ -105,7 +105,6 @@ test('device-transfer links can include organizer controls', async ({ page, cont
     localStorage.setItem('bora_admin_events', JSON.stringify([{ slug: 'meu-bora', title: 'Meu Bora', adminToken: 'admin-token' }]));
   });
   await page.getByText('Opções avançadas').click();
-  await page.getByText('Incluir controles de organizador').click();
   await expect(page.getByText('Quem receber este link poderá editar e excluir os eventos que você organizou.')).toBeVisible();
   await page.getByRole('button', { name: 'Criar link de acesso' }).click();
   await page.getByRole('button', { name: 'Copiar link' }).click();

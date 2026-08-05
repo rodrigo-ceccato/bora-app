@@ -9,7 +9,7 @@ function participantNameFromFragment(hash: string) { return new URLSearchParams(
 
 export default function RecoverPage() {
   const [status, setStatus] = useState<'loading' | 'confirm' | 'ready' | 'error' | 'transfer'>('loading');
-  const [adminAccessRestored, setAdminAccessRestored] = useState(false); const [includeAdminAccess, setIncludeAdminAccess] = useState(false); const [creating, setCreating] = useState(false); const [link, setLink] = useState(''); const [qrCode, setQrCode] = useState('');
+  const [adminAccessRestored, setAdminAccessRestored] = useState(false); const [includeAdminAccess, setIncludeAdminAccess] = useState(true); const [creating, setCreating] = useState(false); const [link, setLink] = useState(''); const [qrCode, setQrCode] = useState('');
   const [toast] = useIonToast(); const location = useLocation();
   async function recoverFromLink() { const token = new URLSearchParams(location.search).get('token'); if (!token) { setStatus('transfer'); return; } const adminEvents = adminEventsFromFragment(location.hash); const participantName = participantNameFromFragment(location.hash); setStatus('loading'); try { const participantId = await recoverParticipant(token); clearDeviceAuthentication(); restoreParticipantId(participantId); restoreAdminEvents(adminEvents); if (participantName) restoreParticipantName(participantName); setAdminAccessRestored(adminEvents.length > 0); window.history.replaceState({}, '', '/recover'); setStatus('ready'); } catch { setStatus('error'); } }
   function cancelRecovery() { window.history.replaceState({}, '', '/recover'); setStatus('transfer'); }

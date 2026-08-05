@@ -126,7 +126,7 @@ export async function listMyEvents(): Promise<MyEvents> {
   };
 }
 
-export async function createRecoveryLink(includeAdminAccess = false): Promise<string> {
+export async function createRecoveryLink(includeAdminAccess = true): Promise<string> {
   const result = await apiRequest<{ recoveryToken: string }>('/me/recovery-link', {
     method: 'POST', headers: { 'x-participant-id': getParticipantId() }
   });
