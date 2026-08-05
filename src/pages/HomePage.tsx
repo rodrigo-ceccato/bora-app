@@ -1,6 +1,7 @@
 import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { calendarOutline } from 'ionicons/icons';
+import { getParticipantName } from '../lib/store';
 
 type Mode = 'agora' | 'mais-tarde' | 'marcar';
 
@@ -20,10 +21,19 @@ const actions: Array<{ mode: Mode; title: string; description: string }> = [
 ];
 
 export default function HomePage() {
+  const [name, setName] = useState(getParticipantName);
+  useEffect(() => {
+    const updateName = () => setName(getParticipantName());
+    window.addEventListener('bora:participant-name-updated', updateName);
+    window.addEventListener('storage', updateName);
+    return () => { window.removeEventListener('bora:participant-name-updated', updateName); window.removeEventListener('storage', updateName); };
+  }, []);
+  const firstName = name.trim().split(/\s+/)[0] || '';
+  const title = firstName ? `Bora, ${firstName}?` : 'Bora?';
   return <IonPage>
     <IonHeader>
       <IonToolbar>
-        <IonTitle>Bora</IonTitle>
+        <IonTitle className="home-toolbar-title" aria-label={title} title={title}>{title}</IonTitle>
         <IonButtons slot="end"><IonButton fill="clear" className="toolbar-secondary-action" routerLink="/my-events" aria-label="Meus Boras"><IonIcon icon={calendarOutline} aria-hidden="true" /><span>Meus Boras</span></IonButton></IonButtons>
       </IonToolbar>
     </IonHeader>
