@@ -442,14 +442,17 @@ body { background: #f6f8fb; }
 .device-access-copy { display: grid; flex: 1; gap: 3px; min-width: 0; }
 .device-access-copy strong { font-size: .98rem; }
 .device-access-copy small { margin-top: 5px; color: #66717d; font-size: .83rem; line-height: 1.35; white-space: normal; }
-.reminder-setting-row { grid-template-columns: 28px minmax(0, 1fr) auto; }
+.reminder-setting-row { grid-template-columns: 28px minmax(0, 1fr) auto; cursor: default; }
 .reminder-setting-row[aria-disabled="true"] { cursor: default; opacity: .7; }
 .reminder-setting-row ion-toggle { --track-background: #bdc9c3; --track-background-checked: #2f8966; --handle-background: #fff; margin: 0; }
 .reminder-spinner { width: 24px; height: 24px; color: #356b56; }
-.reminder-preferences { max-width: 680px; margin: 0 auto; }
-.reminder-preferences h1 { margin: 0 0 4px; color: #1b2a34; font-size: clamp(1.8rem, 5vw, 2.35rem); }
-.reminder-preferences > p { margin: 0 0 18px; color: #66717d; }
-.reminder-preferences ion-item { --padding-start: 0; --padding-end: 0; }
+.agenda-setting-row { border-top: 1px solid #e7ece9; }
+.reminder-preferences { max-width: 520px; margin: 0 auto; }
+.reminder-preferences > p { margin: 0 0 12px; color: #66717d; }
+.reminder-preferences ion-item { --padding-start: 0; --padding-end: 0; --min-height: 72px; }
+.reminder-preferences ion-label strong { display: block; color: #1b2934; font-size: .96rem; }
+.reminder-preferences ion-label p { margin: 4px 0 0; color: #66717d; font-size: .82rem; line-height: 1.35; white-space: normal; }
+.reminder-preferences-modal { --width: min(520px, calc(100vw - 32px)); --height: auto; --max-height: min(720px, calc(100vh - 64px)); --border-radius: 18px; }
 .destructive-device-action { --color: #a43730; }
 .destructive-device-action { color: #a43730; }
 .destructive-device-action .device-setting-icon { color: #a43730; }
@@ -753,6 +756,7 @@ body { background: #f6f8fb; }
   .threshold-control, .reminder-control { align-items: flex-start; flex-direction: column; }
   .stepper { align-self: stretch; grid-template-columns: 1fr 62px 1fr; }
   .compact-inputs { grid-template-columns: 1fr; }
+  .reminder-preferences-modal { --width: 100%; --height: 100%; --max-height: 100%; --border-radius: 0; }
   .week-picker { gap: 4px; }
   .week-picker button { min-height: 52px; }
   .week-picker button span { font-size: .66rem; }
