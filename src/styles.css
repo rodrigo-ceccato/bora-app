@@ -452,7 +452,7 @@ body { background: #f6f8fb; }
 .reminder-preferences ion-item { --padding-start: 0; --padding-end: 0; --min-height: 72px; }
 .reminder-preferences ion-label strong { display: block; color: #1b2934; font-size: .96rem; }
 .reminder-preferences ion-label p { margin: 4px 0 0; color: #66717d; font-size: .82rem; line-height: 1.35; white-space: normal; }
-.reminder-preferences-modal { --width: min(520px, calc(100vw - 32px)); --height: auto; --max-height: min(720px, calc(100vh - 64px)); --border-radius: 18px; }
+.reminder-preferences-modal { --width: min(520px, calc(100vw - 32px)); --height: min(720px, calc(100vh - 64px)); --border-radius: 18px; }
 .destructive-device-action { --color: #a43730; }
 .destructive-device-action { color: #a43730; }
 .destructive-device-action .device-setting-icon { color: #a43730; }

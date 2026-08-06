@@ -183,6 +183,42 @@ test('My Boras highlights upcoming scheduled events and handles reminder availab
   }
 });
 
+test('reminder preferences open for an active device subscription', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'PushManager', {
+      configurable: true,
+      value: class PushManager {}
+    });
+    Object.defineProperty(window, 'Notification', {
+      configurable: true,
+      value: { permission: 'granted' }
+    });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        getRegistration: async () => ({
+          pushManager: {
+            getSubscription: async () => ({ endpoint: 'https://push.example.test/bora-e2e' })
+          }
+        })
+      }
+    });
+  });
+  await page.route('**/api/push/subscriptions/preferences**', (route) =>
+    route.fulfill({ json: { preferences: {} } })
+  );
+
+  await page.goto('/my-events');
+  const preferencesButton = page.getByRole('button', { name: 'Quais avisos receber' });
+  await expect(preferencesButton).toBeVisible();
+  await preferencesButton.click();
+
+  const modal = page.locator('ion-modal.reminder-preferences-modal');
+  await expect(modal).toHaveClass(/show-modal/);
+  await expect(modal.getByText('Novos votos nos meus Boras')).toBeVisible();
+  await expect(modal.getByText('Lembrete antes de começar')).toBeVisible();
+});
+
 test('past events are archived outside the active My Boras lists', async ({ page, request }, testInfo) => {
   const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const participantId = `past-${runId}`;
