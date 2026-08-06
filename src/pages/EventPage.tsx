@@ -141,6 +141,10 @@ export default function EventPage() {
     setEditEvent((current) => current ? { ...current, ...patch } : current);
   }
 
+  function changeEditThreshold(delta: number) {
+    setEditEvent((current) => current ? { ...current, threshold: Math.max(1, Math.round(current.threshold) + delta) } : current);
+  }
+
   function updateEditDay(dayId: string, patch: Partial<BoraEvent['days'][number]>) {
     setEditEvent((current) => current ? {
       ...current,
@@ -666,39 +670,42 @@ export default function EventPage() {
         <IonModal isOpen={Boolean(editEvent)} onDidDismiss={() => setEditEvent(null)} className="event-editor-modal">
           <IonHeader>
             <IonToolbar>
-              <IonTitle>Editar evento</IonTitle>
+              <IonTitle>Editar Bora</IonTitle>
               <IonButtons slot="end"><IonButton onClick={() => setEditEvent(null)}>Fechar</IonButton></IonButtons>
             </IonToolbar>
           </IonHeader>
           <IonContent className="ion-padding form-page">
             {editEvent && (
-              <div className="event-editor form-page">
-                <section className="event-editor-intro">
-                  <span className="section-eyebrow">Organizador</span>
-                  <h1>Ajustar evento</h1>
+              <div className="event-editor">
+                <section className="create-intro">
+                  <span className="section-eyebrow">Editar convite</span>
+                  <h1>Editar Bora</h1>
                   <p>Atualize os detalhes que seus convidados vão receber.</p>
                 </section>
-                <IonCard className="event-editor-card"><IonCardContent>
-                <section className="editor-section" aria-labelledby="editor-details-title">
-                  <h2 id="editor-details-title">Detalhes do convite</h2>
+                <IonCard className="create-card event-editor-card"><IonCardContent>
+                <section aria-label="Detalhes do convite">
                   <IonItem><IonLabel position="stacked">Nome do evento *</IonLabel><IonInput value={editEvent.title} onIonInput={(item) => updateEdit({ title: item.detail.value || '' })} /></IonItem>
                   <IonItem><IonLabel position="stacked">Local *</IonLabel><IonInput value={editEvent.place} onIonInput={(item) => updateEdit({ place: item.detail.value || '' })} /></IonItem>
                   <IonItem><IonLabel position="stacked">Descrição <span className="optional-label">(opcional)</span></IonLabel><IonTextarea value={editEvent.description || ''} onIonInput={(item) => updateEdit({ description: item.detail.value || '' })} /></IonItem>
                 </section>
-                <section className="editor-section editor-threshold" aria-labelledby="editor-threshold-title">
-                  <div><h2 id="editor-threshold-title">Meta de confirmações</h2><p>Quantas pessoas precisam confirmar?</p></div>
-                  <IonItem><IonLabel position="stacked">Mínimo *</IonLabel><IonInput type="number" min={1} value={String(editEvent.threshold)} onIonInput={(item) => updateEdit({ threshold: Number(item.detail.value || 0) })} /></IonItem>
+                <section className="threshold-control" aria-labelledby="editor-threshold-title">
+                  <div><strong id="editor-threshold-title">Quantas pessoas precisam confirmar?</strong><small>Incluindo você</small></div>
+                  <div className="stepper">
+                    <button type="button" onClick={() => changeEditThreshold(-1)} disabled={editEvent.threshold <= 1} aria-label="Diminuir confirmações">−</button>
+                    <input value={editEvent.threshold} inputMode="numeric" aria-label="Número mínimo de confirmações" onChange={(item) => updateEdit({ threshold: Number(item.target.value.replace(/\D/g, '')) || 1 })} />
+                    <button type="button" onClick={() => changeEditThreshold(1)} aria-label="Aumentar confirmações">+</button>
+                  </div>
                 </section>
-                <section className="editor-section" aria-labelledby="editor-notifications-title">
-                  <div><h2 id="editor-notifications-title">Notificações</h2><p>Escolha quais avisos você quer receber como organizador.</p></div>
-                  <IonItem><IonLabel>Receber aviso a cada voto</IonLabel><IonToggle checked={editEvent.notifyCreatorOnVote !== false} aria-label="Receber aviso a cada voto" onIonChange={(item) => updateEdit({ notifyCreatorOnVote: item.detail.checked })} /></IonItem>
+                <section className="reminder-control" aria-labelledby="editor-notifications-title">
+                  <div><strong id="editor-notifications-title">Lembretes</strong><small>Receba uma notificação quando alguém responder ao seu Bora.</small></div>
+                  <IonToggle checked={editEvent.notifyCreatorOnVote !== false} aria-label="Receber aviso a cada voto" onIonChange={(item) => updateEdit({ notifyCreatorOnVote: item.detail.checked })} />
                 </section>
 
-                {editEvent.mode === 'agora' && <section className="editor-section"><h2>Horário</h2><IonItem><IonLabel position="stacked">Início</IonLabel><IonDatetime presentation="time" value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
-                {editEvent.mode === 'mais-tarde' && <section className="editor-section"><h2>Dia e horário principal</h2><IonItem><IonDatetime value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
+                {editEvent.mode === 'agora' && <section className="schedule-section"><h2>Que horas?</h2><IonItem><IonLabel position="stacked">Início</IonLabel><IonDatetime presentation="time" value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
+                {editEvent.mode === 'mais-tarde' && <section className="schedule-section"><h2>Escolha o dia e horário</h2><IonItem><IonDatetime value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
 
                 {editEvent.mode === 'marcar' && (
-                  <section className="day-editor" aria-labelledby="edit-schedule-title">
+                  <section className="schedule-section mark-section" aria-labelledby="edit-schedule-title">
                     <div className="section-heading-row"><div><h2 id="edit-schedule-title">Dias e horários</h2><p className="muted">Abra cada dia para ajustar os horários.</p></div><IonButton fill="outline" size="small" onClick={useSameEditTimes}>Usar os mesmos horários</IonButton></div>
                     {editEvent.days.map((day) => (
                       <details key={day.id} className="day-accordion" open={editEvent.days.length === 1}>

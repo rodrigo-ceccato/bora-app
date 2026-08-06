@@ -75,6 +75,7 @@ body { background: #f6f8fb; }
 .form-page .ion-invalid { --highlight-color-invalid: #b3261e; }
 
 .threshold-control,
+.reminder-control,
 .schedule-section {
   margin: 22px 0;
   padding: 18px;
@@ -86,6 +87,10 @@ body { background: #f6f8fb; }
 .threshold-control { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .threshold-control strong, .threshold-control small { display: block; }
 .threshold-control small { margin-top: 3px; color: #66717d; }
+.reminder-control { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.reminder-control strong, .reminder-control small { display: block; }
+.reminder-control small { max-width: 440px; margin-top: 3px; color: #66717d; }
+.reminder-control ion-toggle { --track-background: #bdc9c3; --track-background-checked: #2f8966; --handle-background: #fff; flex: 0 0 auto; }
 .stepper { display: grid; grid-template-columns: 42px 52px 42px; align-items: center; border: 1px solid #c7d3dd; border-radius: 12px; overflow: hidden; background: #fff; }
 .stepper button { min-height: 42px; border: 0; background: #eff5f2; color: #137352; font-size: 1.45rem; font-weight: 700; }
 .stepper button:disabled { color: #a5b0b9; background: #f4f6f7; }
@@ -558,21 +563,7 @@ body { background: #f6f8fb; }
 .day-editor ion-card { margin: 12px 0; }
 
 .event-editor { max-width: 680px; margin: 0 auto; }
-.event-editor-intro { margin: 0 0 16px; }
-.event-editor-intro h1 { margin: 4px 0; color: #1b2a34; font-size: clamp(1.8rem, 5vw, 2.35rem); letter-spacing: -0.04em; }
-.event-editor-intro p { margin: 0; color: #5f6368; }
-.event-editor-card { margin: 0 !important; border: 1px solid #dce7e1; border-radius: 18px; box-shadow: 0 4px 18px rgba(33, 43, 54, .06); }
-.event-editor-card ion-card-content { padding: 18px; }
-.editor-section { margin: 0 0 22px; padding-bottom: 22px; border-bottom: 1px solid #e3e9ed; }
-.editor-section:last-of-type { border-bottom: 0; }
-.editor-section h2 { margin: 0 0 10px; color: #1b2a34; font-size: 1.13rem; }
-.editor-threshold { display: flex; align-items: end; justify-content: space-between; gap: 14px; padding: 16px; border: 1px solid #dfe6ec; border-radius: 16px; background: #fbfcfd; }
-.editor-threshold h2 { margin-bottom: 3px; }
-.editor-threshold p { margin: 0; color: #66717d; font-size: .88rem; }
-.editor-threshold ion-item { flex: 0 0 112px; border: 1px solid #d5e0e7; border-radius: 10px; --background: #fff; }
-.event-editor .day-editor { margin: 0 0 22px; padding: 18px; border: 1px solid #dfe6ec; border-radius: 16px; background: #fbfcfd; }
-.event-editor .day-editor h2 { margin: 0 0 8px; color: #1b2a34; font-size: 1.13rem; }
-.event-editor .day-editor ion-card { border: 1px solid #d8e3e9; border-radius: 13px; box-shadow: none; }
+.event-editor-card { margin: 0 !important; }
 
 .schedule-time-picker { padding: 16px; }
 .schedule-time-picker ion-label { display: block; margin-bottom: 12px; }
@@ -755,7 +746,7 @@ body { background: #f6f8fb; }
 
 @media (max-width: 520px) {
   .form-page { --padding-start: 12px; --padding-end: 12px; }
-  .threshold-control { align-items: flex-start; flex-direction: column; }
+  .threshold-control, .reminder-control { align-items: flex-start; flex-direction: column; }
   .stepper { align-self: stretch; grid-template-columns: 1fr 62px 1fr; }
   .compact-inputs { grid-template-columns: 1fr; }
   .week-picker { gap: 4px; }

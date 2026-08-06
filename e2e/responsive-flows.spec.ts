@@ -35,6 +35,7 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expect(page.locator('ion-datetime[presentation="time"]')).toBeVisible();
   await page.getByRole('button', { name: 'Pronto' }).click();
   await expect(page.getByRole('button', { name: 'Alterar data' })).toBeVisible();
+  await expect(page.getByRole('switch', { name: 'Receber aviso a cada voto' })).toBeVisible();
   await expectNoHorizontalScroll(page);
 
   await page.goto('/create?mode=mais-tarde');
@@ -248,6 +249,13 @@ test('results stay compact and explain availability', async ({ page, request }, 
     await expect(page.locator('.result-progress')).toHaveCount(4);
     await expect(page.getByRole('button', { name: 'Escolher este horário' })).toHaveCount(4);
     await expectNoHorizontalScroll(page);
+
+    await page.getByRole('button', { name: 'Gerenciar' }).click();
+    await page.getByRole('button', { name: 'Editar detalhes' }).click();
+    await expect(page.getByRole('heading', { name: 'Editar Bora' })).toBeVisible();
+    await expect(page.locator('.event-editor-card.create-card')).toBeVisible();
+    await expect(page.getByRole('switch', { name: 'Receber aviso a cada voto' })).toBeVisible();
+    await page.getByRole('button', { name: 'Fechar' }).click();
 
     const decided = await request.patch(`/api/events/${slug}`, {
       headers: { ...apiHeaders, authorization: `Bearer ${token}` },
