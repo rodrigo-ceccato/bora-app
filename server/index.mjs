@@ -270,41 +270,41 @@ function eventStartAt(event) {
 
 export function voteNotificationPlan(event, vote, acceptedCount, nonce = '') {
   const notifications = [];
-  if (event.notify_creator_on_vote !== false && vote.participantId !== event.created_by_participant_id) {
-    notifications.push({ audience: 'creator', kind: `vote-${nonce || vote.id}`, title: `Novo voto: ${event.title}`, body: `${vote.voterName} respondeu ao seu Bora.` });
+  if (vote.participantId !== event.created_by_participant_id) {
+    notifications.push({ audience: 'creator', preference: 'votes', kind: `vote-${nonce || vote.id}`, title: `Novo voto: ${event.title}`, body: `${vote.voterName} respondeu ao seu Bora.` });
   }
   if (acceptedCount >= event.threshold) {
-    notifications.push({ audience: 'participants', kind: 'threshold-reached', title: `Meta atingida: ${event.title}`, body: 'O mínimo de confirmações foi alcançado.' });
+    notifications.push({ audience: 'participants', preference: 'threshold', kind: 'threshold-reached', title: `Meta atingida: ${event.title}`, body: 'O mínimo de confirmações foi alcançado.' });
   }
   return notifications;
 }
 
 export function eventUpdateNotificationPlan(current, updated) {
   if (!current.decided_option && updated.decided_option) {
-    return [{ audience: 'participants', kind: 'confirmed', title: `Bora confirmado: ${updated.title}`, body: `O encontro foi definido em ${updated.place}.` }];
+    return [{ audience: 'participants', preference: 'confirmed', kind: 'confirmed', title: `Bora confirmado: ${updated.title}`, body: `O encontro foi definido em ${updated.place}.` }];
   }
   const changed = current.starts_at?.getTime?.() !== updated.starts_at?.getTime?.()
     || current.decided_option !== updated.decided_option
     || JSON.stringify(current.days) !== JSON.stringify(updated.days)
     || current.place !== updated.place;
-  return changed ? [{ audience: 'participants', kind: `changed-${Date.now()}`, title: `Bora alterado: ${updated.title}`, body: `Confira a nova data, horário ou local em ${updated.place}.` }] : [];
+  return changed ? [{ audience: 'participants', preference: 'changes', kind: `changed-${Date.now()}`, title: `Bora alterado: ${updated.title}`, body: `Confira a nova data, horário ou local em ${updated.place}.` }] : [];
 }
 
 export function deletionNotificationPlan(event, now = Date.now()) {
   const startsAt = eventStartAt(event)?.getTime();
   return startsAt && startsAt > now
-    ? [{ audience: 'participants', kind: 'cancelled', title: `Bora cancelado: ${event.title}`, body: 'Este Bora foi cancelado pelo organizador.' }]
+    ? [{ audience: 'participants', preference: 'changes', kind: 'cancelled', title: `Bora cancelado: ${event.title}`, body: 'Este Bora foi cancelado pelo organizador.' }]
     : [];
 }
 
-async function sendEventPush(event, kind, title, body, audience = 'participants') {
+async function sendEventPush(event, kind, title, body, audience = 'participants', preference = 'upcoming') {
   if (!pushEnabled) return;
   const participantClause = audience === 'creator'
     ? 'participant_id = $1'
     : `participant_id = $1 or participant_id in (select participant_id from votes where event_id = $2)`;
   const subscriptions = await pool.query(
     `select distinct push_subscriptions.* from push_subscriptions
-     where ${participantClause}`,
+     where ${participantClause} and notify_${preference} = true`,
     [event.created_by_participant_id, event.id]
   );
   await Promise.all(subscriptions.rows.map(async (subscription) => {
@@ -336,8 +336,8 @@ async function sendDueReminders() {
     const startsAt = eventStartAt(event)?.getTime();
     if (!startsAt || startsAt <= now) continue;
     const hours = (startsAt - now) / 3_600_000;
-    if (hours <= 24 && hours > 23.75) await sendEventPush(event, 'reminder-24h', `Amanhã: ${event.title}`, `Seu Bora começa amanhã em ${event.place}.`);
-    if (hours <= 2 && hours > 1.75) await sendEventPush(event, 'reminder-2h', `Em breve: ${event.title}`, `Seu Bora começa em cerca de 2 horas, em ${event.place}.`);
+    if (hours <= 24 && hours > 23.75) await sendEventPush(event, 'reminder-24h', `Amanhã: ${event.title}`, `Seu Bora começa amanhã em ${event.place}.`, 'participants', 'upcoming');
+    if (hours <= 2 && hours > 1.75) await sendEventPush(event, 'reminder-2h', `Em breve: ${event.title}`, `Seu Bora começa em cerca de 2 horas, em ${event.place}.`, 'participants', 'upcoming');
   }
 }
 
@@ -411,6 +411,22 @@ async function route(request, response) {
       [uid('push'), participantId, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth]
     );
     return send(response, 201, { status: 'subscribed' });
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/push/subscriptions/preferences') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const endpoint = text(url.searchParams.get('endpoint'), 2000, true);
+    const result = await pool.query('select notify_votes, notify_changes, notify_confirmed, notify_threshold, notify_upcoming from push_subscriptions where participant_id = $1 and endpoint = $2', [participantId, endpoint]);
+    return send(response, 200, { preferences: result.rows[0] || {} });
+  }
+
+  if (request.method === 'PUT' && url.pathname === '/api/push/subscriptions/preferences') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const input = await readJson(request);
+    const endpoint = text(input.endpoint, 2000, true);
+    const preferences = input.preferences || {};
+    await pool.query(`update push_subscriptions set notify_votes=$1, notify_changes=$2, notify_confirmed=$3, notify_threshold=$4, notify_upcoming=$5, updated_at=now() where participant_id=$6 and endpoint=$7`, [preferences.votes !== false, preferences.changes !== false, preferences.confirmed !== false, preferences.threshold !== false, preferences.upcoming !== false, participantId, endpoint]);
+    return send(response, 200, { status: 'updated' });
   }
 
   if (request.method === 'DELETE' && url.pathname === '/api/push/subscriptions') {
@@ -540,7 +556,7 @@ async function route(request, response) {
       );
       const accepted = await pool.query("select count(*)::int as count from votes where event_id = $1 and response = 'accept'", [event.id]);
       for (const notification of voteNotificationPlan(eventRow, { ...vote, id: result.rows[0].id }, accepted.rows[0].count, `${Date.now()}-${result.rows[0].id}`)) {
-        void sendEventPush(eventRow, notification.kind, notification.title, notification.body, notification.audience);
+        void sendEventPush(eventRow, notification.kind, notification.title, notification.body, notification.audience, notification.preference);
       }
       return send(response, 200, { vote: mapVote(result.rows[0], vote.participantId) });
     }
@@ -560,7 +576,7 @@ async function route(request, response) {
       );
       const updated = result.rows[0];
       for (const notification of eventUpdateNotificationPlan(current, updated)) {
-        void sendEventPush(updated, notification.kind, notification.title, notification.body, notification.audience);
+        void sendEventPush(updated, notification.kind, notification.title, notification.body, notification.audience, notification.preference);
       }
       return send(response, 200, { event: mapEvent(updated), isAdmin: true });
     }
@@ -568,7 +584,7 @@ async function route(request, response) {
     if (request.method === 'DELETE' && parts.length === 3) {
       const current = await requireAdmin(request, slug);
       for (const notification of deletionNotificationPlan(current)) {
-        await sendEventPush(current, notification.kind, notification.title, notification.body, notification.audience);
+        await sendEventPush(current, notification.kind, notification.title, notification.body, notification.audience, notification.preference);
       }
       await pool.query('delete from events where id = $1', [current.id]);
       response.writeHead(204);
@@ -584,7 +600,7 @@ const server = createServer(async (request, response) => {
     response.setHeader('access-control-allow-origin', allowedOrigin);
     response.setHeader('vary', 'origin');
     response.setHeader('access-control-allow-headers', 'authorization, content-type, x-participant-id');
-    response.setHeader('access-control-allow-methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+    response.setHeader('access-control-allow-methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   }
   response.setHeader('x-content-type-options', 'nosniff');
   response.setHeader('referrer-policy', 'no-referrer');

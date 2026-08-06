@@ -170,7 +170,14 @@ test('My Boras highlights upcoming scheduled events and handles reminder availab
     await page.reload();
     await expect(page.getByRole('button', { name: 'Próximos Boras' })).toBeVisible();
     await expect(page.getByText(`Próximo ${runId}`).first()).toBeVisible();
-    await expect(page.getByRole('switch', { name: 'Ativar lembretes neste aparelho' })).toBeVisible();
+  await expect(page.getByRole('switch', { name: 'Ativar lembretes neste aparelho' })).toBeVisible();
+  await page.getByText('Lembretes', { exact: true }).click();
+  await expect(page.getByText('Avisar cada voto em meus eventos')).toBeVisible();
+  await expect(page.getByText('Avisar quando um Bora muda')).toBeVisible();
+  await expect(page.getByText('Avisar quando um Bora confirma')).toBeVisible();
+  await expect(page.getByText('Avisar quando um Bora atinge o mínimo')).toBeVisible();
+  await expect(page.getByText('Avisar quando um Bora está próximo')).toBeVisible();
+  await page.getByRole('button', { name: 'Fechar' }).click();
     const createdDisclosure = page.getByRole('button', { name: /Criados por mim/ });
     await expect(createdDisclosure).toHaveAttribute('aria-expanded', 'false');
     await createdDisclosure.focus();

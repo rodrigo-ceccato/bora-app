@@ -1,4 +1,4 @@
-import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonSpinner, IonTextarea, IonTitle, IonToggle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
+import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { logoWhatsapp } from 'ionicons/icons';
@@ -696,11 +696,6 @@ export default function EventPage() {
                     <button type="button" onClick={() => changeEditThreshold(1)} aria-label="Aumentar confirmações">+</button>
                   </div>
                 </section>
-                <section className="reminder-control" aria-labelledby="editor-notifications-title">
-                  <div><strong id="editor-notifications-title">Lembretes</strong><small>Receba uma notificação quando alguém responder ao seu Bora.</small></div>
-                  <IonToggle checked={editEvent.notifyCreatorOnVote !== false} aria-label="Receber aviso a cada voto" onIonChange={(item) => updateEdit({ notifyCreatorOnVote: item.detail.checked })} />
-                </section>
-
                 {editEvent.mode === 'agora' && <section className="schedule-section"><h2>Que horas?</h2><IonItem><IonLabel position="stacked">Início</IonLabel><IonDatetime presentation="time" value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
                 {editEvent.mode === 'mais-tarde' && <section className="schedule-section"><h2>Escolha o dia e horário</h2><IonItem><IonDatetime value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
 

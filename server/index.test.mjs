@@ -55,8 +55,7 @@ describe('event notification rules', () => {
     ]));
   });
 
-  it('respects the creator vote preference and never notifies them about their own vote', () => {
-    expect(voteNotificationPlan({ ...event, notify_creator_on_vote: false }, { id: 'vote_1', participantId: 'bia', voterName: 'Bia' }, 1)).toEqual([]);
+  it('never notifies the creator about their own vote', () => {
     expect(voteNotificationPlan(event, { id: 'vote_1', participantId: 'ana', voterName: 'Ana' }, 1)).toEqual([]);
   });
 

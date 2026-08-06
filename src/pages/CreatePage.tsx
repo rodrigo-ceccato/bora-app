@@ -1,4 +1,4 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonModal, IonNote, IonPage, IonTextarea, IonTitle, IonToggle, IonToolbar, useIonRouter, useIonToast, useIonViewWillEnter } from '@ionic/react';
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonModal, IonNote, IonPage, IonTextarea, IonTitle, IonToolbar, useIonRouter, useIonToast, useIonViewWillEnter } from '@ionic/react';
 import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { createEvent, getParticipantName, saveParticipantName } from '../lib/store';
@@ -74,7 +74,6 @@ export default function CreatePage() {
   const [place, setPlace] = useState('');
   const [description, setDescription] = useState('');
   const [threshold, setThreshold] = useState(3);
-  const [notifyCreatorOnVote, setNotifyCreatorOnVote] = useState(true);
   const [createdByName, setCreatedByName] = useState(getParticipantName);
   const [agoraDate, setAgoraDate] = useState(initialAgora.date);
   const [agoraTime, setAgoraTime] = useState(initialAgora.time);
@@ -224,8 +223,7 @@ export default function CreatePage() {
         startsAt,
         alternatives,
         days: mode === 'marcar' ? sortedDays.map((day) => ({ ...day, label: dayLabel(day.date) })) : [],
-        createdByName: createdByName.trim(),
-        notifyCreatorOnVote
+        createdByName: createdByName.trim()
       });
       router.push(`/e/${event.slug}?admin=${event.adminToken}&created=1`, 'forward', 'replace');
     } catch (error) {
@@ -273,11 +271,6 @@ export default function CreatePage() {
               <input value={threshold} inputMode="numeric" aria-label="Número mínimo de confirmações" onChange={(event) => changeThreshold(Number(event.target.value.replace(/\D/g, '')))} />
               <button type="button" onClick={() => changeThreshold(threshold + 1)} disabled={threshold >= maxThreshold} aria-label="Aumentar confirmações">+</button>
             </div>
-          </section>
-
-          <section className="reminder-control" aria-labelledby="reminder-title">
-            <div><strong id="reminder-title">Lembretes</strong><small>Receba uma notificação quando alguém responder ao seu Bora.</small></div>
-            <IonToggle checked={notifyCreatorOnVote} aria-label="Receber aviso a cada voto" onIonChange={(event) => setNotifyCreatorOnVote(event.detail.checked)} />
           </section>
 
           {mode === 'agora' && <section className="schedule-section">

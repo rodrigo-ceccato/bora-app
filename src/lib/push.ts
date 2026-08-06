@@ -2,10 +2,27 @@ import { getParticipantId } from './store';
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
 export type PushReminderState = 'unsupported' | 'permission-required' | 'permission-denied' | 'permission-granted-but-not-subscribed' | 'subscribed';
+export type PushReminderPreferences = { votes: boolean; changes: boolean; confirmed: boolean; threshold: boolean; upcoming: boolean };
+export const defaultPushReminderPreferences: PushReminderPreferences = { votes: true, changes: true, confirmed: true, threshold: true, upcoming: true };
 
 function supported() { return Boolean(API_BASE && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window); }
 function base64UrlToUint8Array(value: string) { const padded = `${value}${'='.repeat((4 - value.length % 4) % 4)}`.replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0)); }
 async function existingSubscription() { const registration = await navigator.serviceWorker.getRegistration('/sw.js'); return registration ? registration.pushManager.getSubscription() : null; }
+
+export async function pushReminderPreferences(): Promise<PushReminderPreferences> {
+  const subscription = await existingSubscription();
+  if (!API_BASE || !subscription) return defaultPushReminderPreferences;
+  const response = await fetch(`${API_BASE}/push/subscriptions/preferences?endpoint=${encodeURIComponent(subscription.endpoint)}`, { headers: { 'x-participant-id': getParticipantId() } });
+  if (!response.ok) throw new Error('Não foi possível carregar as preferências de lembretes.');
+  return { ...defaultPushReminderPreferences, ...((await response.json() as { preferences?: Partial<PushReminderPreferences> }).preferences || {}) };
+}
+
+export async function savePushReminderPreferences(preferences: PushReminderPreferences) {
+  const subscription = await existingSubscription();
+  if (!API_BASE || !subscription) throw new Error('Ative os lembretes neste aparelho antes de escolher os avisos.');
+  const response = await fetch(`${API_BASE}/push/subscriptions/preferences`, { method: 'PUT', headers: { 'content-type': 'application/json', 'x-participant-id': getParticipantId() }, body: JSON.stringify({ endpoint: subscription.endpoint, preferences }) });
+  if (!response.ok) throw new Error('Não foi possível salvar as preferências de lembretes.');
+}
 
 export async function pushReminderState(): Promise<PushReminderState> {
   if (!supported()) return 'unsupported';
