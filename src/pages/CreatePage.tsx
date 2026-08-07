@@ -150,6 +150,14 @@ export default function CreatePage() {
     if (match) updateAgoraTime(match[1]);
   }
 
+  function pickQuickTime(hours: number) {
+    const next = new Date();
+    next.setHours(next.getHours() + hours);
+    setAgoraDate(localDateKey(next));
+    setAgoraTime(`${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`);
+    setTimePickerOpen(false);
+  }
+
   function addWeekTime(time = timeDraft) {
     if (!/^\d{2}:\d{2}$/.test(time)) return;
     if (!futureTime(weekDate, time)) {
@@ -332,7 +340,10 @@ export default function CreatePage() {
       </IonModal>
       <IonModal isOpen={timePickerOpen} onDidDismiss={() => setTimePickerOpen(false)} className="time-picker-modal">
         <IonHeader><IonToolbar><IonTitle>Escolha o horário</IonTitle><IonButtons slot="end"><IonButton onClick={() => setTimePickerOpen(false)}>Pronto</IonButton></IonButtons></IonToolbar></IonHeader>
-        <IonContent className="ion-padding"><IonDatetime presentation="time" hourCycle="h23" value={dateTimeValue(agoraDate, agoraTime)} onIonChange={(event) => selectAgoraTime(event.detail.value)} /></IonContent>
+        <IonContent className="ion-padding">
+          <div className="agora-quick-times" role="group" aria-label="Horários rápidos">{[1, 2, 3].map((hours) => <button key={hours} type="button" onClick={() => pickQuickTime(hours)}>Em {hours}h</button>)}</div>
+          <IonDatetime presentation="time" hourCycle="h23" value={dateTimeValue(agoraDate, agoraTime)} onIonChange={(event) => selectAgoraTime(event.detail.value)} />
+        </IonContent>
       </IonModal>
     </IonContent>
   </IonPage>;
