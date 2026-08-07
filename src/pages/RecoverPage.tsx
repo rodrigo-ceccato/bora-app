@@ -1,4 +1,4 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar, useIonToast } from '@ionic/react';
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonHeader, IonIcon, IonPage, IonSpinner, IonTitle, IonToolbar, useIonRouter, useIonToast } from '@ionic/react';
 import { shieldCheckmarkOutline } from 'ionicons/icons';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -7,13 +7,17 @@ import { clearDeviceAuthentication, createRecoveryLink, hasRegisteredParticipant
 function adminEventsFromFragment(hash: string): AdminEventAccess[] { try { const value = new URLSearchParams(hash.replace(/^#/, '')).get('admin'); const events = value ? JSON.parse(value) : []; return Array.isArray(events) ? events : []; } catch { return []; } }
 function participantNameFromFragment(hash: string) { return new URLSearchParams(hash.replace(/^#/, '')).get('name') || ''; }
 
+const USED_TOKENS_KEY = 'bora_recovery_used_tokens';
+function usedTokens(): string[] { try { const value = JSON.parse(sessionStorage.getItem(USED_TOKENS_KEY) || '[]'); return Array.isArray(value) ? value : []; } catch { return []; } }
+function markTokenUsed(token: string) { try { sessionStorage.setItem(USED_TOKENS_KEY, JSON.stringify(Array.from(new Set([...usedTokens(), token])))); } catch { return; } }
+
 export default function RecoverPage() {
   const [status, setStatus] = useState<'loading' | 'confirm' | 'ready' | 'error' | 'transfer'>('loading');
   const [adminAccessRestored, setAdminAccessRestored] = useState(false); const [creating, setCreating] = useState(false); const [link, setLink] = useState(''); const [qrCode, setQrCode] = useState('');
-  const [toast] = useIonToast(); const location = useLocation();
-  async function recoverFromLink() { const token = new URLSearchParams(location.search).get('token'); if (!token) { setStatus('transfer'); return; } const adminEvents = adminEventsFromFragment(location.hash); const participantName = participantNameFromFragment(location.hash); setStatus('loading'); try { const participantId = await recoverParticipant(token); clearDeviceAuthentication(); restoreParticipantId(participantId); restoreAdminEvents(adminEvents); if (participantName) restoreParticipantName(participantName); setAdminAccessRestored(adminEvents.length > 0); window.history.replaceState({}, '', '/recover'); setStatus('ready'); } catch { setStatus('error'); } }
+  const [toast] = useIonToast(); const location = useLocation(); const router = useIonRouter();
+  async function recoverFromLink() { const token = new URLSearchParams(location.search).get('token'); if (!token) { setStatus('transfer'); return; } const adminEvents = adminEventsFromFragment(location.hash); const participantName = participantNameFromFragment(location.hash); setStatus('loading'); try { const participantId = await recoverParticipant(token); clearDeviceAuthentication(); restoreParticipantId(participantId); restoreAdminEvents(adminEvents); if (participantName) restoreParticipantName(participantName); setAdminAccessRestored(adminEvents.length > 0); markTokenUsed(token); window.history.replaceState({}, '', '/home'); setStatus('ready'); } catch { setStatus('error'); } }
   function cancelRecovery() { window.history.replaceState({}, '', '/recover'); setStatus('transfer'); }
-  useEffect(() => { const token = new URLSearchParams(location.search).get('token'); if (!token) { setStatus('transfer'); return; } if (hasRegisteredParticipant()) setStatus('confirm'); else void recoverFromLink(); }, [location.search, location.hash]);
+  useEffect(() => { const token = new URLSearchParams(location.search).get('token'); if (!token) { setStatus('transfer'); return; } if (usedTokens().includes(token)) { router.push('/home', 'forward', 'replace'); return; } if (hasRegisteredParticipant()) setStatus('confirm'); else void recoverFromLink(); }, [location.search, location.hash]);
   useEffect(() => {
     if (!link) { setQrCode(''); return; }
 
@@ -28,7 +32,7 @@ export default function RecoverPage() {
   async function createLink() { setCreating(true); try { const nextLink = await createRecoveryLink(); setLink(nextLink); toast({ message: 'Link criado.', color: 'success', duration: 1800 }); } catch (error) { toast({ message: error instanceof Error ? error.message : 'Não foi possível criar o link.', color: 'danger', duration: 2800 }); } finally { setCreating(false); } }
   async function copyLink() { try { await navigator.clipboard.writeText(link); toast({ message: 'Link copiado.', color: 'success', duration: 1800 }); } catch { toast({ message: 'Não foi possível copiar o link.', color: 'danger', duration: 2200 }); } }
   async function shareLink() { if (navigator.share) { try { await navigator.share({ title: 'Meus Boras', text: 'Use meus Boras em outro dispositivo', url: link }); return; } catch (error) { if (error instanceof DOMException && error.name === 'AbortError') return; } } await copyLink(); }
-  return <IonPage><IonHeader><IonToolbar><IonButtons slot="start"><IonBackButton defaultHref="/my-events" text="Voltar" /></IonButtons><IonTitle>{status === 'transfer' ? 'Usar meus Boras em outro dispositivo' : 'Recuperar meus Boras'}</IonTitle></IonToolbar></IonHeader><IonContent className="ion-padding form-page"><main className="recovery-container"><IonCard className="recovery-card"><IonCardContent>
+  return <IonPage><IonHeader><IonToolbar><IonButtons slot="start"><IonBackButton defaultHref={status === 'transfer' ? '/my-events' : '/home'} text="Voltar" /></IonButtons><IonTitle>{status === 'transfer' ? 'Usar meus Boras em outro dispositivo' : 'Recuperar meus Boras'}</IonTitle></IonToolbar></IonHeader><IonContent className="ion-padding form-page"><main className="recovery-container"><IonCard className="recovery-card"><IonCardContent>
     {status === 'loading' && <><IonSpinner /><h1>Recuperando seus Boras…</h1><p>Estamos restaurando sua lista neste aparelho.</p></>}
     {status === 'confirm' && <><h1>Usar este link de recuperação?</h1><p>Ele vai remover os Boras registrados neste aparelho e substituí-los pelos deste link.</p><IonButton expand="block" onClick={() => void recoverFromLink()}>Usar link</IonButton><IonButton expand="block" fill="clear" onClick={cancelRecovery}>Cancelar</IonButton></>}
     {status === 'ready' && <><h1>Pronto!</h1><p>Seus Boras foram restaurados neste aparelho.{adminAccessRestored ? ' Seus controles de organizador também foram restaurados.' : ' Seus links de administrador continuam privados no aparelho original.'}</p><IonButton expand="block" routerLink="/my-events">Ver meus Boras</IonButton></>}
