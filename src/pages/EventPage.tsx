@@ -1,4 +1,4 @@
-import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
+import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonList, IonModal, IonNote, IonPage, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { logoWhatsapp } from 'ionicons/icons';
@@ -17,6 +17,17 @@ function useQuery() {
 
 const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`);
 const overnightScheduleTimes = Array.from({ length: 7 }, (_, index) => `0${index + 1}:00`);
+
+function agoraDateTime(date: string, time: string) {
+  return `${date}T${time}:00`;
+}
+function futureAgoraTime(date: string, time: string) {
+  return new Date(agoraDateTime(date, time)).getTime() > Date.now();
+}
+function pickerTime(value?: string) {
+  const match = value?.match(/T(\d{2}:\d{2})/);
+  return match ? match[1] : '18:00';
+}
 
 export default function EventPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -40,6 +51,7 @@ export default function EventPage() {
   const [showAllResults, setShowAllResults] = useState(false);
   const [expandedResultDays, setExpandedResultDays] = useState<Record<string, boolean>>({});
   const [overnightEditDays, setOvernightEditDays] = useState<Record<string, boolean>>({});
+  const [editCalendarOpen, setEditCalendarOpen] = useState(false);
   const hydratedVote = useRef(false);
 
   const isAdmin = Boolean(data?.isAdmin);
@@ -97,6 +109,11 @@ export default function EventPage() {
   const availabilitySummary = useMemo(() => data ? availabilityResults(data.event, data.votes) : [], [data]);
   const timePreferences = useMemo(() => data?.event.mode === 'mais-tarde' ? preferenceResults(data.event, data.votes) : [], [data]);
   const decidedCalendar = useMemo(() => data ? calendarDetails(data.event) : null, [data]);
+  const tomorrowKey = useMemo(() => {
+    const next = new Date();
+    next.setDate(next.getDate() + 1);
+    return localDateKey(next);
+  }, []);
   const groupedAvailability = useMemo(() => {
     return groupAvailabilityResults(availabilitySummary);
   }, [availabilitySummary]);
@@ -140,6 +157,22 @@ export default function EventPage() {
 
   function updateEdit(patch: Partial<BoraEvent>) {
     setEditEvent((current) => current ? { ...current, ...patch } : current);
+  }
+
+  function editAgoraDay(value = editEvent?.startsAt) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+    return localDateKey();
+  }
+
+  function updateEditAgoraDay(date: string) {
+    setEditEvent((current) => current ? { ...current, startsAt: agoraDateTime(date, pickerTime(current.startsAt)) } : current);
+  }
+
+  function updateEditAgoraTime(value: string | string[] | null | undefined) {
+    if (typeof value !== 'string') return;
+    const match = value.match(/T(\d{2}:\d{2})/);
+    if (!match) return;
+    setEditEvent((current) => current ? { ...current, startsAt: agoraDateTime(editAgoraDay(current.startsAt), match[1]) } : current);
   }
 
   function changeEditThreshold(delta: number) {
@@ -682,7 +715,16 @@ export default function EventPage() {
                     <button type="button" onClick={() => changeEditThreshold(1)} aria-label="Aumentar confirmações">+</button>
                   </div>
                 </section>
-                {editEvent.mode === 'agora' && <section className="schedule-section"><h2>Que horas?</h2><IonItem><IonLabel position="stacked">Início</IonLabel><IonDatetime presentation="time" value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
+                {editEvent.mode === 'agora' && <section className="schedule-section">
+                  <h2>Quando?</h2><p className="muted">Escolha o dia e um horário no futuro.</p>
+                  <div className="agora-day-picker" role="group" aria-label="Dia do Bora">
+                    <button type="button" className={editAgoraDay() === localDateKey() ? 'selected' : ''} aria-pressed={editAgoraDay() === localDateKey()} onClick={() => updateEditAgoraDay(localDateKey())}>Hoje</button>
+                    <button type="button" className={editAgoraDay() === tomorrowKey ? 'selected' : ''} aria-pressed={editAgoraDay() === tomorrowKey} onClick={() => updateEditAgoraDay(tomorrowKey)}>Amanhã</button>
+                  </div>
+                  <div className="agora-date-summary"><p className="schedule-summary">{(editAgoraDay() === localDateKey() ? 'Hoje' : editAgoraDay() === tomorrowKey ? 'Amanhã' : resultDateLabel(editAgoraDay(), true))} às {pickerTime(editEvent.startsAt)}</p><IonButton fill="clear" size="small" onClick={() => setEditCalendarOpen(true)}>Outra data</IonButton></div>
+                  <IonItem><IonLabel position="stacked">Horário</IonLabel><IonDatetime presentation="time" hourCycle="h23" value={editEvent.startsAt} onIonChange={(item) => updateEditAgoraTime(item.detail.value)} /></IonItem>
+                  {editAgoraDay() === localDateKey() && !futureAgoraTime(localDateKey(), pickerTime(editEvent.startsAt)) && <IonNote className="field-error" color="danger">Escolha um horário futuro para hoje.</IonNote>}
+                </section>}
                 {editEvent.mode === 'mais-tarde' && <section className="schedule-section"><h2>Escolha o dia e horário</h2><IonItem><IonDatetime value={editEvent.startsAt} onIonChange={(item) => updateEdit({ startsAt: String(item.detail.value) })} /></IonItem></section>}
 
                 {editEvent.mode === 'marcar' && (
@@ -707,6 +749,10 @@ export default function EventPage() {
               </div>
             )}
           </IonContent>
+        </IonModal>
+        <IonModal isOpen={editCalendarOpen} onDidDismiss={() => setEditCalendarOpen(false)}>
+          <IonHeader><IonToolbar><IonTitle>Alterar data</IonTitle><IonButtons slot="end"><IonButton onClick={() => setEditCalendarOpen(false)}>Fechar</IonButton></IonButtons></IonToolbar></IonHeader>
+          <IonContent className="ion-padding"><IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" min={localDateKey()} value={editAgoraDay()} onIonInput={(event) => { const date = event.detail.value || editAgoraDay(); updateEditAgoraDay(date); setEditCalendarOpen(false); }} /></IonItem></IonContent>
         </IonModal>
       </IonContent>
     </IonPage>
