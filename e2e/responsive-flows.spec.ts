@@ -109,6 +109,7 @@ test('back after accepting a recovery link does not return to the acceptance pag
   await expect(page.getByRole('heading', { name: 'Usar este link de recuperação?' })).toBeVisible();
   await page.getByRole('button', { name: 'Usar link' }).click();
   await expect(page.getByRole('heading', { name: 'Pronto!' })).toBeVisible();
+  await expect(page).toHaveURL(/\/home$/);
   await page.getByText('Ver meus Boras').click();
   await expect(page).toHaveURL(/\/my-events$/);
   await page.goBack();
@@ -293,7 +294,7 @@ test('results stay compact and explain availability', async ({ page, request }, 
     const recovery = await recoveryLink.json();
     await page.goto(`/recover?token=${encodeURIComponent(recovery.recoveryToken as string)}`);
     await expect(page.getByRole('heading', { name: 'Pronto!' })).toBeVisible();
-    expect(page.url()).toMatch(/\/recover$/);
+    expect(page.url()).toMatch(/\/home$/);
 
     for (const participantId of ['bia', 'caio']) {
       const vote = await request.post(`/api/events/${slug}/votes`, {
