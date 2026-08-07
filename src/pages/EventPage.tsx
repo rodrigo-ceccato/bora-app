@@ -359,7 +359,7 @@ export default function EventPage() {
         ? event.days.map((day) => `${new Date(`${day.date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}: ${day.slots.join(', ')}`).join('\n')
         : 'Dias e horários a combinar'
       : event.mode === 'agora' && event.startsAt
-        ? new Date(event.startsAt).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' })
+        ? new Date(event.startsAt).toLocaleString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
         : event.startsAt
           ? eventOptions(event).map((option) => optionLabel(event, option.id)).join(' ou ')
           : 'Data e horário a combinar';
@@ -378,8 +378,9 @@ export default function EventPage() {
 
   async function shareLink() {
     const url = invitationUrl();
-    if (!navigator.share) return copyText(`${invitationText()}\n${url}`, 'Convite copiado!');
-    try { await navigator.share({ title: data?.event.title || 'Bora', text: invitationText(), url }); }
+    const message = `${invitationText()}\n${url}`;
+    if (!navigator.share) return copyText(message, 'Convite copiado!');
+    try { await navigator.share({ title: data?.event.title || 'Bora', text: message, url }); }
     catch (error) { if (!(error instanceof DOMException && error.name === 'AbortError')) toast({ message: 'Não foi possível compartilhar o convite.', color: 'danger', duration: 2800 }); }
   }
 
