@@ -6,6 +6,7 @@ import { deleteEvent, getEvent, getParticipantId, getParticipantName, savePartic
 import { responseLabel } from '../lib/schedule';
 import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
 import { eventOptions, optionLabel } from '../lib/options';
+import { invitationText as libInvitationText } from '../lib/invite';
 import { calendarDetails, calendarIcs, googleCalendarUrl } from '../lib/calendar';
 import { availabilityResults, eventStatusText, groupAvailabilityResults, preferenceResults, resultDateLabel } from '../lib/results';
 import type { BoraEvent, EventWithVotes, VoteResponse } from '../lib/types';
@@ -353,23 +354,7 @@ export default function EventPage() {
 
   function invitationText() {
     if (!data) return 'Bora combinar?';
-    const { event } = data;
-    const when = event.mode === 'marcar'
-      ? event.days.length
-        ? event.days.map((day) => `${new Date(`${day.date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}: ${day.slots.join(', ')}`).join('\n')
-        : 'Dias e horários a combinar'
-      : event.mode === 'agora' && event.startsAt
-        ? new Date(event.startsAt).toLocaleString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
-        : event.startsAt
-          ? eventOptions(event).map((option) => optionLabel(event, option.id)).join(' ou ')
-          : 'Data e horário a combinar';
-    const details = [
-      `📅 ${when}`,
-      `📍 ${event.place}`,
-      event.description ? `\n${event.description}` : '',
-      '\nConfirma sua presença no Bora:'
-    ].filter(Boolean);
-    return `Bora? ${event.title}\n\n${details.join('\n')}`;
+    return libInvitationText(data.event);
   }
 
   function invitationUrl() {
