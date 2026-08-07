@@ -266,7 +266,7 @@ export default function CreatePage() {
           </IonItem>
           <IonItem className={submitted && !createdByName.trim() ? 'ion-invalid' : ''}>
             <IonLabel position="stacked">Seu nome *</IonLabel>
-            <IonInput value={createdByName} onIonInput={(event) => updateCreatedByName(event.detail.value || '')} placeholder="Ex: Ana" required />
+            <IonInput value={createdByName} maxlength={80} onIonInput={(event) => updateCreatedByName(event.detail.value || '')} placeholder="Ex: Ana" required />
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Descrição <span className="optional-label">(opcional)</span></IonLabel>

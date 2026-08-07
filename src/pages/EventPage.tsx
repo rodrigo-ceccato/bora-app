@@ -491,7 +491,7 @@ export default function EventPage() {
                         <h2>{event.mode === 'agora' ? 'Você topa?' : event.mode === 'mais-tarde' ? 'Qual horário funciona?' : 'Quando você pode?'}</h2>
                         <p>Leva menos de um minuto.</p>
                       </div>
-                      <IonItem className="name-field" lines="none"><IonLabel position="stacked">Seu nome</IonLabel><IonInput value={name} onIonInput={(e) => updateName(e.detail.value || '')} placeholder="Como a galera te chama?" required /></IonItem>
+                      <IonItem className="name-field" lines="none"><IonLabel position="stacked">Seu nome</IonLabel><IonInput value={name} maxlength={80} onIonInput={(e) => updateName(e.detail.value || '')} placeholder="Como a galera te chama?" required /></IonItem>
 
                       {event.mode === 'mais-tarde' && (
                         <div className="time-options">
