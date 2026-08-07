@@ -96,6 +96,28 @@ test('recovery confirms before replacing an existing Bora on this device', async
   await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_id'))).toBe(originalParticipant);
 });
 
+test('back after accepting a recovery link does not return to the acceptance page', async ({ page }) => {
+  await page.route('**/api/recover', (route) => route.fulfill({ json: { participantId: 'restored-participant' } }));
+  await page.route('**/me/events', (route) => route.fulfill({ json: { created: [], joined: [] } }));
+  const link = '/recover?token=back-stack-token';
+  await page.goto('/home');
+  await page.evaluate(() => localStorage.setItem('bora_participant_id', 'participant-on-this-device'));
+  await page.goto(link);
+  await expect(page.getByRole('heading', { name: 'Usar este link de recuperação?' })).toBeVisible();
+  await page.evaluate((url) => history.pushState({}, '', url), link);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Usar este link de recuperação?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Usar link' }).click();
+  await expect(page.getByRole('heading', { name: 'Pronto!' })).toBeVisible();
+  await page.getByText('Ver meus Boras').click();
+  await expect(page).toHaveURL(/\/my-events$/);
+  await page.goBack();
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Usar este link de recuperação?' })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole('heading', { name: 'Bora marcar?' })).toBeVisible();
+});
+
 test('device-transfer links can include organizer controls', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: 'organizer-transfer-token' } }));
