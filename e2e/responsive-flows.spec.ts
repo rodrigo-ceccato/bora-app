@@ -34,7 +34,7 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expect(page.getByText('Escolha o horário')).toBeVisible();
   await expect(page.locator('ion-datetime[presentation="time"]')).toBeVisible();
   await page.getByRole('button', { name: 'Pronto' }).click();
-  await expect(page.getByRole('button', { name: 'Alterar data' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Outra data' })).toBeVisible();
   await expectNoHorizontalScroll(page);
 
   await page.goto('/create?mode=mais-tarde');

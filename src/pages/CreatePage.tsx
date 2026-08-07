@@ -97,6 +97,11 @@ export default function CreatePage() {
 
   const week = useMemo(() => weekDates(), []);
   const today = localDateKey();
+  const tomorrowKey = useMemo(() => {
+    const next = new Date();
+    next.setDate(next.getDate() + 1);
+    return localDateKey(next);
+  }, []);
   const sortedDays = useMemo(() => [...days].sort((left, right) => left.date.localeCompare(right.date)), [days]);
   const hasDuplicateDates = new Set(days.map((day) => day.date)).size !== days.length;
   const markScheduleValid = days.length > 0 && !hasDuplicateDates && days.every((day) => day.date && day.slots.length > 0 && day.slots.every((slot) => futureTime(day.date, slot)));
@@ -113,25 +118,29 @@ export default function CreatePage() {
     saveParticipantName(value);
   }
 
+  function selectAgoraDay(next: 'hoje' | 'amanha') {
+    if (next === 'hoje') {
+      setAgoraDate(today);
+      if (!futureTime(today, agoraTime)) {
+        toast({ message: 'Escolha um horário futuro para hoje.', color: 'warning', duration: 2400 });
+      }
+      return;
+    }
+    setAgoraDate(tomorrowKey);
+  }
+
   function updateAgoraTime(time: string) {
     setAgoraTime(time);
     if (!/^\d{2}:\d{2}$/.test(time)) return;
 
     // A time earlier than now means the next occurrence is after midnight.
+    // The day chip stays visible, so switching to tomorrow is never silent.
     if (agoraDate === today && !futureTime(today, time)) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      setAgoraDate(localDateKey(tomorrow));
+      setAgoraDate(tomorrowKey);
     }
   }
 
   function updateAgoraDate(date: string) {
-    if (date === today && !futureTime(date, agoraTime)) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      setAgoraDate(localDateKey(tomorrow));
-      return;
-    }
     setAgoraDate(date);
   }
 
@@ -274,9 +283,14 @@ export default function CreatePage() {
           </section>
 
           {mode === 'agora' && <section className="schedule-section">
-            <h2>Que horas?</h2><p className="muted">Começa agora. Se escolher um horário que já passou, ele fica para amanhã.</p>
+            <h2>Que horas?</h2><p className="muted">Escolha o dia e um horário no futuro. Um horário que já passou hoje vale para amanhã.</p>
+            <div className="agora-day-picker" role="group" aria-label="Dia do Bora agora">
+              <button type="button" className={agoraDate === today ? 'selected' : ''} aria-pressed={agoraDate === today} onClick={() => selectAgoraDay('hoje')}>Hoje</button>
+              <button type="button" className={agoraDate === tomorrowKey ? 'selected' : ''} aria-pressed={agoraDate === tomorrowKey} onClick={() => selectAgoraDay('amanha')}>Amanhã</button>
+            </div>
             <button type="button" className="time-picker-trigger" onClick={() => setTimePickerOpen(true)} aria-haspopup="dialog"><span>Horário</span><strong>{agoraTime}</strong><span aria-hidden="true">⌄</span></button>
-            <div className="agora-date-summary"><p className="schedule-summary">{dayLabel(agoraDate, true)} às {agoraTime}</p><IonButton fill="clear" size="small" onClick={() => setCalendarOpen(true)}>Alterar data</IonButton></div>
+            <div className="agora-date-summary"><p className="schedule-summary">{(agoraDate === today ? 'Hoje' : agoraDate === tomorrowKey ? 'Amanhã' : dayLabel(agoraDate))} · {dayLabel(agoraDate, true)} às {agoraTime}</p><IonButton fill="clear" size="small" onClick={() => setCalendarOpen(true)}>Outra data</IonButton></div>
+            {agoraDate === today && !futureTime(today, agoraTime) && <IonNote className="field-error" color="danger">Escolha um horário futuro para hoje.</IonNote>}
             {submitted && !agoraValid && <IonNote className="field-error" color="danger">Escolha uma data e horário no futuro.</IonNote>}
           </section>}
 
@@ -318,7 +332,7 @@ export default function CreatePage() {
       </IonModal>
       <IonModal isOpen={timePickerOpen} onDidDismiss={() => setTimePickerOpen(false)} className="time-picker-modal">
         <IonHeader><IonToolbar><IonTitle>Escolha o horário</IonTitle><IonButtons slot="end"><IonButton onClick={() => setTimePickerOpen(false)}>Pronto</IonButton></IonButtons></IonToolbar></IonHeader>
-        <IonContent className="ion-padding"><IonDatetime presentation="time" hourCycle="h23" value={dateTimeValue(today, agoraTime)} onIonChange={(event) => selectAgoraTime(event.detail.value)} /></IonContent>
+        <IonContent className="ion-padding"><IonDatetime presentation="time" hourCycle="h23" value={dateTimeValue(agoraDate, agoraTime)} onIonChange={(event) => selectAgoraTime(event.detail.value)} /></IonContent>
       </IonModal>
     </IonContent>
   </IonPage>;
