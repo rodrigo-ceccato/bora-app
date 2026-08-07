@@ -427,7 +427,10 @@ export default function MyEventsPage() {
       key === "created" &&
       items.some(
         ({ event, confirmed }) =>
-          !event.decidedOption && !event.votingClosed && confirmed > 0,
+          event.mode !== "agora" &&
+          !event.decidedOption &&
+          !event.votingClosed &&
+          confirmed > 0,
       );
     return (
       <section className="my-events-section disclosure-section">
