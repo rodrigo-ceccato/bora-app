@@ -15,6 +15,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:local": "node scripts/run-local-e2e.mjs",
     "lint": "eslint .",
     "prepare": "node scripts/install-git-hooks.mjs",
     "release:check": "node scripts/validate-release-tag.mjs",

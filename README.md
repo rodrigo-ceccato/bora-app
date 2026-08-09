@@ -76,6 +76,7 @@ Vite proxies `/api` to `http://127.0.0.1:8787`.
 ```bash
 npm test
 npm run test:e2e
+npm run test:e2e:local
 npm run lint
 npm run build
 docker compose config
@@ -84,6 +85,12 @@ docker compose config
 `npm run test:e2e` uses the Docker stack at `http://127.0.0.1:8080` and checks
 the home page, all creation modes and the results page at 360px, 768px and
 1440px. Set `PLAYWRIGHT_BASE_URL` to target another non-production environment.
+
+`npm run test:e2e:local` rebuilds and starts the local Compose stack, waits for
+the API health check and then runs the same Playwright suite. The versioned
+pre-push hook runs this command automatically before a direct push to `main`;
+`npm install` configures the hook through the `prepare` script. The local stack
+and its database volume are left running after the check.
 
 See the [MVP test checklist](docs/mvp-test-checklist.md) before sharing the app.
 

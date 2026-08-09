@@ -1,7 +1,15 @@
 #!/usr/bin/env sh
 # Validate version tags before they leave this checkout. CI repeats this check
 # so a missing local hook can never result in a production deployment.
+pushes_main=false
+
 while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main)
+      [ "$local_sha" = "0000000000000000000000000000000000000000" ] || pushes_main=true
+      ;;
+  esac
+
   case "$local_ref" in
     refs/tags/v*)
       [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
@@ -10,3 +18,8 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       ;;
   esac
 done
+
+if [ "$pushes_main" = true ]; then
+  echo "Running the local Compose E2E suite before pushing main..."
+  npm run test:e2e:local || exit 1
+fi

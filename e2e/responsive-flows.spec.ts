@@ -323,10 +323,11 @@ test('results stay compact and explain availability', async ({ page, request }, 
     await page.addInitScript(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async () => undefined }));
     await page.goto(`/e/${slug}?admin=${token}&created=1`);
     await expect(page.getByText('Seu Bora está pronto!')).toBeVisible();
-    await expectConsistentActionGroup(page.locator('.ready-card-actions'), testInfo.project.name === 'mobile', 3);
-    await expect(page.getByRole('button', { name: 'Compartilhar no WhatsApp' })).toHaveClass(/action-button-primary/);
-    await expect(page.getByRole('button', { name: 'Copiar convite' })).toHaveClass(/action-button-secondary/);
-    await expect(page.getByRole('button', { name: 'Mais opções' })).toHaveClass(/action-button-ghost/);
+    const readyActions = page.locator('.ready-card-actions');
+    await expectConsistentActionGroup(readyActions, testInfo.project.name === 'mobile', 3);
+    await expect(readyActions.locator('ion-button').filter({ hasText: 'Compartilhar no WhatsApp' })).toHaveClass(/action-button-primary/);
+    await expect(readyActions.locator('ion-button').filter({ hasText: 'Copiar convite' })).toHaveClass(/action-button-secondary/);
+    await expect(readyActions.locator('ion-button').filter({ hasText: 'Mais opções' })).toHaveClass(/action-button-ghost/);
     await expectNoHorizontalScroll(page);
 
     await page.goto(`/e/${slug}?admin=${token}`);
