@@ -4,17 +4,20 @@ async function expectNoHorizontalScroll(page: import('@playwright/test').Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
-async function expectConsistentActionGroup(group: import('@playwright/test').Locator, stacked: boolean) {
+async function expectConsistentActionGroup(group: import('@playwright/test').Locator, stacked: boolean, expectedButtons = 2) {
   const buttons = group.locator('ion-button');
-  await expect(buttons).toHaveCount(2);
-  const first = await buttons.nth(0).boundingBox();
-  const second = await buttons.nth(1).boundingBox();
-  expect(first).not.toBeNull();
-  expect(second).not.toBeNull();
-  expect(first!.height).toBeGreaterThanOrEqual(44);
-  expect(second!.height).toBeGreaterThanOrEqual(44);
-  expect(Math.abs(first!.width - second!.width)).toBeLessThanOrEqual(2);
-  if (stacked) expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height + 8);
+  await expect(buttons).toHaveCount(expectedButtons);
+  const boxes = await Promise.all(Array.from({ length: expectedButtons }, (_, index) => buttons.nth(index).boundingBox()));
+  for (const box of boxes) {
+    expect(box).not.toBeNull();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(Math.abs(box!.width - boxes[0]!.width)).toBeLessThanOrEqual(2);
+  }
+  if (stacked) {
+    for (let index = 1; index < boxes.length; index += 1) {
+      expect(boxes[index]!.y).toBeGreaterThanOrEqual(boxes[index - 1]!.y + boxes[index - 1]!.height + 8);
+    }
+  }
 }
 
 test('home and every creation mode are usable at this viewport', async ({ page }) => {
@@ -316,6 +319,15 @@ test('results stay compact and explain availability', async ({ page, request }, 
       });
       expect(vote.ok()).toBeTruthy();
     }
+
+    await page.addInitScript(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async () => undefined }));
+    await page.goto(`/e/${slug}?admin=${token}&created=1`);
+    await expect(page.getByText('Seu Bora está pronto!')).toBeVisible();
+    await expectConsistentActionGroup(page.locator('.ready-card-actions'), testInfo.project.name === 'mobile', 3);
+    await expect(page.getByRole('button', { name: 'Compartilhar no WhatsApp' })).toHaveClass(/action-button-primary/);
+    await expect(page.getByRole('button', { name: 'Copiar convite' })).toHaveClass(/action-button-secondary/);
+    await expect(page.getByRole('button', { name: 'Mais opções' })).toHaveClass(/action-button-ghost/);
+    await expectNoHorizontalScroll(page);
 
     await page.goto(`/e/${slug}?admin=${token}`);
     await expect(page.getByRole('heading', { name: 'Melhores horários' })).toBeVisible();

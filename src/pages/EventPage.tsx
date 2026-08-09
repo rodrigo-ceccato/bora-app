@@ -434,11 +434,15 @@ export default function EventPage() {
           {isAdmin && wasJustCreated && (
             <IonCard className="success-card ready-card">
               <IonCardContent>
-                <div>
+                <div className="ready-card-copy">
                   <strong>Seu Bora está pronto!</strong>
                   <p>Agora é só chamar a galera.</p>
                 </div>
-                <div className="ready-card-actions"><IonButton onClick={() => void shareLink()}>{canShare ? 'Compartilhar' : 'Copiar convite'}</IonButton><IonButton fill="outline" onClick={shareOnWhatsApp}><IonIcon slot="start" icon={logoWhatsapp} aria-hidden="true" />Compartilhar no WhatsApp</IonButton></div>
+                <div className="card-actions ready-card-actions">
+                  <IonButton className="action-button action-button-primary" onClick={shareOnWhatsApp}><IonIcon slot="start" icon={logoWhatsapp} aria-hidden="true" />Compartilhar no WhatsApp</IonButton>
+                  <IonButton className="action-button action-button-secondary" fill="outline" onClick={() => void copyText(`${invitationText()}\n${invitationUrl()}`, 'Convite copiado!')}>Copiar convite</IonButton>
+                  {canShare && <IonButton className="action-button action-button-ghost" fill="clear" onClick={() => void shareLink()}>Mais opções</IonButton>}
+                </div>
               </IonCardContent>
             </IonCard>
           )}

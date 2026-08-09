@@ -54,6 +54,11 @@ test('captures the UI screen gallery', async ({ page, request }, testInfo) => {
       expect(vote.ok()).toBeTruthy();
     }
 
+    await page.addInitScript(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async () => undefined }));
+    await page.goto(`/e/${event.event.slug as string}?admin=${event.adminToken as string}&created=1`);
+    await expect(page.getByText('Seu Bora está pronto!')).toBeVisible();
+    await capture('event-created');
+
     await page.goto(`/e/${event.event.slug as string}?admin=${event.adminToken as string}`);
     await expect(page.getByRole('heading', { name: 'Melhores horários' })).toBeVisible();
     await capture('event-results');

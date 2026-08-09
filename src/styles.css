@@ -280,24 +280,20 @@ body { background: #f6f8fb; }
 }
 
 .success-card {
-  border: 1px solid #90caf9;
-  background: #edf6ff;
+  border: 1px solid #a8d8c6;
+  background: linear-gradient(135deg, #effaf5, #f7fbff);
 }
-
-.success-card p { margin-top: 0; }
-.success-card ion-button { margin-top: 8px; }
 
 .ready-card ion-card-content {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
+  align-items: stretch;
+  padding: 18px;
+  flex-direction: column;
 }
 
-.ready-card p { margin: 3px 0 0; color: #52616f; font-size: 0.88rem; }
-.ready-card ion-button { flex: 0 0 auto; margin: 0; text-transform: none; }
-.ready-card-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.ready-card-copy strong { display: block; color: #145b45; font-size: 1.08rem; }
+.ready-card p { margin: 4px 0 0; color: #526b62; font-size: 0.9rem; }
+.card-actions.ready-card-actions { grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); }
 .decided-message {
   margin: 10px 0 0;
   padding: 10px 12px;
@@ -817,8 +813,7 @@ body { background: #f6f8fb; }
   .action-button { width: 100%; }
   .danger-zone ion-card-content { align-items: stretch; flex-direction: column; }
   .danger-zone ion-button { width: 100%; }
-  .ready-card ion-card-content { align-items: flex-start; }
-  .ready-card ion-button { --padding-start: 12px; --padding-end: 12px; }
+  .ready-card ion-card-content { padding: 18px; }
   .votes-card ion-card-header { align-items: flex-start; flex-direction: column; }
   .editor-threshold { align-items: stretch; flex-direction: column; }
   .editor-threshold ion-item { flex-basis: auto; }
