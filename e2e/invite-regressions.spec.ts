@@ -93,6 +93,52 @@ test('marcar with confirmations still shows the waiting-for-date notice', async 
   }
 });
 
+test('mais tarde progress bars follow an edited confirmation target', async ({ page, request }, testInfo) => {
+  const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const startsAt = '2099-08-01T21:00:00.000Z';
+  const apiHeaders = { 'x-forwarded-for': `e2e-${runId}` };
+  const created = await request.post('/api/events', {
+    headers: apiHeaders,
+    data: {
+      participantId: `creator-${runId}`,
+      creatorPreferredOptions: [startsAt],
+      event: {
+        mode: 'mais-tarde', title: `Meta ${runId}`, place: 'Praça', description: '', threshold: 2,
+        startsAt, alternatives: ['2099-08-01T22:00:00.000Z'], createdByName: 'Ana', votingClosed: false, days: []
+      }
+    }
+  });
+  expect(created.ok()).toBeTruthy();
+  const body = await created.json();
+  const slug = body.event.slug as string;
+  const token = body.adminToken as string;
+  try {
+    const vote = await request.post(`/api/events/${slug}/votes`, {
+      headers: apiHeaders,
+      data: { participantId: `guest-${runId}`, voterName: 'Bia', response: 'accept', preferredOptions: [startsAt], availability: {} }
+    });
+    expect(vote.ok()).toBeTruthy();
+
+    await page.goto(`/e/${slug}?admin=${token}`);
+    const primaryResult = page.locator('.result-row').filter({ hasText: 'Horário principal' });
+    await expect(primaryResult.getByText('2 de 2')).toBeVisible();
+    await expect(primaryResult.locator('.result-progress span')).toHaveAttribute('style', /width: 100%/);
+
+    await page.getByRole('button', { name: 'Gerenciar' }).click();
+    await page.getByRole('button', { name: 'Editar detalhes' }).click();
+    await page.getByRole('button', { name: 'Aumentar confirmações' }).click();
+    await page.getByRole('button', { name: 'Aumentar confirmações' }).click();
+    await page.getByRole('button', { name: 'Salvar alterações' }).click();
+    await expect(page.getByText('Evento atualizado!')).toBeVisible();
+    await page.getByRole('button', { name: 'Resumo' }).click();
+
+    await expect(primaryResult.getByText('2 de 4')).toBeVisible();
+    await expect(primaryResult.locator('.result-progress span')).toHaveAttribute('style', /width: 50%/);
+  } finally {
+    await request.delete(`/api/events/${slug}`, { headers: { ...apiHeaders, authorization: `Bearer ${token}` } });
+  }
+});
+
 test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes', async ({ page, context, browser, request }, testInfo) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

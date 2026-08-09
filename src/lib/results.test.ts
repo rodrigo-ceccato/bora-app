@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { availabilityResults, eventStatusText, groupAvailabilityResults, preferenceResults } from './results';
+import { availabilityResults, eventStatusText, groupAvailabilityResults, preferenceResults, thresholdProgressPercentage } from './results';
 import type { BoraEvent, BoraVote } from './types';
 
 const event: BoraEvent = {
@@ -34,5 +34,10 @@ describe('event results', () => {
 
   it('reports closed voting before confirmation progress', () => {
     expect(eventStatusText({ ...event, votingClosed: true }, votes)).toBe('Confirmações encerradas.');
+  });
+
+  it('recalculates completion when the required confirmations change', () => {
+    expect(thresholdProgressPercentage(2, 2)).toBe(100);
+    expect(thresholdProgressPercentage(2, 4)).toBe(50);
   });
 });

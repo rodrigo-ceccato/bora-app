@@ -8,7 +8,7 @@ import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
 import { eventOptions, optionLabel } from '../lib/options';
 import { invitationText as libInvitationText } from '../lib/invite';
 import { calendarDetails, calendarIcs, googleCalendarUrl } from '../lib/calendar';
-import { availabilityResults, eventStatusText, groupAvailabilityResults, preferenceResults, resultDateLabel } from '../lib/results';
+import { availabilityResults, eventStatusText, groupAvailabilityResults, preferenceResults, resultDateLabel, thresholdProgressPercentage } from '../lib/results';
 import type { BoraEvent, EventWithVotes, VoteResponse } from '../lib/types';
 
 function useQuery() {
@@ -419,7 +419,7 @@ export default function EventPage() {
   const preferredTimeOptions = event.mode === 'mais-tarde' ? eventOptions(event) : [];
   const ownVote = votes.find((vote) => vote.isOwn || vote.participantId === getParticipantId());
   const showVoteConfirmation = !isAdmin && !editingVote && Boolean(voteSubmitted || ownVote);
-  const confirmationProgress = Math.min(100, (counts.accept / event.threshold) * 100);
+  const confirmationProgress = thresholdProgressPercentage(counts.accept, event.threshold);
 
   return (
     <IonPage>
@@ -620,7 +620,7 @@ export default function EventPage() {
                     <summary><span>{group.label}</span><span>{group.items.length} horário{group.items.length === 1 ? '' : 's'} <b aria-hidden="true">⌄</b></span></summary>
                     <div className="result-date-content">
                     {group.items.map((item) => {
-                      const percentage = event.threshold ? Math.min(100, (item.count / event.threshold) * 100) : 0;
+                      const percentage = thresholdProgressPercentage(item.count, event.threshold);
                       const isBestTime = maxAvailabilityCount > 0 && item.count === maxAvailabilityCount;
                       return <div className="result-row" key={`${item.day.id}-${item.slot}`}>
                         <strong>{item.slot}</strong>
@@ -641,12 +641,12 @@ export default function EventPage() {
                 <IonCardHeader><IonCardTitle>Horários preferidos</IonCardTitle></IonCardHeader>
                 <IonCardContent>
                   {(showAllResults ? timePreferences : timePreferences.slice(0, 3)).map((item) => {
-                    const percentage = votes.length ? (item.count / votes.length) * 100 : 0;
+                    const percentage = thresholdProgressPercentage(item.count, event.threshold);
                     return (
                       <div className="result-row" key={item.option.id}>
                         <strong>{item.option.primary ? `Horário principal · ${item.option.label}` : item.option.label}</strong>
                         <IonBadge color={item.count >= event.threshold ? 'success' : 'medium'}>{item.count} de {event.threshold}</IonBadge>
-                        <div className="result-progress" role="progressbar" aria-label={`${item.option.label}: ${item.count} preferências`} aria-valuemin={0} aria-valuemax={votes.length} aria-valuenow={item.count}>
+                        <div className="result-progress" role="progressbar" aria-label={`${item.option.label}: ${item.count} de ${event.threshold} preferências`} aria-valuemin={0} aria-valuemax={event.threshold} aria-valuenow={item.count}>
                           <span style={{ width: `${percentage}%` }} />
                         </div>
                         <span>{item.count === 1 ? '1 pessoa pode' : `${item.count} pessoas podem`}</span>

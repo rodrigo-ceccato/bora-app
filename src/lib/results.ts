@@ -17,6 +17,11 @@ export function acceptedCount(votes: BoraVote[]) {
   return votes.filter((vote) => vote.response === 'accept').length;
 }
 
+export function thresholdProgressPercentage(count: number, threshold: number) {
+  if (!Number.isFinite(count) || !Number.isFinite(threshold) || threshold <= 0) return 0;
+  return Math.min(100, Math.max(0, (count / threshold) * 100));
+}
+
 export function eventStatusText(event: BoraEvent, votes: BoraVote[]) {
   if (event.votingClosed) return 'Confirmações encerradas.';
   const accepted = acceptedCount(votes);
