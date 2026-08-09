@@ -472,9 +472,9 @@ export default function EventPage() {
               <span className="section-eyebrow">{event.mode === 'agora' ? 'Bora marcado' : 'Plano confirmado'}</span>
               <h2>Coloque na sua agenda</h2>
               <p>{event.mode === 'agora' ? new Date(event.startsAt!).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }) : optionLabel(event, event.decidedOption)} · {event.place}</p>
-              <div className="calendar-actions">
-                <IonButton href={googleCalendarUrl(event, decidedCalendar)} target="_blank" rel="noopener">Adicionar ao Google Agenda</IonButton>
-                <IonButton fill="outline" onClick={downloadCalendar}>Baixar arquivo de agenda</IonButton>
+              <div className="card-actions calendar-actions">
+                <IonButton className="action-button action-button-primary" href={googleCalendarUrl(event, decidedCalendar)} target="_blank" rel="noopener">Adicionar ao Google Agenda</IonButton>
+                <IonButton className="action-button action-button-secondary" fill="outline" onClick={downloadCalendar}>Baixar arquivo .ics</IonButton>
               </div>
             </IonCardContent>
           </IonCard>}
@@ -568,9 +568,9 @@ export default function EventPage() {
                     <span className="section-eyebrow">Convidar pessoas</span>
                     <h3>Compartilhe o convite com a galera.</h3>
                     <p className="muted">O link de convite não dá acesso aos controles do organizador.</p>
-                    <div className="share-actions">
-                      <IonButton expand="block" onClick={shareOnWhatsApp}><IonIcon slot="start" icon={logoWhatsapp} aria-hidden="true" />Compartilhar no WhatsApp</IonButton>
-                      <IonButton expand="block" fill="outline" onClick={() => void copyText(`${invitationText()}\n${invitationUrl()}`, 'Convite copiado!')}>Copiar convite</IonButton>
+                    <div className="card-actions share-actions">
+                      <IonButton className="action-button action-button-primary" expand="block" onClick={shareOnWhatsApp}><IonIcon slot="start" icon={logoWhatsapp} aria-hidden="true" />Compartilhar no WhatsApp</IonButton>
+                      <IonButton className="action-button action-button-secondary" expand="block" fill="outline" onClick={() => void copyText(`${invitationText()}\n${invitationUrl()}`, 'Convite copiado!')}>Copiar convite</IonButton>
                     </div>
                   </IonCardContent>
                 </IonCard>
@@ -579,7 +579,9 @@ export default function EventPage() {
                     <span className="section-eyebrow">Informações</span>
                     <h3>Detalhes do evento</h3>
                     <dl className="event-details-list"><div><dt>Quando</dt><dd>{event.startsAt ? new Date(event.startsAt).toLocaleString('pt-BR', { dateStyle: 'medium', timeStyle: 'short' }) : event.mode === 'marcar' ? 'Dias e horários a combinar' : 'Data a combinar'}</dd></div><div><dt>Local</dt><dd>{event.place}</dd></div><div><dt>Meta de confirmações</dt><dd>{event.threshold} confirmações</dd></div></dl>
-                    <IonButton fill="outline" onClick={openEdit}>Editar detalhes</IonButton>
+                    <div className="card-actions card-actions-single">
+                      <IonButton className="action-button action-button-primary" onClick={openEdit}>Editar detalhes do evento</IonButton>
+                    </div>
                   </IonCardContent>
                 </IonCard>
                 <IonCard className="manage-section responses-section">
@@ -587,14 +589,13 @@ export default function EventPage() {
                     <span className="section-eyebrow">Respostas</span>
                     <h3>{event.votingClosed ? 'Confirmações encerradas' : 'Confirmações abertas'}</h3>
                     <p className="muted">{event.votingClosed ? 'Convidados não podem enviar nem alterar respostas.' : 'Convidados ainda podem responder ao convite.'}</p>
-                    <div className="settings-row">
-                      <IonButton fill={event.votingClosed ? 'outline' : 'solid'} onClick={() => void toggleVoting()} disabled={savingAdminAction}>{event.votingClosed ? 'Reabrir confirmações' : 'Encerrar confirmações'}</IonButton>
+                    {event.decidedOption && <div className="decision-summary">
+                      <strong>Horário definido</strong><span>{optionLabel(event, event.decidedOption)}</span>
+                    </div>}
+                    <div className="card-actions response-actions">
+                      <IonButton className={`action-button ${event.votingClosed ? 'action-button-primary' : 'action-button-secondary'}`} fill={event.votingClosed ? 'solid' : 'outline'} onClick={() => void toggleVoting()} disabled={savingAdminAction}>{event.votingClosed ? 'Reabrir confirmações' : 'Encerrar confirmações'}</IonButton>
+                      {event.decidedOption && <IonButton className="action-button action-button-secondary" fill="outline" onClick={() => void clearDecision()} disabled={savingAdminAction}>Remover decisão</IonButton>}
                     </div>
-                    {event.decidedOption && <div className="settings-row">
-                      <div><strong>Horário definido</strong><span>{optionLabel(event, event.decidedOption)}</span></div>
-                      <IonButton fill="clear" onClick={() => void clearDecision()} disabled={savingAdminAction}>Remover decisão</IonButton>
-                    </div>
-                    }
                   </IonCardContent>
                 </IonCard>
                 </div>
@@ -604,7 +605,7 @@ export default function EventPage() {
                       <h3>Excluir evento</h3>
                       <p>Apaga o evento e todos os votos permanentemente.</p>
                     </div>
-                    <IonButton color="danger" onClick={confirmDelete} disabled={savingAdminAction}>Excluir evento</IonButton>
+                    <IonButton className="action-button action-button-destructive" color="danger" onClick={confirmDelete} disabled={savingAdminAction}>Excluir evento</IonButton>
                   </IonCardContent>
                 </IonCard>
               </section>

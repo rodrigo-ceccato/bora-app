@@ -4,6 +4,19 @@ async function expectNoHorizontalScroll(page: import('@playwright/test').Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
+async function expectConsistentActionGroup(group: import('@playwright/test').Locator, stacked: boolean) {
+  const buttons = group.locator('ion-button');
+  await expect(buttons).toHaveCount(2);
+  const first = await buttons.nth(0).boundingBox();
+  const second = await buttons.nth(1).boundingBox();
+  expect(first).not.toBeNull();
+  expect(second).not.toBeNull();
+  expect(first!.height).toBeGreaterThanOrEqual(44);
+  expect(second!.height).toBeGreaterThanOrEqual(44);
+  expect(Math.abs(first!.width - second!.width)).toBeLessThanOrEqual(2);
+  if (stacked) expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height + 8);
+}
+
 test('home and every creation mode are usable at this viewport', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => localStorage.setItem('bora_participant_name', 'Ana'));
@@ -323,13 +336,20 @@ test('results stay compact and explain availability', async ({ page, request }, 
     });
     expect(decided.ok()).toBeTruthy();
 
+    await page.goto(`/e/${slug}?admin=${token}`);
+    await expectConsistentActionGroup(page.locator('.calendar-actions'), testInfo.project.name === 'mobile');
+    await page.getByRole('button', { name: 'Gerenciar' }).click();
+    await expect(page.locator('.decision-summary')).toContainText('Horário definido');
+    await expectConsistentActionGroup(page.locator('.response-actions'), testInfo.project.name === 'mobile');
+    await expectNoHorizontalScroll(page);
+
     for (const url of [`/e/${slug}?admin=${token}`, `/e/${slug}`]) {
       await page.goto(url);
       await expect(page.getByText('Coloque na sua agenda')).toBeVisible();
       await expect(page.locator('a[href*="calendar.google.com"]')).toHaveCount(1);
     }
     const download = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Baixar arquivo de agenda' }).click();
+    await page.getByRole('button', { name: 'Baixar arquivo .ics' }).click();
     await expect((await download).suggestedFilename()).toBe(`${slug}.ics`);
   } finally {
     await request.delete(`/api/events/${slug}`, { headers: { ...apiHeaders, authorization: `Bearer ${token}` } });

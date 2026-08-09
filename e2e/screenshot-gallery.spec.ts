@@ -57,6 +57,24 @@ test('captures the UI screen gallery', async ({ page, request }, testInfo) => {
     await page.goto(`/e/${event.event.slug as string}?admin=${event.adminToken as string}`);
     await expect(page.getByRole('heading', { name: 'Melhores horários' })).toBeVisible();
     await capture('event-results');
+
+    await page.getByRole('button', { name: 'Gerenciar' }).click();
+    await expect(page.getByRole('heading', { name: 'Gerenciar evento' })).toBeVisible();
+    await capture('event-manage-open');
+
+    const decided = await request.patch(`/api/events/${event.event.slug as string}`, {
+      headers: { ...apiHeaders, authorization: `Bearer ${event.adminToken as string}` },
+      data: { ...event.event, decidedOption: 'friday:18:00', votingClosed: true }
+    });
+    expect(decided.ok()).toBeTruthy();
+
+    await page.goto(`/e/${event.event.slug as string}?admin=${event.adminToken as string}`);
+    await expect(page.getByText('Coloque na sua agenda')).toBeVisible();
+    await capture('event-confirmed');
+    await page.getByRole('button', { name: 'Gerenciar' }).click();
+    await expect(page.getByRole('button', { name: 'Reabrir confirmações' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Remover decisão' })).toBeVisible();
+    await capture('event-manage-decided');
   } finally {
     await request.delete(`/api/events/${event.event.slug as string}`, {
       headers: { ...apiHeaders, authorization: `Bearer ${event.adminToken as string}` }
