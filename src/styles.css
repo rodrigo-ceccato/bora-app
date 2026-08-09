@@ -73,6 +73,11 @@ body { background: #f6f8fb; }
 .field-error { display: block; margin: 4px 16px 8px; }
 .guest-note { display: block; margin: 16px 0; color: #5f6368; }
 .form-page .ion-invalid { --highlight-color-invalid: #b3261e; }
+.place-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 16px 4px; }
+.place-choice small { color: #66717d; line-height: 1.35; }
+.place-choice button { flex: 0 0 auto; min-height: 44px; padding: 0 14px; border: 1px solid #afbdc7; border-radius: 11px; background: #fff; color: #315263; font: inherit; font-size: .9rem; font-weight: 750; text-transform: none; }
+.place-choice button.selected { border-color: #16836b; background: #e9f8f1; color: #11664d; box-shadow: inset 0 0 0 1px #16836b; }
+.place-choice button:focus-visible { outline: 3px solid #77c7aa; outline-offset: 2px; }
 
 .threshold-control,
 .reminder-control,
@@ -795,6 +800,8 @@ body { background: #f6f8fb; }
 
 @media (max-width: 520px) {
   .form-page { --padding-start: 12px; --padding-end: 12px; }
+  .place-choice { align-items: stretch; flex-direction: column; }
+  .place-choice button { width: 100%; }
   .threshold-control, .reminder-control { align-items: flex-start; flex-direction: column; }
   .stepper { align-self: stretch; grid-template-columns: 1fr 62px 1fr; }
   .compact-inputs { grid-template-columns: 1fr; }

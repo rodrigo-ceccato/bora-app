@@ -1,4 +1,4 @@
-import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonList, IonModal, IonNote, IonPage, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
+import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonList, IonModal, IonNote, IonPage, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast, useIonViewDidEnter } from '@ionic/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { logoWhatsapp } from 'ionicons/icons';
@@ -53,10 +53,21 @@ export default function EventPage() {
   const [overnightEditDays, setOvernightEditDays] = useState<Record<string, boolean>>({});
   const [editCalendarOpen, setEditCalendarOpen] = useState(false);
   const hydratedVote = useRef(false);
+  const contentRef = useRef<HTMLIonContentElement>(null);
 
   const isAdmin = Boolean(data?.isAdmin);
   const wasJustCreated = query.get('created') === '1';
   const canShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
+
+  useIonViewDidEnter(() => {
+    if (wasJustCreated) void contentRef.current?.scrollToTop(0);
+  });
+
+  useEffect(() => {
+    if (!wasJustCreated || !data?.event.id) return;
+    const frame = window.requestAnimationFrame(() => { void contentRef.current?.scrollToTop(0); });
+    return () => window.cancelAnimationFrame(frame);
+  }, [wasJustCreated, data?.event.id]);
 
   useEffect(() => {
     let active = true;
@@ -429,7 +440,7 @@ export default function EventPage() {
           <IonTitle>{event.title}</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding event-page">
+      <IonContent ref={contentRef} className="ion-padding event-page">
         <section className="event-layout">
           {isAdmin && wasJustCreated && (
             <IonCard className="success-card ready-card">

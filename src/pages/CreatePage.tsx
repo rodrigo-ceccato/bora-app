@@ -72,6 +72,7 @@ export default function CreatePage() {
   const initialAgora = oneHourFromNow();
   const [title, setTitle] = useState('');
   const [place, setPlace] = useState('');
+  const [placeInTitle, setPlaceInTitle] = useState(false);
   const [description, setDescription] = useState('');
   const [threshold, setThreshold] = useState(3);
   const [createdByName, setCreatedByName] = useState(getParticipantName);
@@ -214,7 +215,8 @@ export default function CreatePage() {
 
   async function submit() {
     setSubmitted(true);
-    const commonValid = title.trim() && place.trim() && createdByName.trim() && threshold >= 1 && threshold <= maxThreshold;
+    const resolvedPlace = placeInTitle ? title.trim() : place.trim();
+    const commonValid = title.trim() && resolvedPlace && createdByName.trim() && threshold >= 1 && threshold <= maxThreshold;
     const modeValid = mode === 'agora' ? agoraValid : mode === 'mais-tarde' ? weekScheduleValid : markScheduleValid;
     if (!commonValid || !modeValid) {
       toast({ message: 'Revise os campos e horários antes de criar o Bora.', color: 'danger', duration: 2800 });
@@ -234,7 +236,7 @@ export default function CreatePage() {
       const event = await createEvent({
         mode,
         title: title.trim(),
-        place: place.trim(),
+        place: resolvedPlace,
         description: description.trim(),
         threshold,
         startsAt,
@@ -268,10 +270,14 @@ export default function CreatePage() {
             <IonLabel position="stacked">Nome do evento *</IonLabel>
             <IonInput value={title} onIonInput={(event) => setTitle(event.detail.value || '')} placeholder="Bar, cinema, jogo em casa..." />
           </IonItem>
-          <IonItem className={submitted && !place.trim() ? 'ion-invalid' : ''}>
-            <IonLabel position="stacked">Local *</IonLabel>
-            <IonInput value={place} onIonInput={(event) => setPlace(event.detail.value || '')} placeholder="Nome, endereço ou link" />
+          <IonItem className={submitted && !placeInTitle && !place.trim() ? 'ion-invalid' : ''}>
+            <IonLabel position="stacked">Local {placeInTitle ? <span className="optional-label">(no nome do evento)</span> : '*'}</IonLabel>
+            <IonInput value={placeInTitle ? title : place} disabled={placeInTitle} onIonInput={(event) => setPlace(event.detail.value || '')} placeholder={placeInTitle ? 'O nome do evento será usado' : 'Nome, endereço ou link'} />
           </IonItem>
+          <div className="place-choice">
+            <small>O nome do evento já informa onde vai ser?</small>
+            <button type="button" className={placeInTitle ? 'selected' : ''} aria-pressed={placeInTitle} onClick={() => setPlaceInTitle((current) => !current)}>O nome já diz</button>
+          </div>
           <IonItem className={submitted && !createdByName.trim() ? 'ion-invalid' : ''}>
             <IonLabel position="stacked">Seu nome *</IonLabel>
             <IonInput value={createdByName} maxlength={80} onIonInput={(event) => updateCreatedByName(event.detail.value || '')} placeholder="Ex: Ana" required />

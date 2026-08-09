@@ -157,10 +157,15 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes',
   await expect(page.locator('.agora-date-summary .schedule-summary')).toContainText('Amanhã');
 
   await page.locator('ion-item:has-text("Nome do evento") input').fill(title);
-  await page.locator('ion-item:has-text("Local") input').fill(`Local ${runId}`);
+  const placeInTitle = page.getByRole('button', { name: 'O nome já diz' });
+  await placeInTitle.click();
+  await expect(placeInTitle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('ion-item:has-text("Local") input')).toBeDisabled();
   await page.locator('ion-item:has-text("Seu nome") input').fill('Ana');
   await page.getByRole('button', { name: 'Criar link do Bora' }).click();
   await page.waitForURL(/\/e\//);
+  await expect(page.locator('.ready-card')).toBeInViewport();
+  await expect.poll(() => page.locator('ion-content.event-page').evaluate(async (content) => (await content.getScrollElement()).scrollTop)).toBe(0);
 
   const slug = page.url().match(/\/e\/([^?]+)/)?.[1];
   expect(slug).toBeTruthy();
@@ -175,6 +180,7 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes',
     expect(response.ok()).toBe(true);
     const { event } = await response.json();
     expect(localDay(new Date(event.startsAt))).toBe(localDay(tomorrow));
+    expect(event.place).toBe(title);
 
     // The copied invite carries the full info on a clean, shareable URL.
     await expect(page.getByRole('button', { name: 'Copiar convite' })).toBeVisible();
