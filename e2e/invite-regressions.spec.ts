@@ -157,10 +157,19 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes',
   await expect(page.locator('.agora-date-summary .schedule-summary')).toContainText('Amanhã');
 
   await page.locator('ion-item:has-text("Nome do evento") input').fill(title);
-  const placeInTitle = page.getByRole('button', { name: 'O nome já diz' });
+  const placeField = page.locator('ion-item:has-text("Local") input');
+  const placeInTitle = page.getByRole('checkbox', { name: 'O nome já diz onde é' });
   await placeInTitle.click();
-  await expect(placeInTitle).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('ion-item:has-text("Local") input')).toBeDisabled();
+  await expect(placeInTitle).toBeChecked();
+  await expect(placeField).toBeDisabled();
+  await expect(page.locator('.place-choice-selected')).toBeVisible();
+  await placeInTitle.click();
+  await expect(placeField).toBeEnabled();
+  await placeField.fill('Rua preservada');
+  await expect(placeInTitle).toBeHidden();
+  await placeField.fill('');
+  await expect(placeInTitle).toBeVisible();
+  await placeInTitle.click();
   await page.locator('ion-item:has-text("Seu nome") input').fill('Ana');
   await page.getByRole('button', { name: 'Criar link do Bora' }).click();
   await page.waitForURL(/\/e\//);

@@ -119,6 +119,11 @@ export default function CreatePage() {
     saveParticipantName(value);
   }
 
+  function updatePlaceInTitle(enabled: boolean) {
+    // Keep the typed place intact so turning this off always restores it.
+    setPlaceInTitle(enabled);
+  }
+
   function selectAgoraDay(next: 'hoje' | 'amanha') {
     if (next === 'hoje') {
       setAgoraDate(today);
@@ -270,13 +275,18 @@ export default function CreatePage() {
             <IonLabel position="stacked">Nome do evento *</IonLabel>
             <IonInput value={title} onIonInput={(event) => setTitle(event.detail.value || '')} placeholder="Bar, cinema, jogo em casa..." />
           </IonItem>
-          <IonItem className={submitted && !placeInTitle && !place.trim() ? 'ion-invalid' : ''}>
-            <IonLabel position="stacked">Local {placeInTitle ? <span className="optional-label">(no nome do evento)</span> : '*'}</IonLabel>
-            <IonInput value={placeInTitle ? title : place} disabled={placeInTitle} onIonInput={(event) => setPlace(event.detail.value || '')} placeholder={placeInTitle ? 'O nome do evento será usado' : 'Nome, endereço ou link'} />
-          </IonItem>
-          <div className="place-choice">
-            <small>O nome do evento já informa onde vai ser?</small>
-            <button type="button" className={placeInTitle ? 'selected' : ''} aria-pressed={placeInTitle} onClick={() => setPlaceInTitle((current) => !current)}>O nome já diz</button>
+          <div className={placeInTitle ? 'place-field-row place-field-row-selected' : 'place-field-row'}>
+            <IonItem className={submitted && !placeInTitle && !place.trim() ? 'ion-invalid' : ''}>
+              <IonLabel position="stacked">Local{placeInTitle ? '' : ' *'}</IonLabel>
+              <IonInput value={placeInTitle ? title : place} disabled={placeInTitle} onIonInput={(event) => setPlace(event.detail.value || '')} placeholder="Nome, endereço ou link" />
+            </IonItem>
+            {(placeInTitle || !place.trim()) && <div className={placeInTitle ? 'place-choice place-choice-selected' : 'place-choice'}>
+              <label className="place-choice-label">
+                <input type="checkbox" checked={placeInTitle} onChange={(event) => updatePlaceInTitle(event.target.checked)} aria-describedby="place-choice-description" />
+                <span>O nome já diz onde é</span>
+              </label>
+              <span id="place-choice-description" className="sr-only">Ao marcar, o local passa a ser o nome do evento. O local que você digitou será restaurado se desmarcar.</span>
+            </div>}
           </div>
           <IonItem className={submitted && !createdByName.trim() ? 'ion-invalid' : ''}>
             <IonLabel position="stacked">Seu nome *</IonLabel>

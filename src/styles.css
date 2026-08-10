@@ -73,11 +73,17 @@ body { background: #f6f8fb; }
 .field-error { display: block; margin: 4px 16px 8px; }
 .guest-note { display: block; margin: 16px 0; color: #5f6368; }
 .form-page .ion-invalid { --highlight-color-invalid: #b3261e; }
-.place-choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 16px 4px; }
-.place-choice small { color: #66717d; line-height: 1.35; }
-.place-choice button { flex: 0 0 auto; min-height: 44px; padding: 0 14px; border: 1px solid #afbdc7; border-radius: 11px; background: #fff; color: #315263; font: inherit; font-size: .9rem; font-weight: 750; text-transform: none; }
-.place-choice button.selected { border-color: #16836b; background: #e9f8f1; color: #11664d; box-shadow: inset 0 0 0 1px #16836b; }
-.place-choice button:focus-visible { outline: 3px solid #77c7aa; outline-offset: 2px; }
+.place-field-row { display: flex; flex-wrap: nowrap; align-items: end; gap: 8px; min-height: 64px; }
+.place-field-row-selected { position: relative; }
+.place-field-row > ion-item { flex: 1 1 0; width: 0; min-width: 0; }
+.place-choice { flex: 0 0 auto; margin: 0 16px 7px 0; }
+.place-field-row-selected > ion-item { flex-basis: 100%; width: auto; }
+.place-field-row-selected ion-input { opacity: 0; pointer-events: none; }
+.place-choice-selected { position: absolute; z-index: 1; right: 16px; bottom: 4px; left: 16px; margin: 0; background: #fff; }
+.place-choice-selected .place-choice-label { display: flex; width: 100%; }
+.place-choice-label { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; padding: 3px 6px 3px 2px; border-radius: 6px; color: #315263; font-size: .9rem; font-weight: 650; white-space: nowrap; cursor: pointer; }
+.place-choice-label input { width: 18px; height: 18px; margin: 0; accent-color: #16836b; cursor: pointer; }
+.place-choice-label:focus-within { outline: 3px solid #77c7aa; outline-offset: 2px; }
 
 .threshold-control,
 .reminder-control,
