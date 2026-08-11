@@ -213,7 +213,7 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invite votes', 
   await expect(page.locator('.agora-date-summary .schedule-summary')).toContainText('Amanhã');
 
   await setIonInput(page, 'Nome do evento', title);
-  const placeField = page.getByRole('textbox', { name: 'Local' });
+  const placeField = page.getByRole('textbox', { name: 'Local' }).first();
   const placeInTitle = page.getByRole('checkbox', { name: 'O nome já diz onde é' });
   await placeInTitle.click();
   await expect(placeInTitle).toBeChecked();

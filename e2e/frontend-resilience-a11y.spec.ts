@@ -110,7 +110,7 @@ test('edit, nested calendar, and copy fallback preserve modal focus', async ({ p
   const copyOpener = page.getByRole('button', { name: 'Copiar convite' }).first();
   await copyOpener.focus();
   await page.keyboard.press('Enter');
-  const copyTextarea = page.locator('ion-modal.copy-fallback-modal textarea[aria-label="Texto do convite seguro"]');
+  const copyTextarea = page.locator('ion-modal.copy-fallback-modal textarea[aria-label="Texto do convite seguro"]').first();
   await expect(copyTextarea).toBeVisible();
   await expectFocused(copyTextarea);
   await page.keyboard.press('Escape');
