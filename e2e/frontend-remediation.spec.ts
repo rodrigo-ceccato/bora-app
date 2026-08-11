@@ -65,7 +65,7 @@ test('creation fields have names and Local remains usable at 320px', async ({ pa
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
 
-test('mais-tarde exposes madrugada per date and rejects hidden early hours', async ({ page }) => {
+test('mais-tarde uses the shared time picker and keeps overnight alternatives', async ({ page }) => {
   await page.goto('/create?mode=mais-tarde');
   await expect(page.locator('.week-picker button[aria-pressed="true"]')).toHaveCount(1);
 
@@ -74,19 +74,17 @@ test('mais-tarde exposes madrugada per date and rejects hidden early hours', asy
   await dateInput.fill(await tomorrowDate(page));
   await expect(page.locator('ion-modal.show-modal')).toHaveCount(0);
 
-  const timeInput = page.locator('.time-add-row input[type="time"]');
-  await timeInput.fill('01:00');
-  await page.getByRole('button', { name: 'Adicionar', exact: true }).click();
-  await expect(page.getByText(/Mostre os horários da madrugada deste dia/)).toBeVisible();
-  await expect(page.locator('.time-chip[aria-label="Remover horário 01:00"]')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Escolher horário\. Atual:/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mostrar madrugada' })).toHaveCount(0);
 
-  const reveal = page.getByRole('button', { name: 'Mostrar madrugada' });
-  await expect(reveal).toHaveAttribute('aria-expanded', 'false');
-  await reveal.click();
-  await page.locator('#week-overnight-times').getByRole('button', { name: '01:00' }).click();
-  await expect(page.locator('.time-chip[aria-label="Remover horário 01:00"]')).toBeVisible();
-  await page.getByRole('button', { name: 'Ocultar madrugada' }).click();
-  await expect(page.locator('.time-chip[aria-label="Remover horário 01:00"]')).toHaveCount(0);
+  await page.getByRole('button', { name: /Escolher horário\. Atual:/ }).click();
+  await page.locator('ion-datetime[aria-label="Horário do Bora"]').evaluate((element) => {
+    element.dispatchEvent(new CustomEvent('ionChange', { bubbles: true, composed: true, detail: { value: '2099-08-01T23:00:00' } }));
+  });
+  await page.getByRole('button', { name: 'Pronto' }).click();
+  await expect(page.locator('.time-chip').filter({ hasText: '23:00' })).toBeVisible();
+  await page.getByRole('button', { name: '+1h' }).click();
+  await expect(page.locator('.time-chip').filter({ hasText: /00:00 ·/ })).toBeVisible();
 });
 
 test('event loading distinguishes network, server, and missing-event failures', async ({ page }) => {

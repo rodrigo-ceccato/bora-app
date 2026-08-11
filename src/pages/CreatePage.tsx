@@ -31,10 +31,6 @@ function validTimeValue(time: string) {
   return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time);
 }
 
-function earlyMorningTime(time: string) {
-  return /^(?:0[1-7]):[0-5]\d$/.test(time);
-}
-
 function dayLabel(date: string, long = false) {
   return new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', long
     ? { weekday: 'long', day: 'numeric', month: 'long' }
@@ -74,6 +70,19 @@ function sortedTimes(times: string[]) {
   return Array.from(new Set(times)).sort((left, right) => left.localeCompare(right));
 }
 
+type WeekAlternative = { date: string; time: string };
+
+function addDaysToDate(date: string, days: number) {
+  const result = new Date(`${date}T12:00:00`);
+  result.setDate(result.getDate() + days);
+  return localDateKey(result);
+}
+
+function sortedWeekAlternatives(alternatives: WeekAlternative[]) {
+  return Array.from(new Map(alternatives.map((alternative) => [`${alternative.date}T${alternative.time}`, alternative])).values())
+    .sort((left, right) => `${left.date}T${left.time}`.localeCompare(`${right.date}T${right.time}`));
+}
+
 function newDay(date = localDateKey(), slots: string[] = []): ScheduleDay {
   return { id: uid('day'), label: dayLabel(date), date, slots: sortedTimes(slots) };
 }
@@ -94,18 +103,19 @@ export default function CreatePage() {
   const [agoraDate, setAgoraDate] = useState(initialAgora.date);
   const [agoraTime, setAgoraTime] = useState(initialAgora.time);
   const [weekDate, setWeekDate] = useState(() => localDateKey());
-  const [weekTimes, setWeekTimes] = useState<string[]>([]);
-  const [overnightWeekDates, setOvernightWeekDates] = useState<Record<string, boolean>>({});
+  const [weekAlternatives, setWeekAlternatives] = useState<WeekAlternative[]>([]);
   const [timeDraft, setTimeDraft] = useState('18:00');
   const [days, setDays] = useState<ScheduleDay[]>(() => [newDay()]);
   const [overnightDays, setOvernightDays] = useState<Record<string, boolean>>({});
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [timePickerTarget, setTimePickerTarget] = useState<'agora' | 'week'>('agora');
   const [submitted, setSubmitted] = useState(false);
   const [creating, setCreating] = useState(false);
   const calendarOpenerRef = useRef<HTMLIonButtonElement>(null);
   const calendarInputRef = useRef<HTMLIonInputElement>(null);
   const timeOpenerRef = useRef<HTMLButtonElement>(null);
+  const weekTimeOpenerRef = useRef<HTMLButtonElement>(null);
   const firstQuickTimeRef = useRef<HTMLButtonElement>(null);
 
   useIonViewWillEnter(() => {
@@ -131,8 +141,8 @@ export default function CreatePage() {
     && new Set(day.slots).size === day.slots.length
     && day.slots.every((slot) => futureTime(day.date, slot))
   );
-  const weekScheduleValid = validDateValue(weekDate) && weekTimes.length > 0 && new Set(weekTimes).size === weekTimes.length
-    && weekTimes.every((time) => futureTime(weekDate, time) && (!earlyMorningTime(time) || overnightWeekDates[weekDate]));
+  const weekScheduleValid = validDateValue(weekDate) && weekAlternatives.length > 0
+    && weekAlternatives.every(({ date, time }) => validDateValue(date) && futureTime(date, time));
   const agoraValid = futureTime(agoraDate, agoraTime);
   const detail = modeDetails[mode];
 
@@ -190,47 +200,48 @@ export default function CreatePage() {
     setTimePickerOpen(false);
   }
 
-  function addWeekTime(time = timeDraft) {
+  function addWeekTime(time = timeDraft, date = weekDate) {
     if (!validTimeValue(time)) {
       toast({ message: 'Digite um horário válido entre 00:00 e 23:59.', color: 'warning', duration: 2400 });
       return;
     }
-    if (earlyMorningTime(time) && !overnightWeekDates[weekDate]) {
-      toast({ message: 'Mostre os horários da madrugada deste dia antes de adicionar um horário entre 01:00 e 07:00.', color: 'warning', duration: 3000 });
-      return;
-    }
-    if (!futureTime(weekDate, time)) {
+    if (!futureTime(date, time)) {
       toast({ message: 'Escolha um horário futuro para este dia.', color: 'warning', duration: 2400 });
       return;
     }
-    setWeekTimes((current) => sortedTimes([...current, time]));
+    setWeekAlternatives((current) => sortedWeekAlternatives([...current, { date, time }]));
   }
 
   function selectWeekDate(date: string) {
+    const previousDate = weekDate;
     setWeekDate(date);
-    if (!overnightWeekDates[date]) {
-      setWeekTimes((current) => current.filter((time) => !earlyMorningTime(time)));
-    }
-  }
-
-  function toggleWeekOvernightTimes() {
-    const enabled = !overnightWeekDates[weekDate];
-    setOvernightWeekDates((current) => ({ ...current, [weekDate]: enabled }));
-    if (!enabled) setWeekTimes((times) => times.filter((time) => !earlyMorningTime(time)));
+    setWeekAlternatives((current) => sortedWeekAlternatives(current.map((alternative) => {
+      const offset = Math.round((new Date(`${alternative.date}T12:00:00`).getTime() - new Date(`${previousDate}T12:00:00`).getTime()) / 86_400_000);
+      return { ...alternative, date: addDaysToDate(date, offset) };
+    })));
   }
 
   function addRelativeWeekTime(hours: number) {
     if (!validTimeValue(timeDraft)) {
-      toast({ message: 'Digite um horário válido primeiro.', color: 'warning', duration: 2400 });
+      toast({ message: 'Escolha um horário válido primeiro.', color: 'warning', duration: 2400 });
       return;
     }
     const [hour, minute] = timeDraft.split(':').map(Number);
     const totalMinutes = hour * 60 + minute + hours * 60;
-    if (totalMinutes >= 24 * 60) {
-      toast({ message: 'Esse atalho passaria da meia-noite. Escolha o dia seguinte para evitar ambiguidade.', color: 'warning', duration: 2800 });
-      return;
-    }
-    addWeekTime(`${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`);
+    addWeekTime(`${String(Math.floor((totalMinutes % (24 * 60)) / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`, addDaysToDate(weekDate, Math.floor(totalMinutes / (24 * 60))));
+  }
+
+  function openWeekTimePicker() {
+    setTimePickerTarget('week');
+    setTimePickerOpen(true);
+  }
+
+  function selectWeekTime(value: string | string[] | null | undefined) {
+    if (typeof value !== 'string') return;
+    const match = value.match(/T(\d{2}:\d{2})/);
+    if (!match) return;
+    setTimeDraft(match[1]);
+    addWeekTime(match[1]);
   }
 
   function updateDay(dayId: string, patch: Partial<ScheduleDay>) {
@@ -299,10 +310,10 @@ export default function CreatePage() {
     const startsAt = mode === 'agora'
       ? toInstantIso(dateTimeValue(agoraDate, agoraTime))
       : mode === 'mais-tarde'
-        ? toInstantIso(dateTimeValue(weekDate, weekTimes[0]))
+        ? toInstantIso(dateTimeValue(weekAlternatives[0].date, weekAlternatives[0].time))
         : undefined;
     const alternatives = mode === 'mais-tarde'
-      ? weekTimes.slice(1).map((time) => toInstantIso(dateTimeValue(weekDate, time)))
+      ? weekAlternatives.slice(1).map(({ date, time }) => toInstantIso(dateTimeValue(date, time)))
       : [];
 
     setCreating(true);
@@ -401,13 +412,18 @@ export default function CreatePage() {
               {week.map((date) => <button key={date} type="button" className={date === weekDate ? 'selected' : ''} aria-pressed={date === weekDate} aria-label={dayLabel(date, true)} disabled={date < today} onClick={() => selectWeekDate(date)}><span>{dayLabel(date).split(' ')[0]}</span><b>{date.slice(-2)}</b></button>)}
             </div>
             <IonButton ref={calendarOpenerRef} fill="clear" size="small" onClick={() => setCalendarOpen(true)}>Escolher outra data</IonButton>
-            <h2>Horários que funcionam</h2>
-            <div className="time-add-row"><IonInput type="time" value={timeDraft} aria-label="Horário para adicionar" onIonInput={(event) => setTimeDraft(event.detail.value || '')} /><IonButton onClick={() => addWeekTime()}>Adicionar</IonButton></div>
-            <div className="quick-times" role="group" aria-label="Adicionar horário rápido">{[1, 2, 3].map((hours) => <button key={hours} type="button" onClick={() => addRelativeWeekTime(hours)}>+{hours}h</button>)}</div>
-            <IonButton fill="clear" size="small" onClick={toggleWeekOvernightTimes} aria-expanded={Boolean(overnightWeekDates[weekDate])} aria-controls="week-overnight-times">{overnightWeekDates[weekDate] ? 'Ocultar madrugada' : 'Mostrar madrugada'}</IonButton>
-            {overnightWeekDates[weekDate] && <div id="week-overnight-times"><p className="muted">Horários entre 01:00 e 07:00 liberados para {dayLabel(weekDate, true)}.</p><div className="quick-times" role="group" aria-label={`Horários da madrugada de ${dayLabel(weekDate, true)}`}>{overnightTimeChoices.map((time) => <button key={time} type="button" aria-pressed={weekTimes.includes(time)} onClick={() => weekTimes.includes(time) ? setWeekTimes((current) => current.filter((item) => item !== time)) : addWeekTime(time)}>{time}</button>)}</div></div>}
-            <div className="time-chips">{weekTimes.map((time) => <button key={time} type="button" className="time-chip" aria-label={`Remover horário ${time}`} onClick={() => setWeekTimes((current) => current.filter((item) => item !== time))}>{time}<span aria-hidden="true">×</span></button>)}</div>
-            {weekTimes.length > 0 && <p className="schedule-summary">{dayLabel(weekDate, true)}, às {weekTimes.join(', ')}.</p>}
+            <h2>Escolha os horários</h2>
+            <button ref={weekTimeOpenerRef} type="button" className="time-picker-trigger" onClick={openWeekTimePicker} aria-haspopup="dialog" aria-label={`Escolher horário. Atual: ${timeDraft}`}><span>Horário</span><strong>{timeDraft}</strong><span aria-hidden="true">⌄</span></button>
+            <div className="quick-times" role="group" aria-label="Adicionar horário relativo">{[1, 2, 3].map((hours) => <button key={hours} type="button" onClick={() => addRelativeWeekTime(hours)}>+{hours}h</button>)}</div>
+            <div className="week-suggestions"><span>Sugestões</span><div className="time-chip-grid compact" role="group" aria-label="Horários sugeridos">{['18:00', '19:00', '20:00', '21:00', '22:00'].map((time) => {
+              const selected = weekAlternatives.some((alternative) => alternative.date === weekDate && alternative.time === time);
+              return <button key={time} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => selected ? setWeekAlternatives((current) => current.filter((alternative) => !(alternative.date === weekDate && alternative.time === time))) : addWeekTime(time)}>{time}</button>;
+            })}</div></div>
+            {weekAlternatives.length > 0 && <><h3 className="chosen-times-title">Horários escolhidos</h3><div className="time-chips">{weekAlternatives.map(({ date, time }) => {
+              const dateSuffix = date === weekDate ? '' : ` · ${dayLabel(date).replace(',', '')}`;
+              return <button key={`${date}T${time}`} type="button" className="time-chip" aria-label={`Remover horário ${time}${dateSuffix}`} onClick={() => setWeekAlternatives((current) => current.filter((alternative) => !(alternative.date === date && alternative.time === time)))}>{time}{dateSuffix}<span aria-hidden="true">×</span></button>;
+            })}</div></>}
+            {weekAlternatives.length > 0 && <p className="schedule-summary">{weekAlternatives.length} horário{weekAlternatives.length === 1 ? '' : 's'} para votar.</p>}
             {submitted && !weekScheduleValid && <IonNote className="field-error" color="danger" role="alert">Adicione pelo menos um horário futuro e válido.</IonNote>}
           </section>}
 
@@ -421,23 +437,23 @@ export default function CreatePage() {
                 <div className="day-actions"><IonButton fill="clear" size="small" onClick={() => duplicateDay(day)}>Duplicar dia</IonButton><IonButton fill="clear" size="small" onClick={() => toggleOvernightTimes(day.id)} aria-expanded={Boolean(overnightDays[day.id])}>{overnightDays[day.id] ? 'Ocultar madrugada' : 'Mostrar madrugada'}</IonButton><IonButton fill="clear" color="danger" size="small" onClick={() => removeDay(day.id)}>Remover dia</IonButton></div>
               </div>
             </details>)}
-            <IonButton fill="outline" onClick={addDay}>+ Adicionar dia</IonButton>
+            <IonButton className="bora-medium-button" fill="outline" onClick={addDay}>+ Adicionar dia</IonButton>
             {submitted && !markScheduleValid && <IonNote className="field-error" color="danger" role="alert">Cada data deve ser válida, única e ter pelo menos um horário futuro.</IonNote>}
           </section>}
 
           <IonNote className="guest-note">Você entra como confirmado. Convidados só precisam informar o nome para votar.</IonNote>
-          <IonButton expand="block" size="large" onClick={submit} disabled={creating}>{creating ? 'Criando...' : 'Criar link do Bora'}</IonButton>
+          <IonButton className="bora-primary-button" expand="block" size="large" onClick={submit} disabled={creating}>{creating ? 'Criando...' : 'Criar link do Bora'}</IonButton>
         </IonCardContent>
       </IonCard>
       <IonModal isOpen={calendarOpen} onDidPresent={() => void calendarInputRef.current?.setFocus()} onDidDismiss={() => { setCalendarOpen(false); window.requestAnimationFrame(() => calendarOpenerRef.current?.focus()); }}>
         <IonHeader><IonToolbar><IonTitle>{mode === 'agora' ? 'Alterar data' : 'Escolher outra data'}</IonTitle><IonButtons slot="end"><IonButton onClick={() => setCalendarOpen(false)}>Fechar</IonButton></IonButtons></IonToolbar></IonHeader>
         <IonContent className="ion-padding"><IonItem><IonLabel position="stacked">Data</IonLabel><IonInput ref={calendarInputRef} type="date" aria-label="Data do Bora" min={today} value={mode === 'agora' ? agoraDate : weekDate} onIonInput={(event) => { const date = event.detail.value || (mode === 'agora' ? agoraDate : weekDate); if (mode === 'agora') updateAgoraDate(date); else selectWeekDate(date); setCalendarOpen(false); }} /></IonItem></IonContent>
       </IonModal>
-      <IonModal isOpen={timePickerOpen} onDidPresent={() => firstQuickTimeRef.current?.focus()} onDidDismiss={() => { setTimePickerOpen(false); window.requestAnimationFrame(() => timeOpenerRef.current?.focus()); }} className="time-picker-modal">
+      <IonModal isOpen={timePickerOpen} onDidPresent={() => timePickerTarget === 'agora' ? firstQuickTimeRef.current?.focus() : undefined} onDidDismiss={() => { setTimePickerOpen(false); window.requestAnimationFrame(() => (timePickerTarget === 'agora' ? timeOpenerRef : weekTimeOpenerRef).current?.focus()); }} className="time-picker-modal">
         <IonHeader><IonToolbar><IonTitle>Escolha o horário</IonTitle><IonButtons slot="end"><IonButton onClick={() => setTimePickerOpen(false)}>Pronto</IonButton></IonButtons></IonToolbar></IonHeader>
         <IonContent className="ion-padding">
-          <div className="agora-quick-times" role="group" aria-label="Horários rápidos">{[1, 2, 3].map((hours) => <button ref={hours === 1 ? firstQuickTimeRef : undefined} key={hours} type="button" onClick={() => pickQuickTime(hours)}>Em {hours}h</button>)}</div>
-          <IonDatetime presentation="time" hourCycle="h23" value={dateTimeValue(agoraDate, agoraTime)} aria-label="Horário do Bora" onIonChange={(event) => selectAgoraTime(event.detail.value)} />
+          {timePickerTarget === 'agora' && <div className="agora-quick-times" role="group" aria-label="Horários rápidos">{[1, 2, 3].map((hours) => <button ref={hours === 1 ? firstQuickTimeRef : undefined} key={hours} type="button" onClick={() => pickQuickTime(hours)}>Em {hours}h</button>)}</div>}
+          <IonDatetime presentation="time" hourCycle="h23" value={dateTimeValue(timePickerTarget === 'agora' ? agoraDate : weekDate, timePickerTarget === 'agora' ? agoraTime : timeDraft)} aria-label="Horário do Bora" onIonChange={(event) => timePickerTarget === 'agora' ? selectAgoraTime(event.detail.value) : selectWeekTime(event.detail.value)} />
         </IonContent>
       </IonModal>
     </IonContent>

@@ -7,6 +7,7 @@
   --bora-safe-area-right: env(safe-area-inset-right, 0px);
   --bora-safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --bora-safe-area-left: env(safe-area-inset-left, 0px);
+  --bora-button-radius: 10px;
   --ion-safe-area-top: var(--bora-safe-area-top);
   --ion-safe-area-right: var(--bora-safe-area-right);
   --ion-safe-area-bottom: var(--bora-safe-area-bottom);
@@ -157,11 +158,13 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .week-picker button b { margin-top: 3px; font-size: 1.05rem; }
 .week-picker button.selected { border-color: #16836b; background: #e9f8f1; color: #11664d; box-shadow: inset 0 0 0 1px #16836b; }
 .week-picker button:disabled { opacity: .42; }
-.time-add-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; margin-top: 10px; }
-.time-add-row ion-input { min-width: 0; min-height: 46px; padding: 0 12px !important; border: 1px solid #d5e0e7; border-radius: 10px; background: #fff; }
-.time-add-row ion-button { margin: 0; }
 .quick-times, .time-chips, .day-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .quick-times button { border: 1px solid #b8d8cc; border-radius: 999px; background: #f2faf6; color: #17664b; padding: 7px 11px; font: inherit; font-size: .86rem; font-weight: 700; }
+.week-suggestions { margin-top: 16px; }
+.week-suggestions > span, .chosen-times-title { display: block; color: #587064; font-size: .86rem; font-weight: 750; }
+.chosen-times-title { margin: 18px 0 0; color: #1b2a34; font-size: .98rem; }
+.time-chip-grid.compact { grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 8px; }
+.time-chip-grid.compact button { min-height: 38px; }
 .time-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; border: 1px solid #8acbb0; border-radius: 999px; background: #e8f8ef; color: #135f45; padding: 7px 10px 7px 13px; font: inherit; font-weight: 750; }
 .time-chip span[aria-hidden] { font-size: 1.15rem; line-height: 1; }
 .section-heading-row { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
@@ -177,6 +180,7 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .time-chip-grid button { min-height: 40px; border: 1px solid #afbdc7; border-radius: 9px; background: #fff; color: #2d3a45; font: inherit; font-weight: 700; }
 .time-chip-grid button.selected { border: 2px solid #157357; background: #e6f7ee; color: #0d583e; }
 .time-chip-grid button:focus-visible, .week-picker button:focus-visible, .quick-times button:focus-visible, .time-chip:focus-visible { outline: 3px solid #77c7aa; outline-offset: 2px; }
+.bora-primary-button, .bora-medium-button { --border-radius: var(--bora-button-radius); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .copy-fallback-content { max-width: 640px; margin: 0 auto; }
@@ -883,8 +887,6 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
   .place-choice-selected { position: static; margin: 2px 16px 7px; background: transparent; }
   .place-field-row-selected ion-input { opacity: 1; pointer-events: auto; }
   .place-choice-label { white-space: normal; }
-  .time-add-row { grid-template-columns: minmax(0, 1fr); }
-  .time-add-row ion-button { width: 100%; }
   .threshold-control, .reminder-control { align-items: flex-start; flex-direction: column; }
   .stepper { align-self: stretch; grid-template-columns: 1fr 62px 1fr; }
   .compact-inputs { grid-template-columns: 1fr; }
@@ -893,6 +895,7 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
   .week-picker button { min-height: 52px; }
   .week-picker button span { font-size: .66rem; }
   .time-chip-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .time-chip-grid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .section-heading-row { align-items: flex-start; flex-direction: column; }
   .toolbar-secondary-action span { display: none; }
   .event-facts { grid-template-columns: 1fr; }
@@ -921,6 +924,7 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
   .mode-card-arrow { display: none; }
   .week-picker { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .time-chip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .time-chip-grid.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .agora-date-summary { align-items: flex-start; flex-direction: column; }
   .agora-date-summary ion-button { margin: 0 0 0 -7px; }
   .agora-quick-times { flex-wrap: wrap; }
