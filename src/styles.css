@@ -28,7 +28,8 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .toolbar-secondary-action { min-height: 44px; margin-inline: 4px; --padding-start: 10px; --padding-end: 10px; --color: #315b4d; --background-hover: #e8f4ee; --background-activated: #dcefe5; --border-radius: 10px; text-transform: none; }
 .toolbar-secondary-action ion-icon { margin-right: 6px; font-size: 19px; }
 .toolbar-secondary-action:focus-visible::part(native) { outline: 3px solid #4fa67e; outline-offset: 2px; }
-.home-toolbar-title { max-width: min(250px, calc(100% - 142px)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-toolbar-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-toolbar-actions { flex: 0 0 auto; }
 
 .hero-bg { --background: #f6f8fb; }
 

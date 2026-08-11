@@ -30,6 +30,46 @@ async function expectConsistentActionGroup(group: import('@playwright/test').Loc
   }
 }
 
+test('home toolbar gives greetings the remaining space before ellipsizing', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const cases = [
+    { name: 'Ana', greeting: 'Bora, Ana?', fits: true },
+    { name: 'Rodrigo', greeting: 'Bora, Rodrigo?', fits: true },
+    { name: 'Franz Kafka de Campinas', greeting: 'Bora, Franz?', fits: true },
+    { name: 'Supercalifragilisticexpialidociouswithanintentionallyverylongname', greeting: 'Bora, Supercalifragilisticexpialidociouswithanintentionallyverylongname?', fits: false }
+  ];
+
+  for (const entry of cases) {
+    await page.goto('/');
+    await page.evaluate((name) => localStorage.setItem('bora_participant_name', name), entry.name);
+    await page.reload();
+
+    const title = page.locator('ion-title.home-toolbar-title');
+    const action = page.locator('ion-buttons.home-toolbar-actions');
+    await expect(title).toHaveText(entry.greeting);
+    await expect(title).toHaveAttribute('aria-label', entry.greeting);
+    await expect(title).toHaveAttribute('title', entry.greeting);
+    await expect(action.getByRole('link', { name: 'Meus Boras' })).toBeVisible();
+
+    const dimensions = await title.evaluate((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const fullTextWidth = range.getBoundingClientRect().width;
+      const { width: titleWidth, right: titleRight } = element.getBoundingClientRect();
+      const actionLeft = document.querySelector('ion-buttons.home-toolbar-actions')!.getBoundingClientRect().left;
+      return { fullTextWidth, titleWidth, titleRight, actionLeft };
+    });
+    expect(dimensions.titleRight).toBeLessThanOrEqual(dimensions.actionLeft);
+    if (entry.fits) {
+      expect(dimensions.fullTextWidth).toBeLessThanOrEqual(dimensions.titleWidth);
+    } else {
+      expect(dimensions.fullTextWidth).toBeGreaterThan(dimensions.titleWidth);
+    }
+  }
+
+  await expect(page.locator('.toolbar-secondary-action > span')).toBeHidden();
+});
+
 test('home and every creation mode are usable at this viewport', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => localStorage.setItem('bora_participant_name', 'Ana'));

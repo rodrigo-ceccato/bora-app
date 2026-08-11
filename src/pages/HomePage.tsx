@@ -33,9 +33,9 @@ export default function HomePage() {
   const title = firstName ? `Bora, ${firstName}?` : 'Bora?';
   return <IonPage>
     <IonHeader>
-      <IonToolbar>
+      <IonToolbar className="home-toolbar">
         <IonTitle className="home-toolbar-title" aria-label={title} title={title}>{title}</IonTitle>
-        <IonButtons slot="end"><IonButton fill="clear" className="toolbar-secondary-action" routerLink="/my-events" aria-label="Meus Boras"><IonIcon icon={calendarOutline} aria-hidden="true" /><span>Meus Boras</span></IonButton></IonButtons>
+        <IonButtons slot="end" className="home-toolbar-actions"><IonButton fill="clear" className="toolbar-secondary-action" routerLink="/my-events" aria-label="Meus Boras"><IonIcon icon={calendarOutline} aria-hidden="true" /><span>Meus Boras</span></IonButton></IonButtons>
       </IonToolbar>
     </IonHeader>
     <IonContent className="ion-padding hero-bg">
