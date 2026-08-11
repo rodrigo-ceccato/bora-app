@@ -80,6 +80,7 @@ describe('event results', () => {
     expect(eventStatusText({ ...event, threshold: 2 }, votes)).toBe('Meta de confirmações atingida.');
     expect(eventStatusText({ ...event, threshold: 3 }, votes)).toBe('Falta 1 confirmação.');
     expect(eventStatusText({ ...event, threshold: 4 }, votes)).toBe('Faltam 2 confirmações.');
+    expect(eventStatusText({ ...event, threshold: 10 }, [], 10)).toBe('Meta de confirmações atingida.');
   });
 
   it('recalculates completion when the required confirmations change', () => {
@@ -96,5 +97,13 @@ describe('event results', () => {
     const groups = groupAvailabilityResults(availabilityResults({ ...event, days: [...event.days, secondDay] }, votes));
     expect(groups).toHaveLength(2);
     expect(resultDateLabel(secondDay.date)).toMatch(/02/);
+    expect(resultDateLabel(secondDay.date, true)).toMatch(/domingo/);
+  });
+
+  it('treats missing legacy vote selections as empty', () => {
+    const legacyVote = { ...votes[0], availability: undefined, preferredOptions: undefined } as unknown as BoraVote;
+    expect(availabilityResults(event, [legacyVote]).every((result) => result.count === 0)).toBe(true);
+    const timedEvent = { ...event, mode: 'mais-tarde' as const, startsAt: '2099-08-01T19:00:00.000Z', alternatives: [], days: [] };
+    expect(preferenceResults(timedEvent, [legacyVote])[0].count).toBe(0);
   });
 });

@@ -65,10 +65,23 @@ describe('invitationText', () => {
     expect(invitationText(scheduled)).toContain('Bora? Chopp\n\n📅 Hoje, segunda-feira, 10 de agosto\n🕕 às 18:07\n📍 Bar do Zé');
   });
 
+  it('rounds share clock icons at the half-hour boundaries and omits Hoje for another day', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-10T12:00:00.000Z'));
+    const scheduled = event({ mode: 'agora', startsAt: '2026-08-11T23:50:00' });
+    expect(invitationDateTime(scheduled)).toMatchObject({ date: expect.not.stringContaining('Hoje'), time: '🕛 às 23:50' });
+  });
+
   afterEach(() => vi.useRealTimers());
 
   it('keeps an optional description as its own block before confirmation', () => {
     const text = invitationText(event({ mode: 'agora', description: 'Levar refrigerante' }));
     expect(text).toContain('📍 Bar do Zé\n\nLevar refrigerante\n\nConfirma sua presença no Bora:');
+  });
+
+  it('falls back to the full schedule text when there is no decided instant', () => {
+    const undecided = event({ mode: 'marcar', startsAt: undefined, days: [] });
+    expect(invitationDateTime(undecided)).toBeNull();
+    expect(invitationText(undecided)).toContain('Dias e horários a combinar');
   });
 });

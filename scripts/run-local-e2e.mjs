@@ -1,7 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { setTimeout as wait } from 'node:timers/promises';
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const baseUrl = (process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8080').replace(/\/$/, '');
 // The full suite deliberately exercises many independent event creations from
 // one browser host. Raise only this disposable stack's limits; production keeps 1.

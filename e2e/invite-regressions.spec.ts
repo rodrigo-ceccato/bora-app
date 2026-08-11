@@ -12,7 +12,7 @@ async function installClipboard(page: import('@playwright/test').Page) {
 
 async function setIonInput(page: import('@playwright/test').Page, label: string, value: string) {
   await page.locator(`ion-input[aria-label="${label}"]`).evaluate((element, nextValue) => {
-    (element as HTMLIonInputElement).value = nextValue;
+    (element as HTMLElement & { value: string }).value = nextValue;
     element.dispatchEvent(new CustomEvent('ionInput', { bubbles: true, composed: true, detail: { value: nextValue } }));
   }, value);
 }

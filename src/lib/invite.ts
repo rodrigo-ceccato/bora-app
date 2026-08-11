@@ -17,7 +17,7 @@ function partsInZone(date: Date, timeZone?: string) {
 function clockEmoji(hour: number, minute: number) {
   // Unicode has clock faces for whole and half hours. Round to the nearest one.
   const halfHour = (hour * 2 + (minute >= 15 && minute < 45 ? 1 : minute >= 45 ? 2 : 0)) % 24;
-  return clockFaces[halfHour] || '🕐';
+  return clockFaces[halfHour]!;
 }
 
 /** The compact, share-ready date/time lines for a Bora with a chosen instant. */

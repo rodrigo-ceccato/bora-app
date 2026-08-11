@@ -30,4 +30,10 @@ describe('event options', () => {
     expect(optionLabel(baseEvent)).toBe('');
     expect(optionLabel(baseEvent, 'legacy:18:00')).toBe('18:00');
   });
+
+  it('preserves unparseable legacy alternatives as labels and IDs', () => {
+    const event = { ...baseEvent, alternatives: ['depois do trabalho'], startsAt: undefined };
+    expect(eventOptions(event)).toEqual([{ id: 'legacy:depois do trabalho', label: 'depois do trabalho', primary: true }]);
+    expect(optionLabel(event, 'unknown')).toBe('unknown');
+  });
 });

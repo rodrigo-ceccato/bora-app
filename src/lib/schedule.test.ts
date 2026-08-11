@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultDays, normalizeLines, responseLabel, slugify, uid } from './schedule';
 
 describe('schedule helpers', () => {
@@ -31,4 +31,21 @@ describe('schedule helpers', () => {
     expect(slugify('Bora seguro')).toMatch(/^bora-seguro-[a-f0-9]{16}$/);
     expect(insecureRandom).not.toHaveBeenCalled();
   });
+
+  it('uses getRandomValues when randomUUID is unavailable', () => {
+    const getRandomValues = vi.fn((bytes: Uint8Array) => {
+      bytes.fill(0xab);
+      return bytes;
+    });
+    vi.stubGlobal('crypto', { getRandomValues });
+    expect(uid('participant')).toBe(`participant_${'ab'.repeat(16)}`);
+    expect(getRandomValues).toHaveBeenCalledOnce();
+  });
+
+  it('refuses to mint IDs when secure randomness is unavailable', () => {
+    vi.stubGlobal('crypto', undefined);
+    expect(() => uid()).toThrow('não oferece geração segura');
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
 });
