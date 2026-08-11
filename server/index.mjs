@@ -71,8 +71,8 @@ function text(value, maxLength, required = false) {
 
 function positiveInteger(value) {
   const number = Number(value);
-  if (!Number.isInteger(number) || number < 1 || number > 999) {
-    throw httpError(400, 'O mínimo de confirmações deve ser um inteiro entre 1 e 999.');
+  if (!Number.isInteger(number) || number < 2 || number > 999) {
+    throw httpError(400, 'O mínimo de confirmações deve ser um inteiro entre 2 e 999.');
   }
   return number;
 }

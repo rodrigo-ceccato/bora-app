@@ -39,6 +39,18 @@ test('home actions stay actionable and unknown routes have a Portuguese fallback
   await expect(page.getByRole('link', { name: 'Voltar para o início' })).toBeVisible();
 });
 
+test('confirmation threshold controls stop at two and clamp direct numeric entry before creation', async ({ page }) => {
+  await page.goto('/create?mode=agora');
+  const threshold = page.getByRole('textbox', { name: 'Número mínimo de confirmações' });
+  const decrease = page.getByRole('button', { name: 'Diminuir confirmações' });
+  await decrease.click();
+  await expect(threshold).toHaveValue('2');
+  await expect(decrease).toBeDisabled();
+
+  await threshold.fill('1');
+  await expect(threshold).toHaveValue('2');
+});
+
 test('creation fields have names and Local remains usable at 320px', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto('/create?mode=agora');

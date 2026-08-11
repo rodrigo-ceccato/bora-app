@@ -20,6 +20,7 @@ function useQuery() {
 const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`);
 const overnightScheduleTimes = Array.from({ length: 7 }, (_, index) => `0${index + 1}:00`);
 const maxThreshold = 999;
+const minThreshold = 2;
 
 function agoraDateTime(date: string, time: string) {
   return `${date}T${time}:00`;
@@ -285,7 +286,7 @@ export default function EventPage() {
   }
 
   function changeEditThreshold(delta: number) {
-    setEditEvent((current) => current ? { ...current, threshold: Math.min(maxThreshold, Math.max(1, Math.round(current.threshold) + delta)) } : current);
+    setEditEvent((current) => current ? { ...current, threshold: Math.min(maxThreshold, Math.max(minThreshold, Math.round(current.threshold) + delta)) } : current);
   }
 
   function updateEditMoreLaterStart(value: string | string[] | null | undefined) {
@@ -387,7 +388,7 @@ export default function EventPage() {
     const threshold = Number(editEvent.threshold);
     const editWeekDate = editEvent.startsAt?.slice(0, 10) || '';
     const scheduleValid = validEditableSchedule(editEvent, Boolean(overnightEditWeekDates[editWeekDate]));
-    if (!editEvent.title.trim() || !editEvent.place.trim() || !Number.isInteger(threshold) || threshold < 1 || !scheduleValid) {
+    if (!editEvent.title.trim() || !editEvent.place.trim() || !Number.isInteger(threshold) || threshold < minThreshold || !scheduleValid) {
       toast({ message: 'Revise título, local, mínimo e horários antes de salvar.', color: 'danger', duration: 2800 });
       return;
     }
@@ -970,8 +971,8 @@ export default function EventPage() {
                 <section className="threshold-control" aria-labelledby="editor-threshold-title">
                   <div><strong id="editor-threshold-title">Quantas pessoas precisam confirmar?</strong><small>Incluindo você</small></div>
                   <div className="stepper">
-                    <button type="button" onClick={() => changeEditThreshold(-1)} disabled={editEvent.threshold <= 1} aria-label="Diminuir confirmações">−</button>
-                    <input value={editEvent.threshold} inputMode="numeric" aria-label="Número mínimo de confirmações" aria-invalid={editSubmitted && (!Number.isInteger(editEvent.threshold) || editEvent.threshold < 1 || editEvent.threshold > maxThreshold)} onChange={(item) => updateEdit({ threshold: Math.min(maxThreshold, Math.max(1, Number(item.target.value.replace(/\D/g, '')) || 1)) })} />
+                    <button type="button" onClick={() => changeEditThreshold(-1)} disabled={editEvent.threshold <= minThreshold} aria-label="Diminuir confirmações">−</button>
+                    <input value={editEvent.threshold} inputMode="numeric" aria-label="Número mínimo de confirmações" aria-invalid={editSubmitted && (!Number.isInteger(editEvent.threshold) || editEvent.threshold < minThreshold || editEvent.threshold > maxThreshold)} onChange={(item) => updateEdit({ threshold: Math.min(maxThreshold, Math.max(minThreshold, Number(item.target.value.replace(/\D/g, '')) || minThreshold)) })} />
                     <button type="button" onClick={() => changeEditThreshold(1)} disabled={editEvent.threshold >= maxThreshold} aria-label="Aumentar confirmações">+</button>
                   </div>
                 </section>

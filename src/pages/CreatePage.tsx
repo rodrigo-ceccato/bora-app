@@ -14,6 +14,7 @@ const modeDetails: Record<BoraMode, { title: string; description: string }> = {
 
 const timeChoices = Array.from({ length: 16 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`);
 const overnightTimeChoices = Array.from({ length: 7 }, (_, index) => `0${index + 1}:00`);
+const minThreshold = 2;
 const maxThreshold = 999;
 
 function dateTimeValue(date: string, time: string) {
@@ -136,7 +137,7 @@ export default function CreatePage() {
   const detail = modeDetails[mode];
 
   function changeThreshold(next: number) {
-    setThreshold(Math.min(maxThreshold, Math.max(1, Number.isFinite(next) ? Math.round(next) : 1)));
+    setThreshold(Math.min(maxThreshold, Math.max(minThreshold, Number.isFinite(next) ? Math.round(next) : minThreshold)));
   }
 
   function updateCreatedByName(value: string) {
@@ -289,7 +290,7 @@ export default function CreatePage() {
   async function submit() {
     setSubmitted(true);
     const resolvedPlace = placeInTitle ? title.trim() : place.trim();
-    const commonValid = title.trim() && resolvedPlace && createdByName.trim() && threshold >= 1 && threshold <= maxThreshold;
+    const commonValid = title.trim() && resolvedPlace && createdByName.trim() && threshold >= minThreshold && threshold <= maxThreshold;
     const modeValid = mode === 'agora' ? agoraValid : mode === 'mais-tarde' ? weekScheduleValid : markScheduleValid;
     if (!commonValid || !modeValid) {
       toast({ message: 'Revise os campos e horários antes de criar o Bora.', color: 'danger', duration: 2800 });
@@ -376,7 +377,7 @@ export default function CreatePage() {
           <section className="threshold-control" aria-labelledby="threshold-title">
             <div><strong id="threshold-title">Quantas pessoas precisam confirmar?</strong><small>Incluindo você</small></div>
             <div className="stepper">
-              <button type="button" onClick={() => changeThreshold(threshold - 1)} disabled={threshold <= 1} aria-label="Diminuir confirmações">−</button>
+              <button type="button" onClick={() => changeThreshold(threshold - 1)} disabled={threshold <= minThreshold} aria-label="Diminuir confirmações">−</button>
               <input value={threshold} inputMode="numeric" aria-label="Número mínimo de confirmações" onChange={(event) => changeThreshold(Number(event.target.value.replace(/\D/g, '')))} />
               <button type="button" onClick={() => changeThreshold(threshold + 1)} disabled={threshold >= maxThreshold} aria-label="Aumentar confirmações">+</button>
             </div>

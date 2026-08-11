@@ -57,7 +57,10 @@ describe('multi-option event API validation', () => {
   it('requires timezone-aware instants and constrains untrusted fields', () => {
     expect(() => validateEvent({ ...eventInput, startsAt: '2026-08-03T21:00:00' }))
       .toThrow('incluir o fuso horário');
-    expect(() => validateEvent({ ...eventInput, threshold: 0 })).toThrow('entre 1 e 999');
+    expect(() => validateEvent({ ...eventInput, threshold: 1 })).toThrow('entre 2 e 999');
+    expect(validateEvent({ ...eventInput, threshold: 2 }).threshold).toBe(2);
+    expect(validateEvent({ ...eventInput, threshold: 999 }).threshold).toBe(999);
+    expect(() => validateEvent({ ...eventInput, threshold: 1000 })).toThrow('entre 2 e 999');
     expect(() => validateEvent({ ...eventInput, title: 'x'.repeat(121) })).toThrow('no máximo 120');
   });
 

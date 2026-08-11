@@ -74,7 +74,7 @@ describe('resilient browser storage', () => {
     ]));
     local.setItem('bora_events_v2', JSON.stringify([{
       event: {
-        id: 'evt_old', slug: 'old', mode: 'agora', title: 'Antigo', place: 'Centro', threshold: 1,
+        id: 'evt_old', slug: 'old', mode: 'agora', title: 'Antigo', place: 'Centro', threshold: 2,
         startsAt: '2099-08-01T18:00:00.000Z', alternatives: [], days: [], votingClosed: false,
         createdAt: '2099-01-01T00:00:00.000Z'
       },
@@ -85,7 +85,7 @@ describe('resilient browser storage', () => {
 
     restoreAdminEvents([{ slug: 'new', title: 'Novo', adminToken: 'adm_new' }]);
     await createEvent({
-      mode: 'agora', title: 'Novo evento', place: 'Centro', threshold: 1,
+      mode: 'agora', title: 'Novo evento', place: 'Centro', threshold: 2,
       startsAt: '2099-08-02T18:00:00.000Z', alternatives: [], days: [], createdByName: 'Ana'
     });
 
@@ -146,7 +146,7 @@ describe('resilient browser storage', () => {
       {
         event: {
           id: 'wrong_optional', slug: 'wrong-optional', mode: 'marcar', title: 'Inválido', place: 'Centro',
-          threshold: 1, alternatives: [], days: [{ id: 'day_x', label: 'dia', date: '2099-08-02', slots: ['18:00'] }],
+          threshold: 2, alternatives: [], days: [{ id: 'day_x', label: 'dia', date: '2099-08-02', slots: ['18:00'] }],
           votingClosed: false, decidedOption: { unsafe: true }, description: { unsafe: true },
           createdAt: '2099-01-01T00:00:00.000Z'
         },

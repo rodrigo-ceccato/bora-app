@@ -225,7 +225,7 @@ function normalizeStoredEvent(value: unknown): BoraEvent | null {
   if (typeof event.id !== 'string' || !event.id || typeof event.slug !== 'string' || !event.slug
     || typeof event.title !== 'string' || typeof event.place !== 'string'
     || typeof event.mode !== 'string' || !storedModes.has(event.mode)
-    || !Number.isInteger(event.threshold) || Number(event.threshold) < 1
+    || !Number.isInteger(event.threshold) || Number(event.threshold) < 2
     || typeof event.votingClosed !== 'boolean' || typeof event.createdAt !== 'string') return null;
 
   const days = Array.isArray(event.days) ? event.days.map((day) => {

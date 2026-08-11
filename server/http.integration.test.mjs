@@ -627,6 +627,45 @@ integration('HTTP API with disposable PostgreSQL', () => {
     expect(migration.rowCount).toBe(1);
   });
 
+  it('enforces the two-person confirmation minimum for event creation and edits', async () => {
+    const isolatedApi = await startApi();
+    try {
+      const base = isolatedApi.base;
+      const rejected = await request('/events', {
+        base, method: 'POST', body: { participantId: 'threshold-one', event: futureEvent({ threshold: 1 }) }
+      });
+      expect(rejected.status).toBe(400);
+      expect(await json(rejected)).toEqual({ error: 'O mínimo de confirmações deve ser um inteiro entre 2 e 999.' });
+
+      const created = await request('/events', {
+        base, method: 'POST', body: { participantId: 'threshold-two', event: futureEvent({ threshold: 2 }) }
+      });
+      expect(created.status).toBe(201);
+      const minimum = await json(created);
+      expect(minimum.event.threshold).toBe(2);
+      const maximum = await request('/events', {
+        base, method: 'POST', body: { participantId: 'threshold-999', event: futureEvent({ threshold: 999 }) }
+      });
+      expect(maximum.status).toBe(201);
+      expect((await json(maximum)).event.threshold).toBe(999);
+
+      const tooHigh = await request('/events', {
+        base, method: 'POST', body: { participantId: 'threshold-1000', event: futureEvent({ threshold: 1000 }) }
+      });
+      expect(tooHigh.status).toBe(400);
+      expect(await json(tooHigh)).toEqual({ error: 'O mínimo de confirmações deve ser um inteiro entre 2 e 999.' });
+
+      const invalidEdit = await request(`/events/${minimum.event.slug}`, {
+        base, method: 'PATCH', adminToken: minimum.adminToken,
+        body: { ...minimum.event, threshold: 1, revision: minimum.event.revision }
+      });
+      expect(invalidEdit.status).toBe(400);
+      expect(await json(invalidEdit)).toEqual({ error: 'O mínimo de confirmações deve ser um inteiro entre 2 e 999.' });
+    } finally {
+      await isolatedApi.stop();
+    }
+  });
+
   it('treats query-string event creation as rate-limited and ignores spoofed forwarding headers', async () => {
     const isolatedApi = await startApi();
     try {

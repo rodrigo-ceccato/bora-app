@@ -6,7 +6,7 @@ create table if not exists events (
   title text not null,
   place text not null,
   description text not null default '',
-  threshold integer not null check (threshold >= 1),
+  threshold integer not null check (threshold >= 2),
   starts_at timestamptz,
   alternatives jsonb not null default '[]'::jsonb,
   days jsonb not null default '[]'::jsonb,
