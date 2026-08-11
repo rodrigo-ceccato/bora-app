@@ -2,7 +2,17 @@ import type { ScheduleDay } from './types';
 import { localDateKey } from './datetime';
 
 export function uid(prefix = 'id') {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === 'function') {
+    return `${prefix}_${cryptoApi.randomUUID().replace(/-/g, '')}`;
+  }
+  if (typeof cryptoApi?.getRandomValues === 'function') {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    return `${prefix}_${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+  }
+  // Participant and local organizer IDs are bearer capabilities. Refuse to
+  // mint a predictable fallback on an environment without secure randomness.
+  throw new Error('Este navegador não oferece geração segura de identificadores.');
 }
 
 export function slugify(title: string) {
@@ -12,7 +22,7 @@ export function slugify(title: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '') || 'bora';
-  return `${base}-${Math.random().toString(36).slice(2, 6)}`;
+  return `${base}-${uid('link').slice('link_'.length, 'link_'.length + 16)}`;
 }
 
 export function defaultDays(): ScheduleDay[] {

@@ -29,6 +29,7 @@ import { useEffect, useState } from "react";
 import { calendarDetails } from "../lib/calendar";
 import {
   defaultPushReminderPreferences,
+  detachDevicePushSubscription,
   disablePushReminders,
   enablePushReminders,
   pushReminderPreferences,
@@ -39,16 +40,16 @@ import {
 } from "../lib/push";
 import {
   clearDeviceAuthentication,
-  getEvent,
   getParticipantName,
   listAdminEvents,
   listMyEvents,
+  saveSessionPreference,
   saveParticipantName,
   type MyEvents,
 } from "../lib/store";
-import type { BoraEvent } from "../lib/types";
+import type { BoraEvent, EventSummary, VoteResponse } from "../lib/types";
 
-type EventListItem = { event: BoraEvent; confirmed: number };
+type EventListItem = { event: BoraEvent; confirmed: number; ownResponse?: VoteResponse };
 type EventGroups = { created: EventListItem[]; joined: EventListItem[] };
 type ExpandedSections = {
   upcoming: boolean;
@@ -186,25 +187,23 @@ export default function MyEventsPage() {
       window.removeEventListener("bora:participant-name-updated", update);
   }, []);
   useEffect(() => {
-    sessionStorage.setItem(expansionStorageKey, JSON.stringify(expanded));
+    // Expansion state is a convenience only; storage denial/quota must not
+    // replace the page with a global error screen.
+    saveSessionPreference(expansionStorageKey, JSON.stringify(expanded));
   }, [expanded]);
   useIonViewWillEnter(() => {
     let active = true;
     setParticipantName(getParticipantName());
     setLoading(true);
     void listMyEvents()
-      .then(async (result: MyEvents) => {
-        const hydrate = async (event: BoraEvent): Promise<EventListItem> => ({
+      .then((result: MyEvents) => {
+        const summarize = (event: EventSummary): EventListItem => ({
           event,
-          confirmed:
-            (await getEvent(event.slug).catch(() => null))?.votes.filter(
-              (vote) => vote.response === "accept",
-            ).length || 0,
+          confirmed: event.confirmedCount ?? 0,
+          ownResponse: event.participantResponse,
         });
-        const [created, joined] = await Promise.all([
-          Promise.all(result.created.map(hydrate)),
-          Promise.all(result.joined.map(hydrate)),
-        ]);
+        const created = result.created.map(summarize);
+        const joined = result.joined.map(summarize);
         if (active)
           setEvents({
             created: sortEvents(created),
@@ -335,6 +334,7 @@ export default function MyEventsPage() {
     });
   }
   function removeDeviceAccess() {
+    if (reminderBusy) return;
     presentAlert({
       header: "Remover acesso deste aparelho?",
       message:
@@ -345,20 +345,37 @@ export default function MyEventsPage() {
           text: "Remover acesso",
           role: "destructive",
           handler: () => {
-            clearDeviceAuthentication();
-            toast({
-              message: "O acesso foi removido deste aparelho.",
-              color: "success",
-              duration: 2600,
-            });
-            router.push("/home", "root");
+            void (async () => {
+              setReminderBusy(true);
+              let cleanup: Awaited<ReturnType<typeof detachDevicePushSubscription>> = "failed";
+              try {
+                cleanup = await detachDevicePushSubscription();
+              } catch {
+                cleanup = "failed";
+              }
+              const localCleanup = clearDeviceAuthentication();
+              setReminderBusy(false);
+              const remindersComplete = cleanup === "none" || cleanup === "removed";
+              const complete = remindersComplete && localCleanup.complete;
+              toast({
+                message: complete
+                  ? "O acesso foi removido deste aparelho."
+                  : localCleanup.complete
+                    ? "O acesso local foi removido. A limpeza dos lembretes ficou incompleta; bloqueie as notificações deste site se este aparelho não for mais seu."
+                    : "Não foi possível confirmar a remoção de todos os dados locais. Feche os dados deste site no navegador antes de entregar este aparelho.",
+                color: complete ? "success" : "warning",
+                duration: complete ? 2600 : 5000,
+              });
+              router.push("/home", "root");
+            })();
           },
         },
       ],
     });
   }
-  function cards(items: EventListItem[], label: string) {
-    return items.map(({ event, confirmed }) => {
+  function cards(items: EventListItem[], label: string | ((item: EventListItem) => string)) {
+    return items.map((item) => {
+      const { event, confirmed } = item;
       const [date, time] = eventDateParts(event);
       const token = adminTokens.get(event.slug);
       return (
@@ -388,7 +405,7 @@ export default function MyEventsPage() {
             <span>{event.place}</span>
           </span>
           <span className="my-event-card-bottom">
-            <span>{label}</span>
+            <span>{typeof label === "function" ? label(item) : label}</span>
             <span>
               {confirmed} de {event.threshold} confirmaram
             </span>
@@ -475,7 +492,7 @@ export default function MyEventsPage() {
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonBackButton defaultHref="/home" />
+            <IonBackButton defaultHref="/home" text="Voltar" />
           </IonButtons>
           <IonTitle>Meus Boras</IonTitle>
         </IonToolbar>
@@ -484,6 +501,7 @@ export default function MyEventsPage() {
         <main className="my-events-container">
           <section className="my-events-intro">
             <span className="section-eyebrow">Sua agenda</span>
+            <h1>Meus Boras</h1>
             <p>Eventos que você criou ou em que está participando.</p>
           </section>
           {loading ? (
@@ -516,7 +534,13 @@ export default function MyEventsPage() {
                     </span>
                   </button>
                   <div id="my-events-upcoming" hidden={!expanded.upcoming}>
-                    {cards(upcoming, "Você confirmou")}
+                    {cards(upcoming, ({ event, ownResponse }) => {
+                      if (events.created.some((item) => item.event.id === event.id)) return "Organizador";
+                      if (ownResponse === "accept") return "Você confirmou";
+                      if (ownResponse === "maybe") return "Você respondeu talvez";
+                      if (ownResponse === "decline") return "Você não pode participar";
+                      return "Participação registrada";
+                    })}
                   </div>
                 </section>
               ) : (
@@ -657,6 +681,7 @@ export default function MyEventsPage() {
             <button
               type="button"
               className="device-setting-row destructive-device-action"
+              disabled={reminderBusy}
               onClick={removeDeviceAccess}
             >
               <span className="device-setting-icon">
