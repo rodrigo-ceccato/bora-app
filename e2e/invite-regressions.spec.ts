@@ -10,6 +10,13 @@ async function installClipboard(page: import('@playwright/test').Page) {
   });
 }
 
+async function setIonInput(page: import('@playwright/test').Page, label: string, value: string) {
+  await page.locator(`ion-input[aria-label="${label}"]`).evaluate((element, nextValue) => {
+    (element as HTMLIonInputElement).value = nextValue;
+    element.dispatchEvent(new CustomEvent('ionInput', { bubbles: true, composed: true, detail: { value: nextValue } }));
+  }, value);
+}
+
 function localDay(date: Date) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
@@ -188,8 +195,7 @@ test('mais tarde progress bars follow an edited confirmation target', async ({ p
   }
 });
 
-test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes', async ({ page, context, browser, request }, testInfo) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+test('agora invite lifecycle: day sticks, invite copies cleanly, invite votes', async ({ page, browser, request }, testInfo) => {
   await installClipboard(page);
   const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const title = `Rolê ${runId}`;
@@ -206,7 +212,7 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes',
   await page.getByRole('button', { name: 'Pronto' }).click();
   await expect(page.locator('.agora-date-summary .schedule-summary')).toContainText('Amanhã');
 
-  await page.getByRole('textbox', { name: 'Nome do evento' }).fill(title);
+  await setIonInput(page, 'Nome do evento', title);
   const placeField = page.getByRole('textbox', { name: 'Local' });
   const placeInTitle = page.getByRole('checkbox', { name: 'O nome já diz onde é' });
   await placeInTitle.click();
@@ -220,7 +226,7 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes',
   await placeField.fill('');
   await expect(placeInTitle).toBeVisible();
   await placeInTitle.click();
-  await page.locator('ion-item:has-text("Seu nome") input').fill('Ana');
+  await setIonInput(page, 'Seu nome', 'Ana');
   await page.getByRole('button', { name: 'Criar link do Bora' }).click();
   await page.waitForURL(/\/e\//);
   await expect(page.locator('.ready-card')).toBeInViewport();
@@ -267,7 +273,7 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes',
       inviteePage.on('pageerror', (error) => inviteeErrors.push(error.message));
       await inviteePage.goto(`${origin}/e/${slug}`);
       await expect(inviteePage.getByRole('heading', { name: title })).toBeVisible();
-      await inviteePage.locator('ion-item:has-text("Seu nome") input').fill('Bruno');
+      await setIonInput(inviteePage, 'Seu nome', 'Bruno');
       await inviteePage.getByRole('button', { name: /Posso/ }).click();
       await expect(inviteePage.getByRole('heading', { name: 'Voto registrado' })).toBeVisible();
       expect(inviteeErrors).toEqual([]);

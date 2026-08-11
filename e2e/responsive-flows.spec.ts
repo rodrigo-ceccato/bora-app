@@ -84,8 +84,7 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expect(page).toHaveURL(/\/my-events$/);
 });
 
-test('device-transfer links restore the saved participant name', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+test('device-transfer links restore the saved participant name', async ({ page }) => {
   await installClipboard(page);
   await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: 'name-transfer-token' } }));
   await page.route('**/api/recover', (route) => route.fulfill({ json: { participantId: 'name-transfer-participant' } }));
@@ -102,8 +101,7 @@ test('device-transfer links restore the saved participant name', async ({ page, 
   await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Bia');
 });
 
-test('recovery confirms before replacing an existing Bora on this device', async ({ page, context }, testInfo) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+test('recovery confirms before replacing an existing Bora on this device', async ({ page }, testInfo) => {
   await installClipboard(page);
   const originalParticipant = `original-participant-${testInfo.project.name}-${Date.now()}`;
   const currentParticipant = `participant-on-this-device-${testInfo.project.name}-${Date.now()}`;
@@ -147,8 +145,7 @@ test('back after accepting a recovery link does not return to the acceptance pag
   await expect(page.getByRole('heading', { name: 'Bora marcar?' })).toBeVisible();
 });
 
-test('device-transfer links can include organizer controls', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+test('device-transfer links can include organizer controls', async ({ page }) => {
   await installClipboard(page);
   await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: 'organizer-transfer-token' } }));
   await page.goto('/recover');
