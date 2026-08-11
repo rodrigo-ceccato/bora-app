@@ -49,8 +49,23 @@ function psql(database, sql) {
   ], { input: sql }).stdout.trim();
 }
 
+function pause(milliseconds) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
 function createDatabase(database) {
-  docker(['exec', container, 'createdb', '-U', 'postgres', database]);
+  // The official image briefly accepts connections on its initialization
+  // server, then restarts into its final server. pg_isready can report ready
+  // during that handoff, so retry database creation through the transition.
+  let result;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    result = docker(['exec', container, 'createdb', '-U', 'postgres', database], { allowFailure: true });
+    if (result.status === 0) return;
+    pause(250);
+  }
+  if (result?.stdout) process.stdout.write(result.stdout);
+  if (result?.stderr) process.stderr.write(result.stderr);
+  throw new Error(`Could not create ${database} in disposable PostgreSQL`);
 }
 
 function bootstrap(database, migrationCount) {
@@ -138,7 +153,7 @@ try {
       ready = true;
       break;
     }
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    pause(250);
   }
   if (!ready) throw new Error('Disposable PostgreSQL did not become ready');
 
