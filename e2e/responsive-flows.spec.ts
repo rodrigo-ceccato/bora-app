@@ -1,5 +1,15 @@
 import { expect, test } from '@playwright/test';
 
+async function installClipboard(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    let value = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async (next: string) => { value = next; }, readText: async () => value }
+    });
+  });
+}
+
 async function expectNoHorizontalScroll(page: import('@playwright/test').Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
@@ -76,6 +86,7 @@ test('home and every creation mode are usable at this viewport', async ({ page }
 
 test('device-transfer links restore the saved participant name', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await installClipboard(page);
   await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: 'name-transfer-token' } }));
   await page.route('**/api/recover', (route) => route.fulfill({ json: { participantId: 'name-transfer-participant' } }));
   await page.goto('/recover');
@@ -93,6 +104,7 @@ test('device-transfer links restore the saved participant name', async ({ page, 
 
 test('recovery confirms before replacing an existing Bora on this device', async ({ page, context }, testInfo) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await installClipboard(page);
   const originalParticipant = `original-participant-${testInfo.project.name}-${Date.now()}`;
   const currentParticipant = `participant-on-this-device-${testInfo.project.name}-${Date.now()}`;
   await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: `confirm-token-${testInfo.project.name}` } }));
@@ -137,6 +149,7 @@ test('back after accepting a recovery link does not return to the acceptance pag
 
 test('device-transfer links can include organizer controls', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await installClipboard(page);
   await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: 'organizer-transfer-token' } }));
   await page.goto('/recover');
   await page.evaluate(() => {

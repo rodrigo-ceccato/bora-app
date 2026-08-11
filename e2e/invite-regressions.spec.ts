@@ -1,5 +1,15 @@
 import { expect, test, type BrowserContextOptions, type TestInfo } from '@playwright/test';
 
+async function installClipboard(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    let value = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async (next: string) => { value = next; }, readText: async () => value }
+    });
+  });
+}
+
 function localDay(date: Date) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
@@ -180,6 +190,7 @@ test('mais tarde progress bars follow an edited confirmation target', async ({ p
 
 test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes', async ({ page, context, browser, request }, testInfo) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await installClipboard(page);
   const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const title = `Rolê ${runId}`;
   const pageErrors: string[] = [];
