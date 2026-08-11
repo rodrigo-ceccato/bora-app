@@ -20,6 +20,12 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 done
 
 if [ "$pushes_main" = true ]; then
+  echo "Running local verification gates before pushing main..."
+  npm run verify || exit 1
+  npm run verify:ops || exit 1
+  npm run verify:static || exit 1
+  npm run test:migrations || exit 1
+
   echo "Running the local Compose E2E suite before pushing main..."
   npm run test:e2e:local || exit 1
 fi
