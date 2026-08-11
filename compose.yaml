@@ -63,5 +63,16 @@ services:
       api:
         condition: service_healthy
 
+  e2e:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    profiles: ["test"]
+    environment:
+      PLAYWRIGHT_BASE_URL: http://web
+    depends_on:
+      web:
+        condition: service_started
+
 volumes:
   bora_database:

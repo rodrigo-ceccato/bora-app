@@ -111,7 +111,7 @@ test('marcar with confirmations still shows the waiting-for-date notice', async 
       participantId,
       event: {
         mode: 'marcar', title: `Marcar ${runId}`, place: 'Praça', description: '', threshold: 2,
-        startsAt: null, alternatives: [], createdByName: 'Ana', votingClosed: false,
+        startsAt: null, alternatives: [], timeZone: 'America/Sao_Paulo', createdByName: 'Ana', votingClosed: false,
         days: [{ id: 'sabado', label: 'sáb. 01', date: '2099-08-01', slots: ['18:00'] }]
       }
     }
@@ -195,8 +195,8 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes',
   await page.getByRole('button', { name: 'Pronto' }).click();
   await expect(page.locator('.agora-date-summary .schedule-summary')).toContainText('Amanhã');
 
-  await page.locator('ion-item:has-text("Nome do evento") input').fill(title);
-  const placeField = page.locator('ion-item:has-text("Local") input');
+  await page.getByRole('textbox', { name: 'Nome do evento' }).fill(title);
+  const placeField = page.getByRole('textbox', { name: 'Local' });
   const placeInTitle = page.getByRole('checkbox', { name: 'O nome já diz onde é' });
   await placeInTitle.click();
   await expect(placeInTitle).toBeChecked();

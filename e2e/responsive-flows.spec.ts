@@ -294,7 +294,7 @@ test('results stay compact and explain availability', async ({ page, request }, 
       participantId: creatorParticipantId,
       event: {
         mode: 'marcar', title, place: 'Centro', description: '', threshold: 3,
-        startsAt: null, alternatives: [], createdByName: 'Ana', votingClosed: false,
+        startsAt: null, alternatives: [], timeZone: 'America/Sao_Paulo', createdByName: 'Ana', votingClosed: false,
         days: [{ id: 'sabado', label: 'sáb. 01', date: '2099-08-01', slots: ['18:00', '19:00', '20:00', '21:00'] }]
       }
     }

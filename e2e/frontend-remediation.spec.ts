@@ -58,7 +58,7 @@ test('mais-tarde exposes madrugada per date and rejects hidden early hours', asy
   await expect(page.locator('.week-picker button[aria-pressed="true"]')).toHaveCount(1);
 
   await page.getByRole('button', { name: 'Escolher outra data' }).click();
-  const dateInput = page.locator('ion-modal.show-modal ion-input[aria-label="Data do Bora"] input');
+  const dateInput = page.getByRole('textbox', { name: 'Data do Bora' });
   await dateInput.fill(await tomorrowDate(page));
   await expect(page.locator('ion-modal.show-modal')).toHaveCount(0);
 

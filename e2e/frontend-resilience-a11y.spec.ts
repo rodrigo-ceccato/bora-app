@@ -85,7 +85,7 @@ test('keyboard flow enters creation and modal focus returns after Escape', async
   const calendarOpener = page.getByRole('button', { name: 'Outra data' });
   await tabTo(page, calendarOpener);
   await page.keyboard.press('Enter');
-  const calendarInput = page.locator('ion-modal.show-modal ion-input[aria-label="Data do Bora"] input');
+  const calendarInput = page.getByRole('textbox', { name: 'Data do Bora' });
   await expect(calendarInput).toBeVisible();
   await expectFocused(calendarInput);
   await page.keyboard.press('Escape');
@@ -123,14 +123,14 @@ test('edit, nested calendar, and copy fallback preserve modal focus', async ({ p
   const editOpener = page.getByRole('button', { name: 'Editar detalhes do evento' });
   await editOpener.focus();
   await page.keyboard.press('Enter');
-  const titleInput = page.locator('ion-modal.event-editor-modal ion-input[aria-label="Nome do evento"] input');
+  const titleInput = page.getByRole('textbox', { name: 'Nome do evento' });
   await expect(titleInput).toBeVisible();
   await expectFocused(titleInput);
 
   const nestedCalendarOpener = page.locator('ion-modal.event-editor-modal').getByRole('button', { name: 'Outra data' });
   await nestedCalendarOpener.focus();
   await page.keyboard.press('Enter');
-  const nestedDateInput = page.locator('ion-modal.show-modal').last().locator('ion-input[aria-label="Data do Bora"] input');
+  const nestedDateInput = page.getByRole('textbox', { name: 'Data do Bora' });
   await expect(nestedDateInput).toBeVisible();
   await expectFocused(nestedDateInput);
   await page.keyboard.press('Escape');
@@ -268,14 +268,17 @@ test('critical pages reflow in narrow, landscape, safe-area, keyboard, and 200% 
     votes: [],
     isAdmin: false
   } }));
-  await page.addInitScript(() => {
+  async function applySafeAreas() {
+    await page.evaluate(() => {
     document.documentElement.style.setProperty('--bora-safe-area-left', '24px');
     document.documentElement.style.setProperty('--bora-safe-area-right', '24px');
     document.documentElement.style.setProperty('--bora-safe-area-bottom', '30px');
-  });
+    });
+  }
 
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('/home');
+  await applySafeAreas();
   const hero = await page.locator('.hero').boundingBox();
   expect(hero).not.toBeNull();
   expect(hero!.x).toBeGreaterThanOrEqual(24);
@@ -283,6 +286,7 @@ test('critical pages reflow in narrow, landscape, safe-area, keyboard, and 200% 
   await expectNoHorizontalOverflow(page);
 
   await page.goto('/create?mode=marcar');
+  await applySafeAreas();
   await page.addStyleTag({ content: ':root { font-size: 200% !important; }' });
   await expect(page.getByRole('heading', { name: 'Bora marcar' })).toBeVisible();
   const createCard = await page.locator('.create-card').first().boundingBox();
@@ -293,6 +297,7 @@ test('critical pages reflow in narrow, landscape, safe-area, keyboard, and 200% 
   await expectNoHorizontalOverflow(page);
 
   await page.goto('/e/long-content');
+  await applySafeAreas();
   const eventSummary = await page.locator('.event-summary').boundingBox();
   expect(eventSummary).not.toBeNull();
   expect(eventSummary!.x).toBeGreaterThanOrEqual(24);

@@ -28,7 +28,7 @@ test('captures the UI screen gallery', async ({ page, request }, testInfo) => {
       participantId: `creator-${runId}`,
       event: {
         mode: 'marcar', title: 'Escolha do horário', place: 'Centro', description: 'Escolha o horário que funciona melhor para você.', threshold: 3,
-        startsAt: null, alternatives: [], createdByName: 'Ana', votingClosed: false,
+        startsAt: null, alternatives: [], timeZone: 'America/Sao_Paulo', createdByName: 'Ana', votingClosed: false,
         days: [
           { id: 'friday', label: 'sex. 01', date: '2099-08-01', slots: ['18:00', '19:00'] },
           { id: 'saturday', label: 'sáb. 02', date: '2099-08-02', slots: ['16:00', '17:00'] }

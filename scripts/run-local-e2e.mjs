@@ -47,8 +47,8 @@ if (!healthy) {
   process.exit(1);
 }
 
-console.log('Running the full Playwright browser/device matrix against the local Compose stack...');
-const tests = spawnSync(npmCommand, ['run', 'test:e2e:full'], { env: e2eEnvironment, stdio: 'inherit' });
+console.log('Running the full Playwright browser/device matrix in the controlled Compose test container...');
+const tests = spawnSync('docker', ['compose', 'run', '--rm', '--build', '-e', 'PLAYWRIGHT_BASE_URL=http://web', 'e2e'], { env: e2eEnvironment, stdio: 'inherit' });
 if (tests.error || tests.status !== 0) {
   console.error('Local E2E checks failed. Recent application logs follow.');
   spawnSync('docker', ['compose', 'logs', '--tail', '80', 'api', 'web'], { env: process.env, stdio: 'inherit' });
