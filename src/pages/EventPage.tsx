@@ -719,7 +719,7 @@ export default function EventPage() {
                         <h2>Voto registrado</h2>
                         <p>
                         {ownVote
-                          ? `${responseLabel(ownVote.response)}${ownVote.preferredOptions.length ? ` · pode ${ownVote.preferredOptions.map((option) => optionLabel(event, option)).join(', ')}` : ''}`
+                          ? <>{ownVote.response === 'maybe' ? <strong>{responseLabel(ownVote.response)}</strong> : responseLabel(ownVote.response)}{ownVote.preferredOptions.length ? ` · pode ${ownVote.preferredOptions.map((option) => optionLabel(event, option)).join(', ')}` : ''}</>
                           : 'Sua resposta foi salva.'}
                         </p>
                       </div>
