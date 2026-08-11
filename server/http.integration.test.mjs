@@ -1,6 +1,9 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createServer as createNetServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import pg from 'pg';
@@ -35,6 +38,7 @@ let databaseUrl = '';
 let databasePool;
 let api;
 let apiBase = '';
+const pushTransportLog = join(tmpdir(), `bora-push-test-${process.pid}-${randomBytes(8).toString('hex')}.jsonl`);
 
 function delay(milliseconds) {
   return new Promise((resolve) => globalThis.setTimeout(resolve, milliseconds));
@@ -95,7 +99,9 @@ async function startApi() {
     BORA_VAPID_PUBLIC_KEY: vapid.publicKey,
     BORA_VAPID_PRIVATE_KEY: vapid.privateKey,
     BORA_VAPID_SUBJECT: 'mailto:integration@bora.test',
-    BORA_PUSH_TIMEOUT_MS: '1000'
+    BORA_PUSH_TIMEOUT_MS: '1000',
+    BORA_PUSH_TRANSPORT_MODULE: join(repositoryRoot, 'server/test-fixtures/fake-push-transport.mjs'),
+    BORA_PUSH_TRANSPORT_LOG: pushTransportLog
   };
   const child = spawn(process.execPath, ['server/index.mjs'], {
     cwd: repositoryRoot,
@@ -174,9 +180,39 @@ function voteBody(participantId, voterName, response = 'accept') {
 }
 
 async function resetData() {
+  await writeFile(pushTransportLog, '');
   await databasePool.query(`truncate table
     push_notifications, push_subscriptions, participant_recovery_tokens,
     participant_presence, votes, events restart identity cascade`);
+}
+
+async function recordedPushes() {
+  const lines = (await readFile(pushTransportLog, 'utf8')).trim();
+  return lines ? lines.split('\n').map((line) => JSON.parse(line)) : [];
+}
+
+async function waitForPushes(count) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const pushes = await recordedPushes();
+    if (pushes.length >= count) return pushes;
+    await delay(25);
+  }
+  return recordedPushes();
+}
+
+async function subscribe(participantId, endpoint, preferences = {}) {
+  const response = await request('/push/subscriptions', {
+    method: 'POST', participantId,
+    body: { endpoint, keys: { p256dh: `key-${participantId}`, auth: `auth-${participantId}` } }
+  });
+  expect(response.status).toBe(201);
+  if (Object.keys(preferences).length) {
+    const saved = await request('/push/subscriptions/preferences', {
+      method: 'PUT', participantId,
+      body: { endpoint, preferences }
+    });
+    expect(saved.status).toBe(200);
+  }
 }
 
 integration('HTTP API with disposable PostgreSQL', () => {
@@ -277,6 +313,99 @@ integration('HTTP API with disposable PostgreSQL', () => {
     expect(deleted.status).toBe(204);
     expect([200, 404]).toContain(deleteRaceVote.status);
     expect((await request(`/events/${doomed.event.slug}`)).status).toBe(404);
+  });
+
+  it('creator receives notification when second person confirms a 2-person Bora', async () => {
+    const creator = 'creator';
+    const guest = 'guest';
+    const creatorEndpoint = 'https://push.example.test/creator';
+    const created = await createEvent(creator, { threshold: 2, title: 'Bora de produção' });
+    await subscribe(creator, creatorEndpoint, { votes: true, threshold: true });
+
+    const voted = await request(`/events/${created.event.slug}/votes`, {
+      method: 'POST', body: voteBody(guest, 'Bia')
+    });
+    expect(voted.status).toBe(200);
+    expect((await databasePool.query("select count(*)::int as count from votes where event_id = $1 and response = 'accept'", [created.event.id])).rows[0].count).toBe(2);
+    expect((await databasePool.query('select participant_id from push_subscriptions where endpoint = $1', [creatorEndpoint])).rows)
+      .toEqual([{ participant_id: creator }]);
+
+    const pushes = await waitForPushes(2);
+    expect(pushes).toHaveLength(2);
+    expect(pushes.map(({ endpoint }) => endpoint)).toEqual([creatorEndpoint, creatorEndpoint]);
+    expect(pushes.map(({ payload }) => payload)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ title: 'Novo voto: Bora de produção', url: `/e/${created.event.slug}` }),
+      expect.objectContaining({ title: 'Meta atingida: Bora de produção', url: `/e/${created.event.slug}` })
+    ]));
+    expect(pushes.some(({ payload }) => JSON.stringify(payload).includes(created.adminToken))).toBe(false);
+    expect((await databasePool.query('select kind from push_notifications where event_id = $1 order by kind', [created.event.id])).rows)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ kind: expect.stringMatching(/^vote-/) }), expect.objectContaining({ kind: expect.stringMatching(/^threshold-reached-/) })]));
+  });
+
+  it('applies vote and threshold notification preferences to the actual selected subscriptions', async () => {
+    const creator = 'creator';
+    const guest = 'guest';
+    const created = await createEvent(creator, { threshold: 2 });
+    await subscribe(creator, 'https://push.example.test/creator', { votes: false, threshold: true });
+    await subscribe(guest, 'https://push.example.test/guest', { votes: true, threshold: true });
+
+    expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: voteBody(guest, 'Bia') })).status).toBe(200);
+    const pushes = await waitForPushes(2);
+    expect(pushes).toHaveLength(2);
+    expect(pushes).toEqual(expect.arrayContaining([
+      { endpoint: 'https://push.example.test/creator', payload: expect.objectContaining({ title: expect.stringMatching(/^Meta atingida:/) }) },
+      { endpoint: 'https://push.example.test/guest', payload: expect.objectContaining({ title: expect.stringMatching(/^Meta atingida:/) }) }
+    ]));
+
+    await resetData();
+    const second = await createEvent(creator, { threshold: 2 });
+    await subscribe(creator, 'https://push.example.test/creator', { votes: true, threshold: false });
+    expect((await request(`/events/${second.event.slug}/votes`, { method: 'POST', body: voteBody(guest, 'Bia') })).status).toBe(200);
+    expect(await waitForPushes(1)).toEqual([{ endpoint: 'https://push.example.test/creator', payload: expect.objectContaining({ title: expect.stringMatching(/^Novo voto:/) }) }]);
+  });
+
+  it('sends threshold pushes only on a crossing and sends a new one after dropping below then recrossing', async () => {
+    const created = await createEvent('creator', { threshold: 2 });
+    await subscribe('creator', 'https://push.example.test/creator', { votes: false, threshold: true });
+    await subscribe('guest', 'https://push.example.test/guest', { votes: false, threshold: true });
+    expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: voteBody('guest', 'Bia') })).status).toBe(200);
+    expect((await waitForPushes(2)).every(({ payload }) => payload.title.startsWith('Meta atingida:'))).toBe(true);
+    expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: voteBody('third', 'Caio') })).status).toBe(200);
+    await delay(100);
+    expect(await recordedPushes()).toHaveLength(2);
+    expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: voteBody('third', 'Caio', 'maybe') })).status).toBe(200);
+    expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: voteBody('guest', 'Bia', 'maybe') })).status).toBe(200);
+    expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: voteBody('guest', 'Bia', 'accept') })).status).toBe(200);
+    expect(await waitForPushes(4)).toHaveLength(4);
+  });
+
+  it('removes stale subscriptions, releases temporary failures for retry, and continues other deliveries', async () => {
+    const created = await createEvent('creator', { threshold: 99 });
+    await subscribe('creator', 'https://push.example.test/stale', { votes: true });
+    await subscribe('creator', 'https://push.example.test/temporary', { votes: true });
+    await subscribe('creator', 'https://push.example.test/valid', { votes: true });
+    expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: voteBody('guest', 'Bia') })).status).toBe(200);
+    const initial = await waitForPushes(3);
+    expect(initial.map(({ endpoint }) => endpoint).sort()).toEqual([
+      'https://push.example.test/stale', 'https://push.example.test/temporary', 'https://push.example.test/valid'
+    ]);
+    expect((await databasePool.query('select endpoint from push_subscriptions where endpoint = $1', ['https://push.example.test/stale'])).rowCount).toBe(0);
+    expect((await databasePool.query(`select count(*)::int as count from push_notifications n join push_subscriptions s on s.id = n.subscription_id where s.endpoint = $1`, ['https://push.example.test/temporary'])).rows[0].count).toBe(0);
+
+    // A subsequent delivery attempt reaches the same endpoint: the temporary
+    // failure did not leave an irreversible delivered claim behind.
+    expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: voteBody('guest', 'Bia', 'maybe') })).status).toBe(200);
+    const retried = await waitForPushes(5);
+    expect(retried.filter(({ endpoint }) => endpoint === 'https://push.example.test/temporary')).toHaveLength(2);
+    expect(retried.filter(({ endpoint }) => endpoint === 'https://push.example.test/valid')).toHaveLength(2);
+  });
+
+  it('does not deliver a creator-only vote notification when the creator is unsubscribed', async () => {
+    const created = await createEvent('creator', { threshold: 99 });
+    await subscribe('other-participant', 'https://push.example.test/other', { votes: true });
+    expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: voteBody('guest', 'Bia') })).status).toBe(200);
+    await delay(100);
+    expect(await recordedPushes()).toEqual([]);
   });
 
   it('pages large vote sets with exact aggregates and an immutable tie-broken cursor', async () => {

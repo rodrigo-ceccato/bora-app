@@ -173,7 +173,7 @@ describe('event notification rules', () => {
     const notifications = voteNotificationPlan(event, { id: 'vote_1', participantId: 'bia', voterName: 'Bia' }, 2, 'request_1');
     expect(notifications).toEqual(expect.arrayContaining([
       expect.objectContaining({ audience: 'creator', kind: 'vote-request_1' }),
-      expect.objectContaining({ audience: 'participants', kind: 'threshold-reached' })
+      expect.objectContaining({ audience: 'participants', kind: 'threshold-reached-request_1' })
     ]));
   });
 

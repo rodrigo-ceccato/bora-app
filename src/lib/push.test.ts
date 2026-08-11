@@ -8,12 +8,14 @@ const subscription = {
 };
 
 let push: typeof import('./push');
+let subscribe: ReturnType<typeof vi.fn>;
 
 beforeEach(async () => {
   vi.resetModules();
   vi.restoreAllMocks();
   vi.stubEnv('VITE_API_URL', '/api');
   subscription.unsubscribe = vi.fn(async () => true);
+  subscribe = vi.fn(async () => subscription);
   vi.stubGlobal('window', { PushManager: class PushManager {}, Notification: {} });
   vi.stubGlobal('PushManager', class PushManager {});
   vi.stubGlobal('Notification', { permission: 'granted', requestPermission: vi.fn() });
@@ -35,6 +37,30 @@ beforeEach(async () => {
 });
 
 describe('push subscription identity', () => {
+  it('requests permission and creates/posts a subscription only when reminders are enabled by user action', async () => {
+    const requestPermission = vi.fn(async () => 'granted');
+    vi.stubGlobal('Notification', { permission: 'default', requestPermission });
+    const getSubscription = vi.fn(async () => null);
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        getRegistration: vi.fn(async () => null),
+        register: vi.fn(async () => ({ pushManager: { getSubscription, subscribe } }))
+      }
+    });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ publicKey: 'AQ' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'subscribed' }), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(requestPermission).not.toHaveBeenCalled();
+    await expect(push.enablePushReminders()).resolves.toBe('subscribed');
+    expect(requestPermission).toHaveBeenCalledOnce();
+    expect(subscribe).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/push/subscriptions', expect.objectContaining({
+      method: 'POST', headers: expect.objectContaining({ 'x-participant-id': 'participant_old' })
+    }));
+  });
+
   it('does not call a browser-only subscription server-subscribed', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ subscribed: false, preferences: {} }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -50,6 +76,20 @@ describe('push subscription identity', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ subscribed: true, preferences: {} }), { status: 200 })));
 
     await expect(push.pushReminderState()).resolves.toBe('subscribed');
+  });
+
+  it('reads and writes preferences for the existing subscription and current participant', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ subscribed: true, preferences: { votes: false, threshold: false } }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'updated' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(push.pushReminderPreferences()).resolves.toMatchObject({ votes: false, threshold: false });
+    await push.savePushReminderPreferences({ votes: true, changes: false, confirmed: true, threshold: true, upcoming: false, messages: true });
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/push/subscriptions/preferences', expect.objectContaining({
+      method: 'PUT', headers: expect.objectContaining({ 'x-participant-id': 'participant_old' }),
+      body: expect.stringContaining(subscription.endpoint)
+    }));
   });
 
   it('rebinds the exact browser endpoint to a recovered participant', async () => {

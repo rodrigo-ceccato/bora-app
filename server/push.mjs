@@ -1,5 +1,7 @@
 import webpush from 'web-push';
 import { isIP } from 'node:net';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const publicKey = process.env.BORA_VAPID_PUBLIC_KEY || '';
 const privateKey = process.env.BORA_VAPID_PRIVATE_KEY || '';
@@ -9,6 +11,23 @@ const requestTimeoutMs = Math.max(1_000, Math.min(30_000, Number(process.env.BOR
 export const pushEnabled = Boolean(publicKey && privateKey && subject);
 
 if (pushEnabled) webpush.setVapidDetails(subject, publicKey, privateKey);
+
+let pushTransport = async (subscription, payload) => webpush.sendNotification({
+  endpoint: subscription.endpoint,
+  keys: { p256dh: subscription.p256dh, auth: subscription.auth }
+}, JSON.stringify(payload), { TTL: 60 * 60 * 24, timeout: requestTimeoutMs });
+
+// The API process is separate from HTTP integration tests, so allow those tests
+// to supply a local transport module. Production continues to use web-push.
+if (process.env.BORA_PUSH_TRANSPORT_MODULE) {
+  const override = await import(pathToFileURL(resolve(process.env.BORA_PUSH_TRANSPORT_MODULE)).href);
+  if (typeof override.sendPush !== 'function') throw new Error('BORA_PUSH_TRANSPORT_MODULE must export sendPush.');
+  pushTransport = override.sendPush;
+}
+
+export function setPushTransport(transport) {
+  pushTransport = transport;
+}
 
 export function vapidPublicKey() {
   return publicKey;
@@ -62,8 +81,5 @@ export function validSubscription(value) {
 }
 
 export async function sendPush(subscription, payload) {
-  return webpush.sendNotification({
-    endpoint: subscription.endpoint,
-    keys: { p256dh: subscription.p256dh, auth: subscription.auth }
-  }, JSON.stringify(payload), { TTL: 60 * 60 * 24, timeout: requestTimeoutMs });
+  return pushTransport(subscription, payload);
 }

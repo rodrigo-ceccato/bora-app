@@ -683,13 +683,16 @@ export function reminderNotificationKind(windowName, event) {
   return `reminder-${windowName}:${startsAt.toISOString()}`;
 }
 
-export function voteNotificationPlan(event, vote, acceptedCount, nonce = '') {
+export function voteNotificationPlan(event, vote, acceptedCount, nonce = '', previousAcceptedCount = acceptedCount - 1) {
   const notifications = [];
   if (event.notify_creator_on_vote !== false && vote.participantId !== event.created_by_participant_id) {
     notifications.push({ audience: 'creator', preference: 'votes', kind: `vote-${nonce || vote.id}`, title: `Novo voto: ${event.title}`, body: `${vote.voterName} respondeu ao seu Bora.` });
   }
-  if (acceptedCount >= event.threshold) {
-    notifications.push({ audience: 'participants', preference: 'threshold', kind: 'threshold-reached', title: `Meta atingida: ${event.title}`, body: 'O mínimo de confirmações foi alcançado.' });
+  if (previousAcceptedCount < event.threshold && acceptedCount >= event.threshold) {
+    // A crossing gets a distinct idempotency key. This permits a new alert if
+    // confirmations later fall below the threshold and cross it again, while
+    // still making retries of this particular vote safe.
+    notifications.push({ audience: 'participants', preference: 'threshold', kind: `threshold-reached-${nonce || vote.id}`, title: `Meta atingida: ${event.title}`, body: 'O mínimo de confirmações foi alcançado.' });
   }
   return notifications;
 }
@@ -1189,6 +1192,7 @@ export async function route(request, response) {
         if (eventRow.voting_closed) throw httpError(409, 'A votação deste Bora foi encerrada.');
         const event = mapEvent(eventRow);
         const vote = validateVote(voteBody, event);
+        const acceptedBefore = await client.query("select count(*)::int as count from votes where event_id = $1 and response = 'accept'", [event.id]);
         const saved = await client.query(
           `insert into votes
             (id, event_id, participant_id, voter_name, response, preferred_options, availability)
@@ -1204,9 +1208,9 @@ export async function route(request, response) {
             JSON.stringify(vote.preferredOptions), JSON.stringify(vote.availability)]
         );
         const accepted = await client.query("select count(*)::int as count from votes where event_id = $1 and response = 'accept'", [event.id]);
-        return { eventRow, vote, saved: saved.rows[0], acceptedCount: accepted.rows[0].count };
+        return { eventRow, vote, saved: saved.rows[0], acceptedCount: accepted.rows[0].count, previousAcceptedCount: acceptedBefore.rows[0].count };
       });
-      for (const notification of voteNotificationPlan(result.eventRow, { ...result.vote, id: result.saved.id }, result.acceptedCount, `${randomBytes(8).toString('hex')}-${result.saved.id}`)) {
+      for (const notification of voteNotificationPlan(result.eventRow, { ...result.vote, id: result.saved.id }, result.acceptedCount, `${randomBytes(8).toString('hex')}-${result.saved.id}`, result.previousAcceptedCount)) {
         runInBackground(sendEventPush(result.eventRow, notification.kind, notification.title, notification.body, notification.audience, notification.preference), 'Vote notification');
       }
       return send(response, 200, { vote: mapVote(result.saved, result.vote.participantId) });
