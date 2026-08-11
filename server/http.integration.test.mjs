@@ -342,6 +342,18 @@ integration('HTTP API with disposable PostgreSQL', () => {
       .toEqual(expect.arrayContaining([expect.objectContaining({ kind: expect.stringMatching(/^vote-/) }), expect.objectContaining({ kind: expect.stringMatching(/^threshold-reached-/) })]));
   });
 
+  it('accepts a board message from the same participant identity that created the Bora', async () => {
+    const participantId = 'message_creator';
+    const created = await createEvent(participantId, { title: 'Mural' });
+    const response = await request(`/events/${created.event.slug}/messages`, {
+      method: 'POST', participantId, body: { authorName: 'Ana', body: 'Levo pipoca.' }
+    });
+    expect(response.status).toBe(201);
+    expect(await json(response)).toMatchObject({ message: { authorName: 'Ana', body: 'Levo pipoca.', isOwn: true } });
+    expect((await databasePool.query('select participant_id, author_name, body from event_messages where event_id = $1', [created.event.id])).rows)
+      .toEqual([{ participant_id: participantId, author_name: 'Ana', body: 'Levo pipoca.' }]);
+  });
+
   it('applies vote and threshold notification preferences to the actual selected subscriptions', async () => {
     const creator = 'creator';
     const guest = 'guest';

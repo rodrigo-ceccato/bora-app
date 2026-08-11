@@ -628,7 +628,9 @@ export async function submitMessage(event: BoraEvent, body: string): Promise<Bor
   if (!getParticipantName().trim()) throw new Error('Informe seu nome antes de deixar um recado.');
   if (API_BASE) {
     const result = await apiRequest<{ message: BoraMessage }>(`/events/${encodeURIComponent(event.slug)}/messages`, {
-      method: 'POST', body: JSON.stringify({ body: message, authorName: getParticipantName().trim() })
+      method: 'POST',
+      headers: { 'x-participant-id': getParticipantId() },
+      body: JSON.stringify({ body: message, authorName: getParticipantName().trim() })
     });
     return result.message;
   }
