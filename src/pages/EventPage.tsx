@@ -425,13 +425,14 @@ export default function EventPage() {
       void nameInputRef.current?.setFocus();
       return;
     }
+    const decided = data.event.decidedOption;
     const selectedSlots = Object.values(availability).flat();
-    if (data.event.mode === 'mais-tarde' && response !== 'decline' && preferredOptions.length === 0) {
+    if (data.event.mode === 'mais-tarde' && !decided && response !== 'decline' && preferredOptions.length === 0) {
       setVoteValidationError('options');
       toast({ message: 'Marque pelo menos um horário ou selecione “Não posso”.', color: 'danger', duration: 2600 });
       return;
     }
-    if (data.event.mode === 'marcar' && response !== 'decline' && selectedSlots.length === 0) {
+    if (data.event.mode === 'marcar' && !decided && response !== 'decline' && selectedSlots.length === 0) {
       setVoteValidationError('options');
       toast({ message: 'Marque pelo menos um horário ou selecione “Não posso”.', color: 'danger', duration: 2600 });
       return;
@@ -440,7 +441,6 @@ export default function EventPage() {
     setVoteValidationError(null);
     setSubmittingVote(true);
     try {
-      const decided = data.event.decidedOption;
       const decidedDay = decided?.match(/^(.*):(\d{2}:\d{2})$/)?.slice(1);
       await submitVote(data.event, {
         voterName: name.trim(),

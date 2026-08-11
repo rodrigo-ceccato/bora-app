@@ -174,21 +174,20 @@ test('participant name updated on one device is refreshed on another device shar
   await expect(pageA.getByText('Rodrigo', { exact: true }).last()).toBeVisible();
   await expect(pageB.locator('ion-title.home-toolbar-title')).toHaveText('Bora, Rodrigo?');
   await pageA.getByRole('button', { name: /Seu nome/ }).click();
-  await pageA.locator('ion-alert input').fill('Rodrigo Ceccato');
+  await pageA.locator('ion-alert input').fill('Bia Ceccato');
   await pageA.getByRole('button', { name: 'Salvar' }).click();
-  await expect.poll(() => canonicalName).toBe('Rodrigo Ceccato');
+  await expect.poll(() => canonicalName).toBe('Bia Ceccato');
   expect(await pageB.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Rodrigo');
 
   await pageB.waitForTimeout(800);
   const beforeActivation = profileRequests;
-  // Re-entering Home is an app activation path; the global focus/visibility
-  // hooks cover returning to an already-open page.
-  await pageB.goto('/my-events');
-  await pageB.goto('/home');
-  await expect(pageB.locator('ion-title.home-toolbar-title')).toHaveText('Bora, Rodrigo Ceccato?');
-  await expect.poll(() => pageB.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Rodrigo Ceccato');
-  // The paired focus/visibility signals share the refresh deduplication window.
-  expect(profileRequests - beforeActivation).toBeLessThanOrEqual(2);
+  // Returning to this already-open device triggers a forced profile refresh.
+  const refreshResponse = pageB.waitForResponse((response) => response.request().method() === 'GET' && response.url().includes('/api/me/profile'));
+  await pageB.evaluate(() => window.dispatchEvent(new Event('focus')));
+  expect((await refreshResponse).ok()).toBeTruthy();
+  await expect(pageB.locator('ion-title.home-toolbar-title')).toHaveText('Bora, Bia?');
+  await expect.poll(() => pageB.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Bia Ceccato');
+  expect(profileRequests - beforeActivation).toBe(1);
   await deviceA.close();
   await deviceB.close();
 });

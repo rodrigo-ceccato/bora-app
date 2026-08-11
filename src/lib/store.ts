@@ -417,7 +417,10 @@ export function restoreParticipantName(name: string) {
 }
 
 export function refreshParticipantProfile({ force = false } = {}) {
-  if (!API_BASE) return getParticipantName();
+  // Merely opening Bora on a new device must not create an identity before a
+  // recovery link can restore one. The profile can only be refreshed for an
+  // identity that has already been established locally.
+  if (!API_BASE || !hasRegisteredParticipant()) return getParticipantName();
   const now = Date.now();
   if (!force && now - lastProfileRefreshAt < 750) return getParticipantName();
   if (participantProfileRefreshInFlight) return participantProfileRefreshInFlight;
