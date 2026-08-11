@@ -706,7 +706,7 @@ export async function submitVote(
   return vote;
 }
 
-export async function submitMessage(event: BoraEvent, body: string): Promise<BoraMessage> {
+export async function submitMessage(event: BoraEvent, body: string, adminToken?: string): Promise<BoraMessage> {
   if (eventMessagesClosed(event)) throw new Error('Este Bora já aconteceu; os recados estão encerrados.');
   const message = body.trim();
   if (!message) throw new Error('Escreva um recado antes de enviar.');
@@ -717,7 +717,7 @@ export async function submitMessage(event: BoraEvent, body: string): Promise<Bor
       method: 'POST',
       headers: { 'x-participant-id': getParticipantId() },
       body: JSON.stringify({ body: message, authorName: getParticipantName().trim() })
-    });
+    }, adminToken);
     return result.message;
   }
   const item = readLocal().find((candidate) => candidate.event.id === event.id);

@@ -105,6 +105,48 @@ test('event loading distinguishes network, server, and missing-event failures', 
   await expect(page.getByRole('heading', { name: 'Evento não encontrado' })).toBeVisible();
 });
 
+test('reopening confirmations persists through PATCH, refresh, and a new attendance response', async ({ page }) => {
+  let event = futureEvent({
+    id: 'reopen-lifecycle', slug: 'reopen-lifecycle', mode: 'marcar', startsAt: undefined,
+    days: [{ id: 'terca', label: 'terça-feira', date: '2099-08-11', slots: ['20:00'] }],
+    decidedOption: 'terca:20:00', votingClosed: true, revision: 4,
+  });
+  const votes: Array<Record<string, unknown>> = [];
+  await page.route('**/api/events/reopen-lifecycle**', async (route) => {
+    const request = route.request();
+    if (request.method() === 'PATCH') {
+      const patch = request.postDataJSON() as typeof event;
+      expect(patch.votingClosed).toBe(false);
+      event = { ...event, ...patch, revision: event.revision + 1 };
+      await route.fulfill({ json: { event } });
+      return;
+    }
+    if (request.method() === 'POST' && request.url().endsWith('/votes')) {
+      const vote = request.postDataJSON() as Record<string, unknown>;
+      votes.push(vote);
+      await route.fulfill({ json: { vote: { id: 'guest-vote', eventId: event.id, ...vote, createdAt: '2026-01-01T00:00:00.000Z', isOwn: true } } });
+      return;
+    }
+    await route.fulfill({ json: { event, votes, isAdmin: request.headers().authorization === 'Bearer admin', ownVote: votes.at(-1), voteSummary: { total: votes.length, responses: { accept: votes.filter((vote) => vote.response === 'accept').length, maybe: 0, decline: 0 }, optionCounts: { 'terca:20:00': votes.length } } } });
+  });
+  await page.goto('/e/reopen-lifecycle?admin=admin');
+  await page.getByRole('button', { name: 'Gerenciar' }).click();
+  await expect(page.getByText('Confirmações encerradas', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Reabrir confirmações' }).click();
+  await expect(page.getByText('Confirmações abertas', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Encerrar confirmações' })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Gerenciar' }).click();
+  await expect(page.getByText('Confirmações abertas', { exact: true })).toBeVisible();
+  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  await page.goto('/e/reopen-lifecycle');
+  await expect(page.getByText('Confirme sua presença')).toBeVisible();
+  await page.getByRole('textbox', { name: 'Seu nome' }).fill('Bia');
+  await page.getByRole('button', { name: 'Posso' }).click();
+  await expect.poll(() => votes.length).toBe(1);
+  expect(votes[0]).toMatchObject({ response: 'accept', availability: { terca: ['20:00'] } });
+});
+
 test('clipboard failure exposes only the clean public invitation', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'clipboard', {

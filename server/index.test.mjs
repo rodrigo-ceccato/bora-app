@@ -115,6 +115,15 @@ describe('multi-option event API validation', () => {
     expect(vote).toMatchObject({ response: 'decline', preferredOptions: [], availability: {} });
   });
 
+  it('turns post-decision responses into attendance for the chosen option', () => {
+    const later = validateEvent({ ...eventInput, decidedOption: '2026-08-03T22:00:00.000Z' });
+    expect(validateVote({ participantId: 'p1', voterName: 'Bia', response: 'accept', preferredOptions: [eventInput.startsAt] }, later))
+      .toMatchObject({ preferredOptions: ['2026-08-03T22:00:00.000Z'], availability: {} });
+    const marcar = validateEvent({ ...eventInput, mode: 'marcar', startsAt: null, alternatives: [], timeZone: 'America/Sao_Paulo', decidedOption: 'terca:20:00', days: [{ id: 'terca', label: 'terça', date: '2026-08-04', slots: ['19:00', '20:00'] }] });
+    expect(validateVote({ participantId: 'p1', voterName: 'Bia', response: 'maybe', availability: { terca: ['19:00'] } }, marcar))
+      .toMatchObject({ preferredOptions: [], availability: { terca: ['20:00'] } });
+  });
+
   it('bounds availability to known non-empty event days', () => {
     const event = validateEvent({
       ...eventInput, mode: 'marcar', startsAt: null, alternatives: [], timeZone: 'America/Sao_Paulo',

@@ -269,6 +269,34 @@ export function validateVote(input, event) {
     const slots = Array.from(new Set(selected.filter((slot) => typeof slot === 'string' && allowed.has(slot))));
     return slots.length ? [[day.id, slots]] : [];
   }));
+  // Once the organizer has chosen a time, this is an attendance response,
+  // not another schedule vote.  Derive the selected option server-side so a
+  // stale or malicious client cannot make the result totals incoherent.
+  if (event.decidedOption && response !== 'decline') {
+    if (event.mode === 'mais-tarde') {
+      return {
+        participantId,
+        voterName: text(input.voterName, 80, true),
+        response,
+        preferredOptions: [event.decidedOption],
+        availability: {}
+      };
+    }
+    if (event.mode === 'marcar') {
+      const match = event.decidedOption.match(/^(.*):(\d{2}:\d{2})$/);
+      const dayId = match?.[1] || '';
+      const slot = match?.[2] || '';
+      const day = event.days.find((candidate) => candidate.id === dayId && candidate.slots.includes(slot));
+      if (!day) throw httpError(400, 'O horário escolhido não pertence a este Bora.');
+      return {
+        participantId,
+        voterName: text(input.voterName, 80, true),
+        response,
+        preferredOptions: [],
+        availability: { [dayId]: [slot] }
+      };
+    }
+  }
   const selectedSlots = Object.values(cleanedAvailability).flat();
   if (event.mode === 'marcar' && response !== 'decline' && selectedSlots.length === 0) {
     throw httpError(400, 'Marque pelo menos um horário ou selecione “Não posso”.');
@@ -1192,8 +1220,13 @@ export async function route(request, response) {
         const eventRow = locked.rows[0];
         if (!eventRow) throw httpError(404, 'Evento não encontrado.');
         if (messagesClosed(eventRow)) throw httpError(409, 'Este Bora já aconteceu; os recados estão encerrados.');
+        const isAdmin = tokenMatches(bearerToken(request), eventRow.admin_token_hash);
         const participant = await client.query('select 1 from votes where event_id = $1 and participant_id = $2', [eventRow.id, participantId]);
-        if (!participant.rowCount) throw httpError(403, 'Participe deste Bora antes de deixar um recado.');
+        if (!isAdmin && !participant.rowCount) {
+          throw httpError(403, eventRow.voting_closed
+            ? 'As confirmações estão encerradas. Apenas quem já participa deste Bora pode deixar recados.'
+            : 'Responda a este Bora antes de deixar um recado.');
+        }
         const saved = await client.query(
           'insert into event_messages (id, event_id, participant_id, author_name, body) values ($1,$2,$3,$4,$5) returning *',
           [uid('message'), eventRow.id, participantId, input.authorName, input.body]
@@ -1277,7 +1310,7 @@ export async function route(request, response) {
            where id=$13 and revision=$14 returning *`,
           [input.title, input.place, input.description, input.threshold, input.startsAt,
             JSON.stringify(input.alternatives), JSON.stringify(input.days), input.timeZone,
-            input.decidedOption ? true : input.votingClosed, input.decidedOption, input.notifyCreatorOnVote,
+            input.votingClosed, input.decidedOption, input.notifyCreatorOnVote,
             reminderStartsAt, current.id, patchBody.revision]
         );
         if (!saved.rows[0]) throw httpError(409, 'Este Bora foi alterado em outro lugar. Atualize a página e tente novamente.');
@@ -1325,6 +1358,38 @@ export async function route(request, response) {
           [JSON.stringify(creatorSchedule.preferredOptions), JSON.stringify(creatorSchedule.availability),
             current.id, current.created_by_participant_id]
         );
+        // Selecting a final time ends schedule selection, but it must not
+        // invent attendance. An existing "Posso" becomes a confirmation only
+        // if that person selected the winning option; otherwise it becomes
+        // "Talvez". Existing maybe/decline responses retain their meaning.
+        if (!current.decided_option && input.decidedOption) {
+          if (input.mode === 'mais-tarde') {
+            await client.query(
+              `update votes set
+                 response=case when response='accept' and preferred_options ? $1 then 'accept'
+                               when response='accept' then 'maybe' else response end,
+                 preferred_options=case when response='decline' then '[]'::jsonb else jsonb_build_array($1) end,
+                 availability='{}'::jsonb,
+                 updated_at=now()
+               where event_id=$2`,
+              [input.decidedOption, current.id]
+            );
+          } else if (input.mode === 'marcar') {
+            const match = input.decidedOption.match(/^(.*):(\d{2}:\d{2})$/);
+            const dayId = match?.[1] || '';
+            const slot = match?.[2] || '';
+            await client.query(
+              `update votes set
+                 response=case when response='accept' and coalesce(availability -> $1, '[]'::jsonb) ? $2 then 'accept'
+                               when response='accept' then 'maybe' else response end,
+                 preferred_options='[]'::jsonb,
+                 availability=case when response='decline' then '{}'::jsonb else jsonb_build_object($1, jsonb_build_array($2)) end,
+                 updated_at=now()
+               where event_id=$3`,
+              [dayId, slot, current.id]
+            );
+          }
+        }
         return { current, updated: saved.rows[0] };
       });
       for (const notification of eventUpdateNotificationPlan(result.current, result.updated)) {

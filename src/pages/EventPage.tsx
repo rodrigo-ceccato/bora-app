@@ -100,6 +100,7 @@ export default function EventPage() {
   const [copyFallback, setCopyFallback] = useState<CopyFallback | null>(null);
   const hydratedVote = useRef(false);
   const contentRef = useRef<HTMLIonContentElement>(null);
+  const nameInputRef = useRef<HTMLIonInputElement>(null);
   const editOpenerRef = useRef<HTMLElement | null>(null);
   const editTitleRef = useRef<HTMLIonInputElement>(null);
   const editCalendarOpenerRef = useRef<HTMLElement | null>(null);
@@ -421,7 +422,7 @@ export default function EventPage() {
     }
     if (!name.trim()) {
       setVoteValidationError('name');
-      toast({ message: 'Coloque seu nome para votar.', color: 'danger', duration: 2200 });
+      void nameInputRef.current?.setFocus();
       return;
     }
     const selectedSlots = Object.values(availability).flat();
@@ -439,11 +440,14 @@ export default function EventPage() {
     setVoteValidationError(null);
     setSubmittingVote(true);
     try {
+      const decided = data.event.decidedOption;
+      const decidedDay = decided?.match(/^(.*):(\d{2}:\d{2})$/)?.slice(1);
       await submitVote(data.event, {
         voterName: name.trim(),
         response,
-        preferredOptions: data.event.mode === 'mais-tarde' && response !== 'decline' ? preferredOptions : [],
-        availability: data.event.mode === 'marcar' && response !== 'decline' ? availability : {}
+        preferredOptions: data.event.mode === 'mais-tarde' && response !== 'decline' ? (decided ? [decided] : preferredOptions) : [],
+        availability: data.event.mode === 'marcar' && response !== 'decline'
+          ? (decidedDay ? { [decidedDay[0]]: [decidedDay[1]] } : availability) : {}
       });
       const refreshed = await getEvent(slug, adminToken);
       setData(refreshed);
@@ -464,7 +468,7 @@ export default function EventPage() {
       const updated = await updateEvent(adminToken, { ...data.event, votingClosed: !data.event.votingClosed });
       setData((current) => current ? { ...current, event: updated } : current);
       toast({
-        message: updated.votingClosed ? 'Votação encerrada.' : 'Votação reaberta.',
+        message: updated.votingClosed ? 'Confirmações encerradas.' : 'Confirmações abertas.',
         color: 'success',
         duration: 1800
       });
@@ -479,9 +483,9 @@ export default function EventPage() {
     if (!data || !isAdmin) return;
     setSavingAdminAction(true);
     try {
-      const updated = await updateEvent(adminToken, { ...data.event, decidedOption: optionId, votingClosed: true });
+      const updated = await updateEvent(adminToken, { ...data.event, decidedOption: optionId });
       setData((current) => current ? { ...current, event: updated } : current);
-      toast({ message: 'Horário definido e votação encerrada.', color: 'success', duration: 2200 });
+      toast({ message: 'Horário definido.', color: 'success', duration: 2200 });
     } catch (error) {
       toast({ message: error instanceof Error ? error.message : 'Não foi possível definir o horário.', color: 'danger', duration: 2600 });
     } finally {
@@ -493,9 +497,9 @@ export default function EventPage() {
     if (!data || !isAdmin) return;
     setSavingAdminAction(true);
     try {
-      const updated = await updateEvent(adminToken, { ...data.event, decidedOption: undefined, decidedAt: undefined, votingClosed: false });
+      const updated = await updateEvent(adminToken, { ...data.event, decidedOption: undefined, decidedAt: undefined });
       setData((current) => current ? { ...current, event: updated } : current);
-      toast({ message: 'Decisão removida e votação reaberta.', color: 'success', duration: 2200 });
+      toast({ message: 'Decisão removida.', color: 'success', duration: 2200 });
     } catch (error) {
       toast({ message: error instanceof Error ? error.message : 'Não foi possível reabrir a votação.', color: 'danger', duration: 2600 });
     } finally {
@@ -539,7 +543,7 @@ export default function EventPage() {
     }
     setSubmittingMessage(true);
     try {
-      const message = await submitMessage(data.event, body);
+      const message = await submitMessage(data.event, body, isAdmin ? adminToken : undefined);
       setData((current) => current ? { ...current, messages: [...(current.messages || []), message] } : current);
       setMessageBody('');
     } catch (error) {
@@ -619,6 +623,7 @@ export default function EventPage() {
   const preferredTimeOptions = event.mode === 'mais-tarde' ? eventOptions(event) : [];
   const ownVote = data.ownVote || votes.find((vote) => vote.isOwn || vote.participantId === getParticipantId());
   const showVoteConfirmation = !isAdmin && !editingVote && Boolean(voteSubmitted || ownVote);
+  const canPostMessage = isAdmin || Boolean(ownVote);
   const confirmationProgress = thresholdProgressPercentage(counts.accept, event.threshold);
   const editWeekDate = editEvent?.startsAt?.slice(0, 10) || '';
   const editScheduleValid = editEvent ? validEditableSchedule(editEvent, Boolean(overnightEditWeekDates[editWeekDate])) : true;
@@ -704,7 +709,7 @@ export default function EventPage() {
           )}
 
           <div>
-            {!isAdmin && !event.decidedOption && (
+            {!isAdmin && (
               <IonCard className={`vote-card ${showVoteConfirmation ? 'vote-card-complete' : ''}`}>
                 <IonCardContent>
                   {showVoteConfirmation ? (
@@ -718,19 +723,18 @@ export default function EventPage() {
                           : 'Sua resposta foi salva.'}
                         </p>
                       </div>
-                      <IonButton fill="clear" onClick={() => setEditingVote(true)}>Alterar</IonButton>
+                      {!event.votingClosed && <IonButton fill="clear" onClick={() => setEditingVote(true)}>Alterar</IonButton>}
                     </div>
                   ) : (
                     <>
                       <div className="vote-heading">
                         <span className="section-eyebrow">Sua resposta</span>
-                        <h2>{event.mode === 'agora' ? 'Você topa?' : event.mode === 'mais-tarde' ? 'Qual horário funciona?' : 'Quando você pode?'}</h2>
-                        <p>Leva menos de um minuto.</p>
+                        {event.decidedOption ? <><h2>Confirme sua presença</h2><p className="decision-attendance"><strong>Horário definido</strong><span>{optionLabel(event, event.decidedOption)}</span></p></> : <><h2>{event.mode === 'agora' ? 'Você topa?' : event.mode === 'mais-tarde' ? 'Qual horário funciona?' : 'Quando você pode?'}</h2><p>Leva menos de um minuto.</p></>}
                       </div>
-                      <IonItem className={`name-field ${voteValidationError === 'name' ? 'ion-invalid' : ''}`} lines="none"><IonLabel position="stacked">Seu nome</IonLabel><IonInput value={name} aria-label="Seu nome" aria-invalid={voteValidationError === 'name'} aria-describedby={voteValidationError === 'name' ? 'vote-name-error' : undefined} maxlength={80} onIonInput={(e) => updateName(e.detail.value || '')} placeholder="Como a galera te chama?" required /></IonItem>
-                      {voteValidationError === 'name' && <IonNote id="vote-name-error" className="field-error" color="danger" role="alert">Informe seu nome para votar.</IonNote>}
+                      <IonItem className={`name-field ${voteValidationError === 'name' ? 'ion-invalid' : ''}`} lines="none"><IonLabel position="stacked">Seu nome</IonLabel><IonInput ref={nameInputRef} value={name} aria-label="Seu nome" aria-invalid={voteValidationError === 'name'} aria-describedby={voteValidationError === 'name' ? 'vote-name-error' : undefined} maxlength={80} onIonInput={(e) => updateName(e.detail.value || '')} placeholder="Ana" required /></IonItem>
+                      {voteValidationError === 'name' && <IonNote id="vote-name-error" className="field-error" color="danger" role="alert">Informe seu nome para responder.</IonNote>}
 
-                      {event.mode === 'mais-tarde' && (
+                      {!event.decidedOption && event.mode === 'mais-tarde' && (
                         <div className="time-options" aria-describedby={voteValidationError === 'options' ? 'vote-options-error' : undefined}>
                           <h3>Marque todos os horários que funcionam</h3>
                           {preferredTimeOptions.map((option) => (
@@ -743,7 +747,7 @@ export default function EventPage() {
                         </div>
                       )}
 
-                      {event.mode === 'marcar' && (
+                      {!event.decidedOption && event.mode === 'marcar' && (
                         <div aria-describedby={voteValidationError === 'options' ? 'vote-availability-error' : undefined}>
                           <h3>Marque os horários em que você pode</h3>
                           <p className="scroll-hint">Deslize para ver mais dias.</p>
@@ -768,7 +772,7 @@ export default function EventPage() {
                         <IonButton className="response-maybe" fill="outline" disabled={event.votingClosed || submittingVote} onClick={() => void vote('maybe')}><span><b aria-hidden="true">🤔</b>Talvez</span></IonButton>
                         <IonButton className="response-no" fill="clear" disabled={event.votingClosed || submittingVote} onClick={() => void vote('decline')}><span><b aria-hidden="true">😔</b>Não posso</span></IonButton>
                       </div>
-                      {event.votingClosed && <p className="closed-message">A votação foi encerrada pelo criador.</p>}
+                      {event.votingClosed && <p className="closed-message">As confirmações foram encerradas pelo organizador.</p>}
                     </>
                   )}
                 </IonCardContent>
@@ -837,14 +841,18 @@ export default function EventPage() {
                 <IonCardContent>
                   {availabilitySummary.length === 0 && <p>Nenhuma disponibilidade enviada ainda.</p>}
                   {availabilitySummary.length > 0 && <p className="results-note">Respostas “Posso” e “Talvez” entram na contagem dos horários selecionados.</p>}
-                  {groupedAvailability.map((group) => <details className="result-date-group" key={group.label} open={expandedResultDays[group.label] ?? group.items.some((item) => item.count === maxAvailabilityCount)} onToggle={(item) => setResultDayExpanded(group.label, item.currentTarget.open)}>
-                    <summary><span>{group.label}</span><span>{group.items.length} horário{group.items.length === 1 ? '' : 's'} <b aria-hidden="true">⌄</b></span></summary>
+                  {groupedAvailability.map((group) => {
+                    const selected = group.items.find((item) => `${item.day.id}:${item.slot}` === event.decidedOption);
+                    const open = expandedResultDays[group.label] ?? (event.decidedOption ? Boolean(selected) : group.items.some((item) => item.count === maxAvailabilityCount));
+                    return <details className={`result-date-group ${event.decidedOption && !selected ? 'result-date-group-muted' : ''}`} key={group.label} open={open} onToggle={(item) => setResultDayExpanded(group.label, item.currentTarget.open)}>
+                    <summary><span>{group.label}</span><span>{selected ? <>Escolhido · {selected.slot}</> : <>{group.items.length} horário{group.items.length === 1 ? '' : 's'}</>} <b aria-hidden="true">⌄</b></span></summary>
                     <div className="result-date-content">
                     {group.items.map((item) => {
                       const percentage = thresholdProgressPercentage(item.count, event.threshold);
                       const isBestTime = maxAvailabilityCount > 0 && item.count === maxAvailabilityCount;
-                      return <div className="result-row" key={`${item.day.id}-${item.slot}`}>
+                      return <div className={`result-row ${`${item.day.id}:${item.slot}` === event.decidedOption ? 'result-row-chosen' : ''}`} key={`${item.day.id}-${item.slot}`}>
                         <strong>{item.slot}</strong>
+                        {`${item.day.id}:${item.slot}` === event.decidedOption && <IonBadge color="success">Escolhido</IonBadge>}
                         <IonBadge className={isBestTime ? 'result-count-best' : ''} color={item.count >= event.threshold ? 'success' : 'medium'}>{item.count} de {event.threshold}</IonBadge>
                         <div className="result-progress" role="progressbar" aria-label={`${item.day.label}, ${item.slot}`} aria-valuemin={0} aria-valuemax={Math.max(1, event.threshold)} aria-valuenow={Math.min(Math.max(0, item.count), Math.max(1, event.threshold))} aria-valuetext={`${item.count} de ${event.threshold} disponíveis`}><span style={{ width: `${percentage}%` }} /></div>
                         <span>{item.count === 1 ? '1 pessoa disponível' : `${item.count} pessoas disponíveis`}{item.names.length ? ` · ${item.names.join(', ')}` : ''}</span>
@@ -852,7 +860,8 @@ export default function EventPage() {
                       </div>;
                     })}
                     </div>
-                  </details>)}
+                  </details>;
+                  })}
                 </IonCardContent>
               </IonCard>
             )}
@@ -861,11 +870,12 @@ export default function EventPage() {
               <IonCard>
                 <IonCardHeader><IonCardTitle>Horários preferidos</IonCardTitle></IonCardHeader>
                 <IonCardContent>
-                  {(showAllResults ? timePreferences : timePreferences.slice(0, 3)).map((item) => {
+                  {(event.decidedOption ? timePreferences : (showAllResults ? timePreferences : timePreferences.slice(0, 3))).map((item) => {
                     const percentage = thresholdProgressPercentage(item.count, event.threshold);
                     return (
-                      <div className="result-row" key={item.option.id}>
+                      <div className={`result-row ${item.option.id === event.decidedOption ? 'result-row-chosen' : ''}`} key={item.option.id}>
                         <strong>{item.option.primary ? `Horário principal · ${item.option.label}` : item.option.label}</strong>
+                        {item.option.id === event.decidedOption && <IonBadge color="success">Escolhido</IonBadge>}
                         <IonBadge color={item.count >= event.threshold ? 'success' : 'medium'}>{item.count} de {event.threshold}</IonBadge>
                         <div className="result-progress" role="progressbar" aria-label={item.option.label} aria-valuemin={0} aria-valuemax={Math.max(1, event.threshold)} aria-valuenow={Math.min(Math.max(0, item.count), Math.max(1, event.threshold))} aria-valuetext={`${item.count} de ${event.threshold} preferências`}>
                           <span style={{ width: `${percentage}%` }} />
@@ -925,7 +935,9 @@ export default function EventPage() {
                     ))}
                   </IonList>
                 )}
-                {data.messagesClosed ? <p className="muted message-closed-note">Este Bora já aconteceu. Os recados continuam disponíveis para leitura.</p> : (
+                {data.messagesClosed ? <p className="muted message-closed-note">Este Bora já aconteceu. Os recados continuam disponíveis para leitura.</p> : !canPostMessage ? (
+                  <p className="muted message-closed-note">{event.votingClosed ? <>As confirmações estão encerradas.<br />Apenas quem já participa deste Bora pode deixar recados.</> : 'Responda a este Bora antes de deixar um recado.'}</p>
+                ) : (
                   <div className="message-composer">
                     <IonTextarea value={messageBody} maxlength={500} autoGrow aria-label="Escrever um recado" placeholder="Escrever um recado..." onIonInput={(item) => setMessageBody(item.detail.value || '')} disabled={submittingMessage} />
                     <div className="message-composer-actions"><IonNote color="medium">{messageBody.trim().length}/500</IonNote><IonButton onClick={() => void sendMessage()} disabled={submittingMessage || !messageBody.trim()}>{submittingMessage ? 'Enviando…' : 'Enviar'}</IonButton></div>

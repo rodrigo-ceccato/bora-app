@@ -378,6 +378,70 @@ integration('HTTP API with disposable PostgreSQL', () => {
       .toEqual([{ participant_id: participantId, author_name: 'Ana', body: 'Levo pipoca.' }]);
   });
 
+  it('keeps decisions independent from confirmations and enforces participant-only recados', async () => {
+    // Use a fresh API process: the production rate limiter intentionally lives
+    // in process memory, while each integration example resets only the DB.
+    const lifecycleApi = await startApi();
+    const previousBase = apiBase;
+    apiBase = lifecycleApi.base;
+    try {
+    const created = await createEvent('lifecycle_creator', {
+      mode: 'marcar', startsAt: null, alternatives: [], timeZone: 'America/Sao_Paulo',
+      days: [{ id: 'terca', label: 'terça-feira', date: '2099-08-11', slots: ['19:00', '20:00'] }]
+    });
+    for (const [participantId, voterName, response, slots] of [
+      ['picked_guest', 'Bia', 'accept', ['20:00']],
+      ['missed_guest', 'Caio', 'accept', ['19:00']],
+      ['maybe_guest', 'Dani', 'maybe', ['19:00']],
+      ['declined_guest', 'Eli', 'decline', []]
+    ]) {
+      expect((await request(`/events/${created.event.slug}/votes`, { method: 'POST', body: { participantId, voterName, response, preferredOptions: [], availability: { terca: slots } } })).status).toBe(200);
+    }
+    const decision = await request(`/events/${created.event.slug}`, {
+      method: 'PATCH', adminToken: created.adminToken,
+      body: { ...created.event, decidedOption: 'terca:20:00', revision: 0 }
+    });
+    expect(decision.status).toBe(200);
+    expect((await json(decision)).event).toMatchObject({ decidedOption: 'terca:20:00', votingClosed: false });
+    expect((await databasePool.query('select voting_closed from events where id = $1', [created.event.id])).rows[0].voting_closed).toBe(false);
+    const convertedVotes = await json(await request(`/events/${created.event.slug}`));
+    expect(convertedVotes.votes.map((vote) => [vote.voterName, vote.response, vote.availability])).toEqual(expect.arrayContaining([
+      ['Bia', 'accept', { terca: ['20:00'] }],
+      ['Caio', 'maybe', { terca: ['20:00'] }],
+      ['Dani', 'maybe', { terca: ['20:00'] }],
+      ['Eli', 'decline', {}]
+    ]));
+    const unknownOpenMessage = await request(`/events/${created.event.slug}/messages`, { method: 'POST', participantId: 'unknown', body: { authorName: 'Cai', body: 'Oi' } });
+    expect(unknownOpenMessage.status).toBe(403);
+    expect((await json(unknownOpenMessage)).error).toContain('Responda');
+
+    const attendance = await request(`/events/${created.event.slug}/votes`, {
+      method: 'POST', body: voteBody('lifecycle_guest', 'Bia', 'accept')
+    });
+    expect(attendance.status).toBe(200);
+    expect((await json(attendance)).vote.availability).toEqual({ terca: ['20:00'] });
+
+    const reopened = await request(`/events/${created.event.slug}`, {
+      method: 'PATCH', adminToken: created.adminToken,
+      body: { ...(await json(await request(`/events/${created.event.slug}`))).event, votingClosed: true, revision: 1 }
+    });
+    expect(reopened.status).toBe(200);
+    expect((await request(`/events/${created.event.slug}/messages`, { method: 'POST', participantId: 'unknown', body: { authorName: 'Cai', body: 'Oi' } })).status).toBe(403);
+    expect((await request(`/events/${created.event.slug}/messages`, { method: 'POST', participantId: 'lifecycle_guest', body: { authorName: 'Bia', body: 'Oi' } })).status).toBe(201);
+    expect((await request(`/events/${created.event.slug}/messages`, { method: 'POST', participantId: 'unknown', adminToken: created.adminToken, body: { authorName: 'Ana', body: 'Oi' } })).status).toBe(201);
+
+    const current = await json(await request(`/events/${created.event.slug}`));
+    const open = await request(`/events/${created.event.slug}`, { method: 'PATCH', adminToken: created.adminToken, body: { ...current.event, votingClosed: false, revision: 2 } });
+    expect(open.status).toBe(200);
+    expect((await json(open)).event).toMatchObject({ decidedOption: 'terca:20:00', votingClosed: false });
+    expect((await databasePool.query('select voting_closed from events where id = $1', [created.event.id])).rows[0].voting_closed).toBe(false);
+    expect((await json(await request(`/events/${created.event.slug}`))).event.votingClosed).toBe(false);
+    } finally {
+      apiBase = previousBase;
+      await lifecycleApi.stop();
+    }
+  });
+
   it('applies vote and threshold notification preferences to the actual selected subscriptions', async () => {
     const creator = 'creator';
     const guest = 'guest';

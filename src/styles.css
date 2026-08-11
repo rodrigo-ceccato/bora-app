@@ -377,6 +377,11 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .result-date-group summary b { display: inline-block; margin-left: 6px; color: #17664b; font-size: 1rem; transition: transform 150ms ease; }
 .result-date-group[open] summary { border-bottom: 1px solid #e3e9ed; }
 .result-date-group[open] summary b { transform: rotate(180deg); }
+.result-date-group-muted { background: #f4f6f7; border-color: #e4e8eb; }
+.result-date-group-muted summary { color: #75818a; }
+.result-date-group-muted summary > span:last-child, .result-date-group-muted summary b { color: #87939c; }
+.result-row-chosen { border-radius: 8px; background: #edf9f2; padding-inline: 8px; }
+.decision-attendance { display: grid; gap: 3px; margin: 8px 0 0; color: #17663e; }
 .result-date-content { padding: 0 14px; }
 .result-count-best { font-weight: 850; }
 .result-row ion-button { justify-self: start; margin: 4px 0 0; text-transform: none; }
