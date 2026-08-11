@@ -2,8 +2,8 @@ import { getParticipantId } from './store';
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
 export type PushReminderState = 'unsupported' | 'permission-required' | 'permission-denied' | 'permission-granted-but-not-subscribed' | 'subscribed';
-export type PushReminderPreferences = { votes: boolean; changes: boolean; confirmed: boolean; threshold: boolean; upcoming: boolean };
-export const defaultPushReminderPreferences: PushReminderPreferences = { votes: true, changes: true, confirmed: true, threshold: true, upcoming: true };
+export type PushReminderPreferences = { votes: boolean; changes: boolean; confirmed: boolean; threshold: boolean; upcoming: boolean; messages: boolean };
+export const defaultPushReminderPreferences: PushReminderPreferences = { votes: true, changes: true, confirmed: true, threshold: true, upcoming: true, messages: false };
 
 function supported() { return Boolean(API_BASE && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window); }
 function base64UrlToUint8Array(value: string) { const padded = `${value}${'='.repeat((4 - value.length % 4) % 4)}`.replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0)); }

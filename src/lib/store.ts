@@ -1,4 +1,4 @@
-import type { BoraEvent, BoraVote, EventDraft, EventSummary, EventWithVotes } from './types';
+import type { BoraEvent, BoraMessage, BoraVote, EventDraft, EventSummary, EventWithVotes } from './types';
 import { slugify, uid } from './schedule';
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -12,6 +12,15 @@ const SESSION_OVERRIDE_PREFIX = 'bora_storage_override:';
 const SESSION_TOMBSTONE_PREFIX = 'bora_storage_deleted:';
 
 export type StoragePersistence = 'persistent' | 'session' | 'memory';
+
+function eventMessagesClosed(event: BoraEvent) {
+  if (event.startsAt && new Date(event.startsAt).getTime() <= Date.now()) return true;
+  if (event.mode === 'marcar' && event.days.length) {
+    const latestDay = event.days.map((day) => day.date).sort().at(-1);
+    return Boolean(latestDay && latestDay < new Date().toISOString().slice(0, 10));
+  }
+  return false;
+}
 
 export class ApiRequestError extends Error {
   constructor(message: string, public readonly status: number) {
@@ -559,7 +568,8 @@ export async function getEvent(slug: string, adminToken?: string): Promise<Event
   return {
     ...item,
     ownVote: item.ownVote || item.votes.find((vote) => vote.participantId === getParticipantId()),
-    isAdmin: Boolean(adminToken && adminToken === item.event.adminToken)
+    isAdmin: Boolean(adminToken && adminToken === item.event.adminToken),
+    messagesClosed: eventMessagesClosed(item.event)
   };
 }
 
@@ -608,6 +618,40 @@ export async function submitVote(
   item.votes.unshift(vote);
   writeLocal(items);
   return vote;
+}
+
+export async function submitMessage(event: BoraEvent, body: string): Promise<BoraMessage> {
+  if (eventMessagesClosed(event)) throw new Error('Este Bora já aconteceu; os recados estão encerrados.');
+  const message = body.trim();
+  if (!message) throw new Error('Escreva um recado antes de enviar.');
+  if (message.length > 500) throw new Error('Use no máximo 500 caracteres.');
+  if (!getParticipantName().trim()) throw new Error('Informe seu nome antes de deixar um recado.');
+  if (API_BASE) {
+    const result = await apiRequest<{ message: BoraMessage }>(`/events/${encodeURIComponent(event.slug)}/messages`, {
+      method: 'POST', body: JSON.stringify({ body: message, authorName: getParticipantName().trim() })
+    });
+    return result.message;
+  }
+  const item = readLocal().find((candidate) => candidate.event.id === event.id);
+  if (!item) throw new Error('Evento não encontrado.');
+  const created: BoraMessage = { id: uid('message'), authorName: getParticipantName().trim(), body: message, createdAt: new Date().toISOString(), isOwn: true };
+  item.messages = [...(item.messages || []), created];
+  writeLocal(readLocal().map((candidate) => candidate.event.id === event.id ? item : candidate));
+  return created;
+}
+
+export async function deleteMessage(event: BoraEvent, messageId: string, adminToken?: string): Promise<void> {
+  if (API_BASE) {
+    await apiRequest<void>(`/events/${encodeURIComponent(event.slug)}/messages/${encodeURIComponent(messageId)}`, { method: 'DELETE' }, adminToken);
+    return;
+  }
+  const items = readLocal();
+  const item = items.find((candidate) => candidate.event.id === event.id);
+  if (!item) throw new Error('Evento não encontrado.');
+  const target = item.messages?.find((message) => message.id === messageId);
+  if (!target || (!adminToken && !target.isOwn)) throw new Error('Você não pode remover este recado.');
+  item.messages = item.messages?.filter((message) => message.id !== messageId);
+  writeLocal(items);
 }
 
 export async function updateEvent(adminToken: string, event: BoraEvent): Promise<BoraEvent> {

@@ -295,10 +295,10 @@ describe('push targeting', () => {
   it('distinguishes an orphaned browser subscription from a server registration', () => {
     expect(pushPreferencesResponse(undefined)).toEqual({ subscribed: false, preferences: {} });
     expect(pushPreferencesResponse({
-      notify_votes: false, notify_changes: true, notify_confirmed: false, notify_threshold: true, notify_upcoming: false
+      notify_votes: false, notify_changes: true, notify_confirmed: false, notify_threshold: true, notify_upcoming: false, notify_messages: false
     })).toEqual({
       subscribed: true,
-      preferences: { votes: false, changes: true, confirmed: false, threshold: true, upcoming: false }
+      preferences: { votes: false, changes: true, confirmed: false, threshold: true, upcoming: false, messages: false }
     });
   });
 

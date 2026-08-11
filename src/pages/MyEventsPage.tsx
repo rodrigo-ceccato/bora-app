@@ -89,6 +89,11 @@ const preferenceOptions: Array<{
     description: "Quando o número necessário de pessoas confirmar.",
   },
   {
+    key: "messages",
+    label: "Novos recados",
+    description: "Quando alguém deixar um recado em um Bora de que você participa.",
+  },
+  {
     key: "upcoming",
     label: "Lembrete antes de começar",
     description: "Receba um aviso antes do horário marcado.",

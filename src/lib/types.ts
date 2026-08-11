@@ -43,6 +43,14 @@ export interface BoraVote {
   createdAt: string;
 }
 
+export interface BoraMessage {
+  id: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+  isOwn?: boolean;
+}
+
 export interface EventSummary extends BoraEvent {
   /** Total `Posso` responses, computed by the API without loading every vote. */
   confirmedCount?: number;
@@ -74,6 +82,9 @@ export interface EventWithVotes {
   votePage?: VotePage;
   /** The public participant-name list is capped even when aggregate counts are larger. */
   votesTruncated?: boolean;
+  messages?: BoraMessage[];
+  /** Messages remain readable after the event, but new ones are closed. */
+  messagesClosed?: boolean;
 }
 
 export interface EventDraft {

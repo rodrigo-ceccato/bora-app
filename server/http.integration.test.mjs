@@ -447,7 +447,7 @@ integration('HTTP API with disposable PostgreSQL', () => {
     expect(await json(await request(`/push/subscriptions/preferences${endpointQuery}`, { participantId })))
       .toEqual({
         subscribed: true,
-        preferences: { votes: false, changes: true, confirmed: false, threshold: true, upcoming: false }
+        preferences: { votes: false, changes: true, confirmed: false, threshold: true, upcoming: false, messages: false }
       });
     const binding = await databasePool.query('select participant_id, p256dh, auth from push_subscriptions where endpoint = $1', [endpoint]);
     expect(binding.rows).toEqual([{ participant_id: participantId, p256dh: 'public-key-new', auth: 'auth-new' }]);

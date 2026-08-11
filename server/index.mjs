@@ -11,7 +11,7 @@ const allowedOrigin = process.env.CORS_ORIGIN || '';
 const maxBodyBytes = 256 * 1024;
 const modes = new Set(['agora', 'mais-tarde', 'marcar']);
 const responses = new Set(['accept', 'decline', 'maybe']);
-const pushPreferences = new Set(['votes', 'changes', 'confirmed', 'threshold', 'upcoming']);
+const pushPreferences = new Set(['votes', 'changes', 'confirmed', 'threshold', 'upcoming', 'messages']);
 const defaultVotePageSize = 200;
 const maxVotePageSize = 500;
 const reminderBatchSize = 100;
@@ -307,6 +307,15 @@ function mapEvent(row) {
   };
 }
 
+function messagesClosed(row) {
+  if (row.starts_at && new Date(row.starts_at).getTime() <= Date.now()) return true;
+  if (row.mode === 'marcar' && Array.isArray(row.days) && row.days.length) {
+    const latestDay = row.days.map((day) => day?.date).filter(Boolean).sort().at(-1);
+    return Boolean(latestDay && latestDay < new Date().toISOString().slice(0, 10));
+  }
+  return false;
+}
+
 function mapEventSummary(row) {
   const participantResponse = responses.has(row.participant_response) ? row.participant_response : undefined;
   return {
@@ -327,6 +336,25 @@ function mapVote(row, viewerParticipantId = '') {
     availability: row.availability || {},
     createdAt: row.created_at?.toISOString?.() || row.created_at
   };
+}
+
+function mapMessage(row, viewerParticipantId = '') {
+  return {
+    id: row.id,
+    authorName: row.author_name,
+    body: row.body,
+    createdAt: row.created_at?.toISOString?.() || row.created_at,
+    isOwn: Boolean(viewerParticipantId && row.participant_id === viewerParticipantId)
+  };
+}
+
+function validateMessage(input) {
+  const plainText = text(input?.body, 500, true)
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .trim();
+  if (!plainText) throw httpError(400, 'Escreva um recado antes de enviar.');
+  return { body: plainText, authorName: text(input?.authorName, 80, true) };
 }
 
 function parseVotePage(url) {
@@ -707,7 +735,8 @@ export function pushPreferencesResponse(row) {
       changes: row.notify_changes,
       confirmed: row.notify_confirmed,
       threshold: row.notify_threshold,
-      upcoming: row.notify_upcoming
+      upcoming: row.notify_upcoming,
+      messages: row.notify_messages
     } : {}
   };
 }
@@ -784,6 +813,18 @@ async function sendEventPush(event, kind, title, body, audience = 'participants'
   const subscriptions = await pool.query(pushSubscriptionQuery(event, audience, preference));
   await runBoundedWork(subscriptions.rows, (subscription) => (
     deliverEventPush(subscription, event, kind, title, body)
+  ), { concurrency: 20, deadlineAt: Date.now() + 30_000 });
+}
+
+async function sendMessagePush(event, message) {
+  if (!pushEnabled) return;
+  const query = pushSubscriptionQuery(event, 'participants', 'messages');
+  const subscriptions = await pool.query(
+    query.text.replace('limit 2000', `and participant_id <> $${query.values.length + 1} limit 2000`),
+    [...query.values, message.participant_id]
+  );
+  await runBoundedWork(subscriptions.rows, (subscription) => (
+    deliverEventPush(subscription, event, `message-${message.id}`, `Novo recado: ${event.title}`, `${message.author_name} deixou um recado.`)
   ), { concurrency: 20, deadlineAt: Date.now() + 30_000 });
 }
 
@@ -908,7 +949,7 @@ export async function route(request, response) {
   if (request.method === 'GET' && url.pathname === '/api/push/subscriptions/preferences') {
     const participantId = text(request.headers['x-participant-id'], 100, true);
     const endpoint = text(url.searchParams.get('endpoint'), 2000, true);
-    const result = await pool.query('select notify_votes, notify_changes, notify_confirmed, notify_threshold, notify_upcoming from push_subscriptions where participant_id = $1 and endpoint = $2', [participantId, endpoint]);
+    const result = await pool.query('select notify_votes, notify_changes, notify_confirmed, notify_threshold, notify_upcoming, notify_messages from push_subscriptions where participant_id = $1 and endpoint = $2', [participantId, endpoint]);
     return send(response, 200, pushPreferencesResponse(result.rows[0]));
   }
 
@@ -917,7 +958,7 @@ export async function route(request, response) {
     const input = await readJson(request);
     const endpoint = text(input.endpoint, 2000, true);
     const preferences = input.preferences || {};
-    await pool.query(`update push_subscriptions set notify_votes=$1, notify_changes=$2, notify_confirmed=$3, notify_threshold=$4, notify_upcoming=$5, updated_at=now() where participant_id=$6 and endpoint=$7`, [preferences.votes !== false, preferences.changes !== false, preferences.confirmed !== false, preferences.threshold !== false, preferences.upcoming !== false, participantId, endpoint]);
+    await pool.query(`update push_subscriptions set notify_votes=$1, notify_changes=$2, notify_confirmed=$3, notify_threshold=$4, notify_upcoming=$5, notify_messages=$6, updated_at=now() where participant_id=$7 and endpoint=$8`, [preferences.votes !== false, preferences.changes !== false, preferences.confirmed !== false, preferences.threshold !== false, preferences.upcoming !== false, preferences.messages === true, participantId, endpoint]);
     return send(response, 200, { status: 'updated' });
   }
 
@@ -1040,7 +1081,7 @@ export async function route(request, response) {
       const eventRow = await findEvent(slug);
       const page = parseVotePage(url);
       const viewerParticipantId = text(request.headers['x-participant-id'], 100);
-      const [votesResult, summaryResult, ownVoteResult] = await Promise.all([
+      const [votesResult, summaryResult, ownVoteResult, messagesResult] = await Promise.all([
         pool.query(votePageQuery(eventRow.id, page)),
         page.includeSummary ? pool.query(
           `with event_votes as materialized (
@@ -1082,7 +1123,8 @@ export async function route(request, response) {
         ) : Promise.resolve(null),
         viewerParticipantId
           ? pool.query('select * from votes where event_id = $1 and participant_id = $2', [eventRow.id, viewerParticipantId])
-          : Promise.resolve(null)
+          : Promise.resolve(null),
+        pool.query('select * from event_messages where event_id = $1 order by created_at asc, id asc', [eventRow.id])
       ]);
       const hasMore = votesResult.rows.length > page.limit;
       const voteRows = votesResult.rows.slice(0, page.limit);
@@ -1091,6 +1133,8 @@ export async function route(request, response) {
         event: mapEvent(eventRow),
         votes: voteRows.map((vote) => mapVote(vote, viewerParticipantId)),
         ...(ownVoteResult?.rows[0] ? { ownVote: mapVote(ownVoteResult.rows[0], viewerParticipantId) } : {}),
+        messages: messagesResult.rows.map((message) => mapMessage(message, viewerParticipantId)),
+        messagesClosed: messagesClosed(eventRow),
         isAdmin: tokenMatches(bearerToken(request), eventRow.admin_token_hash),
         ...(summaryResult ? { voteSummary: mapVoteSummary(summaryResult.rows[0]) } : {}),
         votesTruncated: hasMore || Boolean(summaryResult && mapVoteSummary(summaryResult.rows[0]).total > voteRows.length),
@@ -1101,6 +1145,39 @@ export async function route(request, response) {
           ...(nextCursor ? { nextCursor } : {})
         }
       });
+    }
+
+    if (request.method === 'POST' && parts.length === 4 && parts[3] === 'messages') {
+      const participantId = text(request.headers['x-participant-id'], 100, true);
+      const input = validateMessage(await readJson(request));
+      const result = await withTransaction(async (client) => {
+        const locked = await client.query('select * from events where slug = $1 for update', [slug]);
+        const eventRow = locked.rows[0];
+        if (!eventRow) throw httpError(404, 'Evento não encontrado.');
+        if (messagesClosed(eventRow)) throw httpError(409, 'Este Bora já aconteceu; os recados estão encerrados.');
+        const participant = await client.query('select 1 from votes where event_id = $1 and participant_id = $2', [eventRow.id, participantId]);
+        if (!participant.rowCount) throw httpError(403, 'Participe deste Bora antes de deixar um recado.');
+        const saved = await client.query(
+          'insert into event_messages (id, event_id, participant_id, author_name, body) values ($1,$2,$3,$4,$5) returning *',
+          [uid('message'), eventRow.id, participantId, input.authorName, input.body]
+        );
+        return { eventRow, message: saved.rows[0] };
+      });
+      runInBackground(sendMessagePush(result.eventRow, result.message), 'Message notification');
+      return send(response, 201, { message: mapMessage(result.message, participantId) });
+    }
+
+    if (request.method === 'DELETE' && parts.length === 5 && parts[3] === 'messages') {
+      const participantId = text(request.headers['x-participant-id'], 100, true);
+      const messageId = text(parts[4], 100, true);
+      const eventRow = await findEvent(slug);
+      const isAdmin = tokenMatches(bearerToken(request), eventRow.admin_token_hash);
+      const removed = await pool.query(
+        `delete from event_messages where id = $1 and event_id = $2 and ($3 or participant_id = $4) returning id`,
+        [messageId, eventRow.id, isAdmin, participantId]
+      );
+      if (!removed.rowCount) throw httpError(403, 'Você não pode remover este recado.');
+      return send(response, 204);
     }
 
     if (request.method === 'POST' && parts.length === 4 && parts[3] === 'votes') {

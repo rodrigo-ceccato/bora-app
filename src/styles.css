@@ -847,6 +847,16 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .day-actions ion-button::part(native),
 .section-heading-row ion-button::part(native) { white-space: normal; }
 
+.messages-card { opacity: .94; }
+.message-list { margin-bottom: 14px; }
+.message-item::part(native) { align-items: flex-start; }
+.message-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.message-composer { border-top: 1px solid var(--ion-color-step-150, #e3e3e3); padding-top: 12px; }
+.message-composer ion-textarea { --background: var(--ion-color-light, #f7f7f7); border-radius: 10px; padding-inline: 10px; }
+.message-composer-actions { align-items: center; display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.message-composer-actions ion-button { margin: 0; }
+.message-closed-note { margin: 12px 0 0; }
+
 @media (max-width: 960px) {
   .manage-grid { grid-template-columns: 1fr; }
 }

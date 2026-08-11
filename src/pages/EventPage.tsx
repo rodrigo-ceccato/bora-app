@@ -2,7 +2,7 @@ import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { logoWhatsapp } from 'ionicons/icons';
-import { ApiRequestError, deleteEvent, getEvent, getMoreEventVotes, getParticipantId, getParticipantName, saveParticipantName, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
+import { ApiRequestError, deleteEvent, deleteMessage, getEvent, getMoreEventVotes, getParticipantId, getParticipantName, saveParticipantName, submitMessage, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
 import { responseLabel } from '../lib/schedule';
 import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
 import { eventOptions, optionLabel } from '../lib/options';
@@ -81,6 +81,9 @@ export default function EventPage() {
   const [editEvent, setEditEvent] = useState<BoraEvent | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [submittingVote, setSubmittingVote] = useState(false);
+  const [messageBody, setMessageBody] = useState('');
+  const [submittingMessage, setSubmittingMessage] = useState(false);
+  const [removingMessageId, setRemovingMessageId] = useState<string | null>(null);
   const [voteValidationError, setVoteValidationError] = useState<'name' | 'options' | null>(null);
   const [voteSubmitted, setVoteSubmitted] = useState(false);
   const [editingVote, setEditingVote] = useState(false);
@@ -526,6 +529,38 @@ export default function EventPage() {
     });
   }
 
+  async function sendMessage() {
+    if (!data || submittingMessage) return;
+    const body = messageBody.trim();
+    if (!body) {
+      toast({ message: 'Escreva um recado antes de enviar.', color: 'warning', duration: 2200 });
+      return;
+    }
+    setSubmittingMessage(true);
+    try {
+      const message = await submitMessage(data.event, body);
+      setData((current) => current ? { ...current, messages: [...(current.messages || []), message] } : current);
+      setMessageBody('');
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : 'Não foi possível enviar o recado.', color: 'danger', duration: 2800 });
+    } finally {
+      setSubmittingMessage(false);
+    }
+  }
+
+  async function removeMessage(messageId: string) {
+    if (!data || removingMessageId) return;
+    setRemovingMessageId(messageId);
+    try {
+      await deleteMessage(data.event, messageId, isAdmin ? adminToken : undefined);
+      setData((current) => current ? { ...current, messages: (current.messages || []).filter((message) => message.id !== messageId) } : current);
+    } catch (error) {
+      toast({ message: error instanceof Error ? error.message : 'Não foi possível remover o recado.', color: 'danger', duration: 2800 });
+    } finally {
+      setRemovingMessageId(null);
+    }
+  }
+
   async function copyText(url: string, message: string, kind: CopyFallback['kind'] = 'invite') {
     copyOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     try {
@@ -869,6 +904,32 @@ export default function EventPage() {
                 {data.votePage?.hasMore && data.votePage.nextCursor && <IonButton fill="outline" onClick={() => void loadMoreVotes()} disabled={loadingMoreVotes}>
                   {loadingMoreVotes ? 'Carregando nomes…' : 'Carregar mais nomes'}
                 </IonButton>}
+              </IonCardContent>
+            </IonCard>}
+
+            {(!isAdmin || adminSection === 'overview') && <IonCard className="messages-card">
+              <IonCardHeader><IonCardTitle>Recados</IonCardTitle></IonCardHeader>
+              <IonCardContent>
+                {(data.messages || []).length === 0 ? <p className="muted">Ainda não tem recados.</p> : (
+                  <IonList className="message-list" aria-label="Recados do evento">
+                    {(data.messages || []).map((message) => (
+                      <IonItem key={message.id} className="message-item">
+                        <IonLabel>
+                          <h3>{message.authorName}</h3>
+                          <p className="message-body">{message.body}</p>
+                          <small>{new Date(message.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</small>
+                        </IonLabel>
+                        {(isAdmin || message.isOwn) && <IonButton slot="end" fill="clear" color="medium" size="small" aria-label={`Excluir recado de ${message.authorName}`} disabled={removingMessageId === message.id} onClick={() => void removeMessage(message.id)}>{removingMessageId === message.id ? 'Removendo…' : 'Excluir'}</IonButton>}
+                      </IonItem>
+                    ))}
+                  </IonList>
+                )}
+                {data.messagesClosed ? <p className="muted message-closed-note">Este Bora já aconteceu. Os recados continuam disponíveis para leitura.</p> : (
+                  <div className="message-composer">
+                    <IonTextarea value={messageBody} maxlength={500} autoGrow aria-label="Escrever um recado" placeholder="Escrever um recado..." onIonInput={(item) => setMessageBody(item.detail.value || '')} disabled={submittingMessage} />
+                    <div className="message-composer-actions"><IonNote color="medium">{messageBody.trim().length}/500</IonNote><IonButton onClick={() => void sendMessage()} disabled={submittingMessage || !messageBody.trim()}>{submittingMessage ? 'Enviando…' : 'Enviar'}</IonButton></div>
+                  </div>
+                )}
               </IonCardContent>
             </IonCard>}
           </div>
