@@ -14,6 +14,10 @@ const connection = process.env.DATABASE_URL
 
 export const pool = new Pool({ ...connection, max: Number(process.env.DATABASE_POOL_SIZE || 10) });
 
+// node-postgres emits idle-client failures on the Pool. Without a listener,
+// EventEmitter treats them as uncaught errors and terminates the API process.
+pool.on('error', (error) => console.error('Unexpected idle PostgreSQL client error', error));
+
 export async function withTransaction(callback) {
   const client = await pool.connect();
   try {
