@@ -902,6 +902,7 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
   .time-chip-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .time-chip-grid.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .section-heading-row { align-items: flex-start; flex-direction: column; }
+  .home-toolbar-title { max-width: calc(100% - 48px); }
   .toolbar-secondary-action span { display: none; }
   .event-facts { grid-template-columns: 1fr; }
   .event-summary ion-card-content,
