@@ -1,7 +1,7 @@
-import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { calendarOutline } from 'ionicons/icons';
-import { getParticipantName } from '../lib/store';
+import { getParticipantName, refreshParticipantProfile } from '../lib/store';
 
 type Mode = 'agora' | 'mais-tarde' | 'marcar';
 
@@ -28,6 +28,7 @@ export default function HomePage() {
     window.addEventListener('storage', updateName);
     return () => { window.removeEventListener('bora:participant-name-updated', updateName); window.removeEventListener('storage', updateName); };
   }, []);
+  useIonViewWillEnter(() => { void refreshParticipantProfile(); });
   const firstName = name.trim().split(/\s+/)[0] || '';
   const title = firstName ? `Bora, ${firstName}?` : 'Bora?';
   return <IonPage>

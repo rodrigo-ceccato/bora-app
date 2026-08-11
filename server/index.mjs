@@ -297,7 +297,7 @@ function mapEvent(row) {
     alternatives: row.alternatives || [],
     days: row.days || [],
     timeZone: row.event_timezone || undefined,
-    createdByName: row.created_by_name,
+    createdByName: row.current_creator_name || row.created_by_name,
     notifyCreatorOnVote: row.notify_creator_on_vote !== false,
     votingClosed: row.voting_closed,
     revision: Number(row.revision) || 0,
@@ -330,7 +330,7 @@ function mapVote(row, viewerParticipantId = '') {
     id: row.id,
     eventId: row.event_id,
     isOwn: Boolean(viewerParticipantId && row.participant_id === viewerParticipantId),
-    voterName: row.voter_name,
+    voterName: row.current_voter_name || row.voter_name,
     response: row.response,
     preferredOptions: row.preferred_options || (row.preferred_option ? [`legacy:${row.preferred_option}`] : []),
     availability: row.availability || {},
@@ -351,7 +351,10 @@ function mapMessage(row, viewerParticipantId = '') {
 function validateMessage(input) {
   const plainText = text(input?.body, 500, true)
     .replace(/<[^>]*>/g, '')
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .split('').filter((character) => {
+      const code = character.charCodeAt(0);
+      return code === 9 || code === 10 || code === 13 || (code >= 32 && code !== 127);
+    }).join('')
     .trim();
   if (!plainText) throw httpError(400, 'Escreva um recado antes de enviar.');
   return { body: plainText, authorName: text(input?.authorName, 80, true) };
@@ -403,14 +406,16 @@ function encodeVoteCursor(row) {
 export function votePageQuery(eventId, { limit = defaultVotePageSize, cursor = null } = {}) {
   if (cursor) {
     return {
-      text: `select votes.*, to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as cursor_created_at from votes
+      text: `select votes.*, profile.display_name as current_voter_name, to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as cursor_created_at from votes
+       left join participant_profiles profile on profile.participant_id = votes.participant_id
        where event_id = $1 and (created_at, id) < ($2::timestamptz, $3::text)
        order by created_at desc, id desc limit $4`,
       values: [eventId, cursor.createdAt, cursor.id, limit + 1]
     };
   }
   return {
-    text: `select votes.*, to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as cursor_created_at from votes where event_id = $1
+    text: `select votes.*, profile.display_name as current_voter_name, to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as cursor_created_at from votes
+     left join participant_profiles profile on profile.participant_id = votes.participant_id where event_id = $1
      order by created_at desc, id desc limit $2`,
     values: [eventId, limit + 1]
   };
@@ -878,7 +883,9 @@ async function runReminderScan() {
 }
 
 async function findEvent(slug) {
-  const result = await pool.query('select * from events where slug = $1', [slug]);
+  const result = await pool.query(`select events.*, profile.display_name as current_creator_name
+    from events left join participant_profiles profile on profile.participant_id = events.created_by_participant_id
+    where events.slug = $1`, [slug]);
   if (!result.rows[0]) throw httpError(404, 'Evento não encontrado.');
   return result.rows[0];
 }
@@ -976,9 +983,10 @@ export async function route(request, response) {
     const participantId = text(request.headers['x-participant-id'], 100, true);
     const [created, joined] = await Promise.all([
       pool.query(
-        `select events.*, coalesce(vote_summary.confirmed_count, 0)::int as confirmed_count,
+        `select events.*, profile.display_name as current_creator_name, coalesce(vote_summary.confirmed_count, 0)::int as confirmed_count,
                 participant_vote.response as participant_response
          from events
+         left join participant_profiles profile on profile.participant_id = events.created_by_participant_id
          left join lateral (
            select count(*) filter (where response = 'accept')::int as confirmed_count
            from votes where votes.event_id = events.id
@@ -991,9 +999,10 @@ export async function route(request, response) {
         [participantId]
       ),
       pool.query(
-        `select events.*, coalesce(vote_summary.confirmed_count, 0)::int as confirmed_count,
+        `select events.*, profile.display_name as current_creator_name, coalesce(vote_summary.confirmed_count, 0)::int as confirmed_count,
                 participant_vote.response as participant_response
          from events
+         left join participant_profiles profile on profile.participant_id = events.created_by_participant_id
          join votes participant_vote
            on participant_vote.event_id = events.id and participant_vote.participant_id = $1
          left join lateral (
@@ -1011,6 +1020,29 @@ export async function route(request, response) {
       created: created.rows.map(mapEventSummary),
       joined: joined.rows.map(mapEventSummary)
     });
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/me/profile') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const result = await pool.query('select display_name, updated_at from participant_profiles where participant_id = $1', [participantId]);
+    const profile = result.rows[0];
+    return send(response, 200, {
+      name: profile?.display_name || '',
+      updatedAt: profile?.updated_at?.toISOString?.() || profile?.updated_at || null
+    });
+  }
+
+  if (request.method === 'PUT' && url.pathname === '/api/me/profile') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const name = text((await readJson(request)).name, 80, true);
+    const result = await pool.query(
+      `insert into participant_profiles (participant_id, display_name, updated_at) values ($1, $2, now())
+       on conflict (participant_id) do update set display_name = excluded.display_name, updated_at = now()
+       returning display_name, updated_at`,
+      [participantId, name]
+    );
+    const profile = result.rows[0];
+    return send(response, 200, { name: profile.display_name, updatedAt: profile.updated_at?.toISOString?.() || profile.updated_at });
   }
 
   if (request.method === 'POST' && url.pathname === '/api/me/recovery-link') {
@@ -1125,7 +1157,9 @@ export async function route(request, response) {
           [eventRow.id]
         ) : Promise.resolve(null),
         viewerParticipantId
-          ? pool.query('select * from votes where event_id = $1 and participant_id = $2', [eventRow.id, viewerParticipantId])
+          ? pool.query(`select votes.*, profile.display_name as current_voter_name from votes
+              left join participant_profiles profile on profile.participant_id = votes.participant_id
+              where event_id = $1 and votes.participant_id = $2`, [eventRow.id, viewerParticipantId])
           : Promise.resolve(null),
         pool.query('select * from event_messages where event_id = $1 order by created_at asc, id asc', [eventRow.id])
       ]);

@@ -44,6 +44,7 @@ import {
   getParticipantName,
   listAdminEvents,
   listMyEvents,
+  refreshParticipantProfile,
   saveSessionPreference,
   saveParticipantName,
   type MyEvents,
@@ -240,6 +241,7 @@ export default function MyEventsPage() {
   useIonViewWillEnter(() => {
     let active = true;
     setParticipantName(getParticipantName());
+    void refreshParticipantProfile();
     setLoading(true);
     void listMyEvents()
       .then((result: MyEvents) => {
@@ -372,7 +374,7 @@ export default function MyEventsPage() {
   }
   function editSavedName() {
     presentAlert({
-      header: "Nome neste aparelho",
+      header: "Seu nome",
       inputs: [
         {
           name: "name",
@@ -386,7 +388,11 @@ export default function MyEventsPage() {
         {
           text: "Salvar",
           handler: (data) => {
-            saveParticipantName(String(data.name || ""));
+            const saved = saveParticipantName(String(data.name || ""));
+            if (!saved) {
+              toast({ message: "Informe seu nome.", color: "danger", duration: 2400 });
+              return false;
+            }
             setParticipantName(getParticipantName());
           },
         },
@@ -729,7 +735,7 @@ export default function MyEventsPage() {
                 <IonIcon icon={personOutline} aria-hidden="true" />
               </span>
               <span className="device-access-copy">
-                <strong>Nome neste aparelho</strong>
+                <strong>Seu nome</strong>
                 <small>
                   {participantName || "Adicionar ou corrigir seu nome."}
                 </small>

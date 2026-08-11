@@ -10,6 +10,10 @@ const MAX_EVENT_VOTES = 2000;
 const DEFAULT_VOTE_PAGE_SIZE = 200;
 const SESSION_OVERRIDE_PREFIX = 'bora_storage_override:';
 const SESSION_TOMBSTONE_PREFIX = 'bora_storage_deleted:';
+let pendingParticipantName: string | null = null;
+let participantNameSyncInFlight: Promise<void> | null = null;
+let participantProfileRefreshInFlight: Promise<string> | null = null;
+let lastProfileRefreshAt = 0;
 
 export type StoragePersistence = 'persistent' | 'session' | 'memory';
 
@@ -358,15 +362,97 @@ export function getParticipantName() {
   return (readStored(PARTICIPANT_NAME_KEY) || '').trim().slice(0, 80);
 }
 
-export function saveParticipantName(name: string) {
+function cacheParticipantName(name: string) {
   const value = name.trim().slice(0, 80);
   if (value) writeStored(PARTICIPANT_NAME_KEY, value);
   else removeStored(PARTICIPANT_NAME_KEY);
   notifyParticipantNameChange();
+  return value;
+}
+
+function profileSyncFailed() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('bora:participant-name-sync-failed'));
+}
+
+export async function syncParticipantName() {
+  if (!API_BASE || !pendingParticipantName) return;
+  if (participantNameSyncInFlight) return participantNameSyncInFlight;
+  const name = pendingParticipantName;
+  participantNameSyncInFlight = apiRequest<{ name: string }>('/me/profile', {
+    method: 'PUT',
+    headers: { 'x-participant-id': getParticipantId() },
+    body: JSON.stringify({ name })
+  }).then((profile) => {
+    // Do not let an older response win after a newer local edit.
+    if (pendingParticipantName === name) {
+      pendingParticipantName = null;
+      cacheParticipantName(profile.name);
+    }
+  }).catch((error) => {
+    profileSyncFailed();
+    throw error;
+  }).finally(() => {
+    participantNameSyncInFlight = null;
+    // Input handlers can update the cache several times while a request is in
+    // flight. Persist the newest value next instead of leaving it queued.
+    if (pendingParticipantName && pendingParticipantName !== name) void syncParticipantName().catch(() => undefined);
+  });
+  return participantNameSyncInFlight;
+}
+
+/** Updates the immediate local cache, then persists the canonical profile. */
+export function saveParticipantName(name: string) {
+  const value = cacheParticipantName(name);
+  // An empty cache is allowed while editing, but the server profile always
+  // requires a display name and therefore is not overwritten with an empty value.
+  if (value) {
+    pendingParticipantName = value;
+    void syncParticipantName().catch(() => undefined);
+  }
+  return value;
 }
 
 export function restoreParticipantName(name: string) {
-  saveParticipantName(name);
+  cacheParticipantName(name);
+}
+
+export function refreshParticipantProfile({ force = false } = {}) {
+  if (!API_BASE) return getParticipantName();
+  const now = Date.now();
+  if (!force && now - lastProfileRefreshAt < 750) return getParticipantName();
+  if (participantProfileRefreshInFlight) return participantProfileRefreshInFlight;
+  lastProfileRefreshAt = now;
+  participantProfileRefreshInFlight = (async () => {
+    // A local offline edit should get a chance to reach the server before a
+    // stale profile response can replace the visible cached value.
+    if (pendingParticipantName) await syncParticipantName().catch(() => undefined);
+    try {
+      const profile = await apiRequest<{ name?: string }>('/me/profile', {
+        headers: { 'x-participant-id': getParticipantId() }
+      });
+      if (profile.name) cacheParticipantName(profile.name);
+    } catch {
+      // The cache intentionally remains usable offline.
+    }
+    return getParticipantName();
+  })();
+  return participantProfileRefreshInFlight.finally(() => { participantProfileRefreshInFlight = null; });
+}
+
+/** Refreshes only on meaningful app activity; it deliberately does not poll. */
+export function startParticipantProfileSync() {
+  const refresh = () => { void refreshParticipantProfile(); };
+  const focus = () => { void refreshParticipantProfile({ force: true }); };
+  const visible = () => { if (document.visibilityState === 'visible') void refreshParticipantProfile({ force: true }); };
+  refresh();
+  window.addEventListener('focus', focus);
+  window.addEventListener('online', refresh);
+  document.addEventListener('visibilitychange', visible);
+  return () => {
+    window.removeEventListener('focus', focus);
+    window.removeEventListener('online', refresh);
+    document.removeEventListener('visibilitychange', visible);
+  };
 }
 
 export function usingApi() {

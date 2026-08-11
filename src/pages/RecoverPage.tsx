@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { rebindPushSubscription } from '../lib/push';
 import { recoveryLinkDetails, recoveryLinkWithoutAdminAccess } from '../lib/recovery';
-import { clearDeviceAuthentication, createRecoveryLink, hasRegisteredParticipant, recoverParticipant, restoreAdminEvents, restoreParticipantId, restoreParticipantName } from '../lib/store';
+import { clearDeviceAuthentication, createRecoveryLink, hasRegisteredParticipant, recoverParticipant, refreshParticipantProfile, restoreAdminEvents, restoreParticipantId, restoreParticipantName } from '../lib/store';
 
 const USED_TOKENS_KEY = 'bora_recovery_used_tokens';
 
@@ -76,7 +76,10 @@ export default function RecoverPage() {
       clearDeviceAuthentication();
       restoreParticipantId(participantId);
       restoreAdminEvents(details.adminEvents);
+      // Older links can provide a local fallback, but the profile associated
+      // with the recovered anonymous identity is canonical.
       if (details.participantName) restoreParticipantName(details.participantName);
+      await refreshParticipantProfile({ force: true });
       setAdminAccessRestored(details.adminEvents.length > 0);
       markTokenUsed(token);
       window.history.replaceState({}, '', '/home');

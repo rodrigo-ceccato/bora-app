@@ -1,6 +1,6 @@
-import React, { Component, Suspense, createRef, lazy, type ErrorInfo, type ReactNode } from 'react';
+import React, { Component, Suspense, createRef, lazy, useEffect, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { IonApp, IonButton, IonContent, IonPage, IonRouterOutlet, IonSpinner, setupIonicReact } from '@ionic/react';
+import { IonApp, IonButton, IonContent, IonPage, IonRouterOutlet, IonSpinner, setupIonicReact, useIonToast } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { Redirect, Route } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ const PastEventsPage = lazy(() => import('./pages/PastEventsPage'));
 const RecoverPage = lazy(() => import('./pages/RecoverPage'));
 const MetricsPage = lazy(() => import('./pages/MetricsPage'));
 import { startPresence } from './lib/presence';
+import { startParticipantProfileSync } from './lib/store';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -30,6 +31,16 @@ function PageLoader() {
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
+
+function ParticipantProfileSyncNotice() {
+  const [toast] = useIonToast();
+  useEffect(() => {
+    const warn = () => toast({ message: 'Nome salvo neste aparelho. Vamos sincronizar quando houver conexão.', color: 'warning', duration: 3600 });
+    window.addEventListener('bora:participant-name-sync-failed', warn);
+    return () => window.removeEventListener('bora:participant-name-sync-failed', warn);
+  }, [toast]);
+  return null;
 }
 
 function NotFoundPage() {
@@ -108,6 +119,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
 function App() {
   return (
     <IonApp>
+      <ParticipantProfileSyncNotice />
       <IonReactRouter>
         <IonRouterOutlet>
           <Route exact path="/home" render={() => <LazyPage><HomePage /></LazyPage>} />
@@ -130,7 +142,9 @@ function App() {
 const rootElement = document.getElementById('root');
 if (rootElement) {
   const stopPresence = startPresence();
+  const stopParticipantProfileSync = startParticipantProfileSync();
   window.addEventListener('pagehide', stopPresence, { once: true });
+  window.addEventListener('pagehide', stopParticipantProfileSync, { once: true });
   createRoot(rootElement).render(
     <React.StrictMode>
       <AppErrorBoundary>

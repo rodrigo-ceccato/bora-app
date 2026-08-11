@@ -182,7 +182,7 @@ function voteBody(participantId, voterName, response = 'accept') {
 async function resetData() {
   await writeFile(pushTransportLog, '');
   await databasePool.query(`truncate table
-    push_notifications, push_subscriptions, participant_recovery_tokens,
+    push_notifications, push_subscriptions, participant_recovery_tokens, participant_profiles,
     participant_presence, votes, events restart identity cascade`);
 }
 
@@ -270,6 +270,30 @@ integration('HTTP API with disposable PostgreSQL', () => {
 
     expect((await request('/events/not-a-route/extra')).status).toBe(404);
     expect((await request('/events/%')).status).toBe(400);
+  });
+
+  it('stores a participant profile canonically for every device sharing the anonymous identity', async () => {
+    const participantId = 'participant_1';
+    expect(await json(await request('/me/profile', { participantId }))).toEqual({ name: '', updatedAt: null });
+
+    const saved = await request('/me/profile', {
+      method: 'PUT', participantId, body: { name: '  Rodrigo Ceccato  ' }
+    });
+    expect(saved.status).toBe(200);
+    expect(await json(saved)).toMatchObject({ name: 'Rodrigo Ceccato' });
+    // A separate client storage environment only needs the same participant ID.
+    expect(await json(await request('/me/profile', { participantId }))).toMatchObject({ name: 'Rodrigo Ceccato' });
+
+    const event = await createEvent(participantId, { title: 'Nome atual', createdByName: 'Nome antigo' });
+    const guestId = 'participant_guest';
+    await request('/me/profile', { method: 'PUT', participantId: guestId, body: { name: 'Bia atual' } });
+    await request(`/events/${event.event.slug}/votes`, { method: 'POST', body: voteBody(guestId, 'Bia antiga') });
+    const rendered = await json(await request(`/events/${event.event.slug}`, { participantId }));
+    expect(rendered.event.createdByName).toBe('Rodrigo Ceccato');
+    expect(rendered.votes.find((vote) => vote.voterName === 'Bia atual')).toMatchObject({ voterName: 'Bia atual' });
+
+    expect((await request('/me/profile', { method: 'PUT', participantId, body: { name: '   ' } })).status).toBe(400);
+    expect((await request('/me/profile', { method: 'PUT', participantId, body: { name: 'N'.repeat(81) } })).status).toBe(400);
   });
 
   it('runs create/get/vote/close and delete races transactionally over HTTP', async () => {

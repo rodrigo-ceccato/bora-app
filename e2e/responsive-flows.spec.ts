@@ -101,6 +101,58 @@ test('device-transfer links restore the saved participant name', async ({ page }
   await expect.poll(() => page.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Bia');
 });
 
+test('participant name updated on one device is refreshed on another device sharing the same participant identity', async ({ browser }) => {
+  let canonicalName = 'Rodrigo';
+  let profileRequests = 0;
+  const installProfileApi = async (page: import('@playwright/test').Page) => {
+    await page.route('**/api/me/profile', async (route) => {
+      profileRequests += 1;
+      if (route.request().method() === 'PUT') {
+        canonicalName = String(route.request().postDataJSON().name).trim();
+      }
+      await route.fulfill({ json: { name: canonicalName, updatedAt: '2099-01-01T00:00:00.000Z' } });
+    });
+    await page.route('**/api/me/events', (route) => route.fulfill({ json: { created: [], joined: [] } }));
+  };
+  const deviceA = await browser.newContext();
+  const deviceB = await browser.newContext();
+  const pageA = await deviceA.newPage();
+  const pageB = await deviceB.newPage();
+  await installProfileApi(pageA);
+  await installProfileApi(pageB);
+  await pageA.addInitScript(() => {
+    localStorage.setItem('bora_participant_id', 'participant_1');
+    localStorage.setItem('bora_participant_name', 'Rodrigo');
+  });
+  await pageB.addInitScript(() => {
+    localStorage.setItem('bora_participant_id', 'participant_1');
+    localStorage.setItem('bora_participant_name', 'Rodrigo');
+  });
+
+  await pageA.goto('/my-events');
+  await pageB.goto('/home');
+  await expect(pageA.getByText('Rodrigo', { exact: true }).last()).toBeVisible();
+  await expect(pageB.locator('ion-title.home-toolbar-title')).toHaveText('Bora, Rodrigo?');
+  await pageA.getByRole('button', { name: /Seu nome/ }).click();
+  await pageA.locator('ion-alert input').fill('Rodrigo Ceccato');
+  await pageA.getByRole('button', { name: 'Salvar' }).click();
+  await expect.poll(() => canonicalName).toBe('Rodrigo Ceccato');
+  expect(await pageB.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Rodrigo');
+
+  await pageB.waitForTimeout(800);
+  const beforeActivation = profileRequests;
+  // Re-entering Home is an app activation path; the global focus/visibility
+  // hooks cover returning to an already-open page.
+  await pageB.goto('/my-events');
+  await pageB.goto('/home');
+  await expect(pageB.locator('ion-title.home-toolbar-title')).toHaveText('Bora, Rodrigo Ceccato?');
+  await expect.poll(() => pageB.evaluate(() => localStorage.getItem('bora_participant_name'))).toBe('Rodrigo Ceccato');
+  // The paired focus/visibility signals share the refresh deduplication window.
+  expect(profileRequests - beforeActivation).toBeLessThanOrEqual(2);
+  await deviceA.close();
+  await deviceB.close();
+});
+
 test('recovery confirms before replacing an existing Bora on this device', async ({ page }, testInfo) => {
   await installClipboard(page);
   const originalParticipant = `original-participant-${testInfo.project.name}-${Date.now()}`;
