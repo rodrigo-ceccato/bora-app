@@ -69,6 +69,8 @@ services:
       dockerfile: Dockerfile.e2e
     profiles: ["test"]
     environment:
+      # Avoid the host-only Chromium executable override in playwright.config.
+      CI: "1"
       PLAYWRIGHT_BASE_URL: http://web
     depends_on:
       web:
