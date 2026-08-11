@@ -3,10 +3,9 @@
 ## 1. Automated verification
 
 ```bash
-npm test
-npm run lint
-npm run build
-docker compose config
+npm run verify
+npm run verify:ops
+npm run test:e2e:local
 ```
 
 All commands must pass.

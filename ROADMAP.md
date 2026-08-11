@@ -27,6 +27,9 @@ move a participant identity between devices.
 
 ## Quality work before the next feature
 
+Implementation status and verification evidence are tracked in the
+[quality remediation TODO](docs/quality-remediation-todo.md).
+
 1. Extend automated checks to invalid, loading, empty, closed, and decided
    states; include keyboard-only interaction for creation, voting, and creator
    controls.
@@ -36,6 +39,25 @@ move a participant identity between devices.
    VAPID credentials before relying on reminders during a pilot.
 4. Keep a small visual baseline gallery for the three supported viewport widths:
    360px, 768px, and 1440px.
+5. Keep schedule summaries and result bars consistent: every selected option
+   from both `Posso` and `Talvez` responses must count independently. Preserve
+   the reported two-option `Talvez` case as a regression test.
+
+## Product candidate: event mural
+
+Add a small event-scoped mural below the event where invitees can post short
+messages without creating an account. Keep the existing participant identity
+and recovery-link model.
+
+- Place a compact **Ouvir** checkbox at the right of the mural header. It is on
+  by default and controls notifications for new mural messages on that event.
+- Make posting, loading, empty, retry, and notification opt-out states clear and
+  keyboard/screen-reader accessible on phone and desktop layouts.
+- Before pilot use, define message length/retention, author deletion or creator
+  moderation, rate limits, notification privacy, pagination, and abuse handling.
+- Cover duplicate submissions, concurrent messages, reconnect/poll refresh,
+  default-on subscription behavior, opt-out, stale Push endpoints, and recovery
+  onto an already-subscribed device.
 
 ## Refactoring direction
 

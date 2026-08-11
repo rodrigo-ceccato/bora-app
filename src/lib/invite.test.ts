@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { invitationText, invitationWhen } from './invite';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { invitationDateTime, invitationText, invitationWhen } from './invite';
 import type { BoraEvent } from './types';
 
 function event(overrides: Partial<BoraEvent>): BoraEvent {
@@ -51,8 +51,24 @@ describe('invitationText', () => {
     expect(text).toContain('Confirma sua presença no Bora:');
   });
 
-  it('includes an optional description on its own block', () => {
+  it('uses the compact Bora share format, including Hoje and the nearest clock face', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-10T12:00:00.000Z'));
+    const scheduled = event({
+      mode: 'marcar', startsAt: undefined, alternatives: [], timeZone: 'America/Sao_Paulo', decidedOption: 'segunda:18:07',
+      days: [{ id: 'segunda', label: 'segunda', date: '2026-08-10', slots: ['18:07'] }]
+    });
+    expect(invitationDateTime(scheduled)).toEqual({
+      date: '📅 Hoje, segunda-feira, 10 de agosto',
+      time: '🕕 às 18:07'
+    });
+    expect(invitationText(scheduled)).toContain('Bora? Chopp\n\n📅 Hoje, segunda-feira, 10 de agosto\n🕕 às 18:07\n📍 Bar do Zé');
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it('keeps an optional description as its own block before confirmation', () => {
     const text = invitationText(event({ mode: 'agora', description: 'Levar refrigerante' }));
-    expect(text).toContain('\n\nLevar refrigerante');
+    expect(text).toContain('📍 Bar do Zé\n\nLevar refrigerante\n\nConfirma sua presença no Bora:');
   });
 });

@@ -1,7 +1,46 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type BrowserContextOptions, type TestInfo } from '@playwright/test';
 
 function localDay(date: Date) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
+
+function inheritedContextOptions(testInfo: TestInfo): BrowserContextOptions {
+  const {
+    colorScheme,
+    deviceScaleFactor,
+    extraHTTPHeaders,
+    hasTouch,
+    httpCredentials,
+    ignoreHTTPSErrors,
+    isMobile,
+    javaScriptEnabled,
+    locale,
+    offline,
+    permissions,
+    screen,
+    serviceWorkers,
+    timezoneId,
+    userAgent,
+    viewport
+  } = testInfo.project.use as BrowserContextOptions;
+  return {
+    colorScheme,
+    deviceScaleFactor,
+    extraHTTPHeaders,
+    hasTouch,
+    httpCredentials,
+    ignoreHTTPSErrors,
+    isMobile,
+    javaScriptEnabled,
+    locale,
+    offline,
+    permissions,
+    screen,
+    serviceWorkers,
+    timezoneId,
+    userAgent,
+    viewport
+  };
 }
 
 test('agora time picker offers quick times that close the modal', async ({ page }) => {
@@ -174,7 +213,10 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes',
   await page.getByRole('button', { name: 'Criar link do Bora' }).click();
   await page.waitForURL(/\/e\//);
   await expect(page.locator('.ready-card')).toBeInViewport();
-  await expect.poll(() => page.locator('ion-content.event-page').evaluate(async (content) => (await content.getScrollElement()).scrollTop)).toBe(0);
+  await expect.poll(() => page.locator('ion-content.event-page').evaluate(async (content) => {
+    const ionContent = content as HTMLElement & { getScrollElement(): Promise<HTMLElement> };
+    return (await ionContent.getScrollElement()).scrollTop;
+  })).toBe(0);
 
   const slug = page.url().match(/\/e\/([^?]+)/)?.[1];
   expect(slug).toBeTruthy();
@@ -207,7 +249,7 @@ test('agora invite lifecycle: day sticks, invite copies cleanly, invitee votes',
     expect(inviteUrl).not.toContain('created=1');
 
     // A fresh invitee (no shared device state) can open the invite and vote.
-    const inviteeContext = await browser.newContext();
+    const inviteeContext = await browser.newContext(inheritedContextOptions(testInfo));
     try {
       const inviteePage = await inviteeContext.newPage();
       const inviteeErrors: string[] = [];
