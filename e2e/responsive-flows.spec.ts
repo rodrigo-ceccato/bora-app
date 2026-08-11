@@ -244,7 +244,7 @@ test('reminder preferences open for an active device subscription', async ({ pag
     });
   });
   await page.route('**/api/push/subscriptions/preferences**', (route) =>
-    route.fulfill({ json: { preferences: {} } })
+    route.fulfill({ json: { subscribed: true, preferences: {} } })
   );
 
   await page.goto('/my-events');
@@ -262,13 +262,15 @@ test('past events are archived outside the active My Boras lists', async ({ page
   const runId = `${testInfo.project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const participantId = `past-${runId}`;
   const title = `Passado ${runId}`;
+  const startsAt = new Date(Date.now() + 2_000).toISOString();
   const created = await request.post('/api/events', {
     headers: { 'x-forwarded-for': `e2e-${runId}` },
-    data: { participantId, event: { mode: 'agora', title, place: 'Praça', description: '', threshold: 2, startsAt: '2020-08-01T21:00:00.000Z', alternatives: [], createdByName: 'Ana', votingClosed: false, days: [] } }
+    data: { participantId, event: { mode: 'agora', title, place: 'Praça', description: '', threshold: 2, startsAt, alternatives: [], createdByName: 'Ana', votingClosed: false, days: [] } }
   });
   expect(created.ok()).toBeTruthy();
   const body = await created.json();
   try {
+    await expect.poll(() => Date.now(), { timeout: 5_000 }).toBeGreaterThan(new Date(startsAt).getTime());
     await page.goto('/my-events');
     await page.evaluate((id) => localStorage.setItem('bora_participant_id', id), participantId);
     await page.reload();
@@ -324,7 +326,7 @@ test('results stay compact and explain availability', async ({ page, request }, 
     await page.goto(`/e/${slug}?admin=${token}&created=1`);
     await expect(page.getByText('Seu Bora está pronto!')).toBeVisible();
     const readyActions = page.locator('.ready-card-actions');
-    await expectConsistentActionGroup(readyActions, testInfo.project.name === 'mobile', 3);
+    await expectConsistentActionGroup(readyActions, Boolean(testInfo.project.use.isMobile), 3);
     await expect(readyActions.locator('ion-button').filter({ hasText: 'Compartilhar no WhatsApp' })).toHaveClass(/action-button-primary/);
     await expect(readyActions.locator('ion-button').filter({ hasText: 'Copiar convite' })).toHaveClass(/action-button-secondary/);
     await expect(readyActions.locator('ion-button').filter({ hasText: 'Mais opções' })).toHaveClass(/action-button-ghost/);
@@ -350,10 +352,10 @@ test('results stay compact and explain availability', async ({ page, request }, 
     expect(decided.ok()).toBeTruthy();
 
     await page.goto(`/e/${slug}?admin=${token}`);
-    await expectConsistentActionGroup(page.locator('.calendar-actions'), testInfo.project.name === 'mobile');
+    await expectConsistentActionGroup(page.locator('.calendar-actions'), Boolean(testInfo.project.use.isMobile));
     await page.getByRole('button', { name: 'Gerenciar' }).click();
     await expect(page.locator('.decision-summary')).toContainText('Horário definido');
-    await expectConsistentActionGroup(page.locator('.response-actions'), testInfo.project.name === 'mobile');
+    await expectConsistentActionGroup(page.locator('.response-actions'), Boolean(testInfo.project.use.isMobile));
     await expectNoHorizontalScroll(page);
 
     for (const url of [`/e/${slug}?admin=${token}`, `/e/${slug}`]) {

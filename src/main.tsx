@@ -1,6 +1,6 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Component, Suspense, createRef, lazy, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { IonApp, IonContent, IonPage, IonRouterOutlet, IonSpinner, setupIonicReact } from '@ionic/react';
+import { IonApp, IonButton, IonContent, IonPage, IonRouterOutlet, IonSpinner, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { Redirect, Route } from 'react-router-dom';
 
@@ -21,7 +21,8 @@ import '@ionic/react/css/padding.css';
 import '@ionic/react/css/flex-utils.css';
 import './styles.css';
 
-setupIonicReact();
+setupIonicReact({ backButtonText: 'Voltar' });
+document.documentElement.lang = 'pt-BR';
 
 function PageLoader() {
   return <IonPage><IonContent className="ion-padding center"><IonSpinner /><p>Carregando...</p></IonContent></IonPage>;
@@ -29,6 +30,79 @@ function PageLoader() {
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
+
+function NotFoundPage() {
+  return (
+    <IonPage>
+      <IonContent className="ion-padding center">
+        <main>
+          <h1>Página não encontrada</h1>
+          <p>Confira o endereço ou volte para o início.</p>
+          <IonButton routerLink="/home">Voltar para o início</IonButton>
+        </main>
+      </IonContent>
+    </IonPage>
+  );
+}
+
+type AppErrorBoundaryProps = {
+  children: ReactNode;
+  onReload?: () => void;
+};
+
+type AppErrorBoundaryState = {
+  error: Error | null;
+  retryKey: number;
+};
+
+/**
+ * Covers route render failures and rejected React.lazy imports. A local retry
+ * can recover transient render errors; reload remains available for a stale or
+ * missing deployment chunk that the browser module cache cannot retry safely.
+ */
+export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
+  state: AppErrorBoundaryState = { error: null, retryKey: 0 };
+  private readonly headingRef = createRef<HTMLHeadingElement>();
+
+  static getDerivedStateFromError(error: Error): Partial<AppErrorBoundaryState> {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Bora route rendering failed.', error, info.componentStack);
+    window.requestAnimationFrame(() => this.headingRef.current?.focus());
+  }
+
+  private retry = () => {
+    this.setState((current) => ({ error: null, retryKey: current.retryKey + 1 }));
+  };
+
+  private reload = () => {
+    if (this.props.onReload) this.props.onReload();
+    else window.location.reload();
+  };
+
+  render() {
+    if (this.state.error) {
+      return (
+        <IonPage>
+          <IonContent className="ion-padding center app-error-page">
+            <main role="alert" aria-labelledby="app-error-title">
+              <h1 id="app-error-title" ref={this.headingRef} tabIndex={-1}>Não foi possível abrir esta tela</h1>
+              <p>Uma parte do Bora não carregou. Tente novamente; se o app acabou de ser atualizado, recarregue a página.</p>
+              <div className="app-error-actions">
+                <IonButton onClick={this.retry}>Tentar novamente</IonButton>
+                <IonButton fill="outline" onClick={this.reload}>Recarregar o app</IonButton>
+              </div>
+            </main>
+          </IonContent>
+        </IonPage>
+      );
+    }
+
+    return <React.Fragment key={this.state.retryKey}>{this.props.children}</React.Fragment>;
+  }
 }
 
 function App() {
@@ -46,16 +120,22 @@ function App() {
           <Route exact path="/">
             <Redirect to="/home" />
           </Route>
+          <Route render={() => <NotFoundPage />} />
         </IonRouterOutlet>
       </IonReactRouter>
     </IonApp>
   );
 }
 
-const stopPresence = startPresence();
-window.addEventListener('pagehide', stopPresence, { once: true });
-createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  const stopPresence = startPresence();
+  window.addEventListener('pagehide', stopPresence, { once: true });
+  createRoot(rootElement).render(
+    <React.StrictMode>
+      <AppErrorBoundary>
+        <App />
+      </AppErrorBoundary>
+    </React.StrictMode>
+  );
+}

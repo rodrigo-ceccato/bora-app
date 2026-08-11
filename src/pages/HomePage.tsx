@@ -43,13 +43,13 @@ export default function HomePage() {
         <h1>Bora marcar?</h1>
         <img className="bora-share-symbol" src="/bora-share.svg" alt="Símbolo de compartilhamento Bora" />
         <p>Crie um convite, envie o link e faça o rolê acontecer. Ninguém precisa criar conta para participar.</p>
-        <div className="home-mode-actions" role="list" aria-label="Escolha o tipo de Bora">
-          {actions.map((action) => <IonButton key={action.mode} fill="clear" routerLink={`/create?mode=${action.mode}`} className="home-mode-card" role="listitem">
+        <nav className="home-mode-actions" aria-label="Escolha o tipo de Bora">
+          {actions.map((action) => <IonButton key={action.mode} fill="clear" routerLink={`/create?mode=${action.mode}`} className="home-mode-card">
             <ModeIcon mode={action.mode} />
             <span className="mode-card-copy"><strong>{action.title}</strong><small>{action.description}</small></span>
             <span className="mode-card-arrow" aria-hidden="true">→</span>
           </IonButton>)}
-        </div>
+        </nav>
       </section>
     </IonContent>
   </IonPage>;

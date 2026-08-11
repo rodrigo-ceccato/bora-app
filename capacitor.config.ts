@@ -4,7 +4,6 @@ const config: CapacitorConfig = {
   appId: 'app.bora.events',
   appName: 'Bora',
   webDir: 'dist',
-  bundledWebRuntime: false,
   server: {
     androidScheme: 'https'
   }

@@ -22,27 +22,36 @@ export function thresholdProgressPercentage(count: number, threshold: number) {
   return Math.min(100, Math.max(0, (count / threshold) * 100));
 }
 
-export function eventStatusText(event: BoraEvent, votes: BoraVote[]) {
+export function eventStatusText(event: BoraEvent, votes: BoraVote[], exactAcceptedCount?: number) {
   if (event.votingClosed) return 'Confirmações encerradas.';
-  const accepted = acceptedCount(votes);
+  const accepted = exactAcceptedCount ?? acceptedCount(votes);
   if (accepted >= event.threshold) return 'Meta de confirmações atingida.';
   const remaining = event.threshold - accepted;
   return remaining === 1 ? 'Falta 1 confirmação.' : `Faltam ${remaining} confirmações.`;
 }
 
-export function availabilityResults(event: BoraEvent, votes: BoraVote[]): AvailabilityResult[] {
+export function availabilityResults(
+  event: BoraEvent,
+  votes: BoraVote[],
+  exactOptionCounts?: Record<string, number>
+): AvailabilityResult[] {
   return event.days.flatMap((day) => day.slots.map((slot) => {
     const names = votes
-      .filter((vote) => vote.response === 'accept' && (vote.availability[day.id] || []).includes(slot))
+      .filter((vote) => vote.response !== 'decline' && (vote.availability?.[day.id] || []).includes(slot))
       .map((vote) => vote.voterName);
-    return { day, slot, names, count: names.length };
+    return { day, slot, names, count: exactOptionCounts?.[`${day.id}:${slot}`] ?? names.length };
   })).sort((left, right) => right.count - left.count);
 }
 
-export function preferenceResults(event: BoraEvent, votes: BoraVote[]): PreferenceResult[] {
+export function preferenceResults(
+  event: BoraEvent,
+  votes: BoraVote[],
+  exactOptionCounts?: Record<string, number>
+): PreferenceResult[] {
   return eventOptions(event).map((option) => ({
     option,
-    count: votes.filter((vote) => vote.response === 'accept' && vote.preferredOptions.includes(option.id)).length
+    count: exactOptionCounts?.[option.id]
+      ?? votes.filter((vote) => vote.response !== 'decline' && (vote.preferredOptions || []).includes(option.id)).length
   })).sort((left, right) => right.count - left.count);
 }
 

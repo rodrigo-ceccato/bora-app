@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventOptions, optionIds } from './options';
+import { eventOptions, optionIds, optionLabel } from './options';
 import type { BoraEvent } from './types';
 
 const baseEvent: BoraEvent = {
@@ -22,5 +22,12 @@ describe('event options', () => {
       { id: 'wed', label: 'Qua', date: '2026-08-05', slots: ['18:00'] }
     ] };
     expect(eventOptions(event)).toEqual([{ id: 'wed:18:00', label: 'Qua · 18:00' }]);
+  });
+  it('returns no choices for modes without selectable schedule options', () => {
+    expect(eventOptions({ ...baseEvent, mode: 'agora', alternatives: [] })).toEqual([]);
+  });
+  it('uses a readable fallback for missing and legacy option labels', () => {
+    expect(optionLabel(baseEvent)).toBe('');
+    expect(optionLabel(baseEvent, 'legacy:18:00')).toBe('18:00');
   });
 });
