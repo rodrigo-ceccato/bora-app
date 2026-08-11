@@ -1,0 +1,4 @@
+# Historical 2018 Google API key. The value is absent from the current tree;
+# revoke it in Google Cloud if it was ever active. Keep this one fingerprint so
+# full-history scans still fail for every new finding.
+4a1d1492c9a4e669a198dc1680b45d027f05d593:src/models/consts.ts:gcp-api-key:14

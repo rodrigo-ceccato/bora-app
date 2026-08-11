@@ -124,3 +124,9 @@ not part of either image.
 
 To roll back, push a new annotated stable tag that points to the prior commit.
 The workflow deploys the corresponding images, then publishes that new release.
+
+Candidate activation also keeps an owner-only archive of the previously deployed
+Compose/deploy assets. A failed sync, pull, startup, or smoke check restores
+those files together with the prior environment, release marker, and image
+digests. Database migrations are not reversed; CI enforces the additive,
+previous-image-compatible migration policy described in the operations runbook.

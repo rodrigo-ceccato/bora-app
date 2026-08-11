@@ -17,8 +17,14 @@ services:
       - -c
       - maintenance_work_mem=32MB
 
+  api:
+    environment:
+      # Production requests traverse Caddy and nginx before reaching the API.
+      # release.sh also requires the web port to remain loopback-bound.
+      BORA_TRUST_PROXY_HOPS: ${BORA_TRUST_PROXY_HOPS:-2}
+
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
     restart: unless-stopped
     ports:
       - "80:80"

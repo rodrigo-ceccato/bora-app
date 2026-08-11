@@ -1,6 +1,6 @@
 services:
   database:
-    image: postgres:16-alpine
+    image: postgres:16.14-alpine3.24@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-bora}
@@ -33,6 +33,10 @@ services:
       BORA_VAPID_PUBLIC_KEY: ${BORA_VAPID_PUBLIC_KEY:-}
       BORA_VAPID_PRIVATE_KEY: ${BORA_VAPID_PRIVATE_KEY:-}
       BORA_VAPID_SUBJECT: ${BORA_VAPID_SUBJECT:-}
+      BORA_RATE_LIMIT_SCALE: ${BORA_RATE_LIMIT_SCALE:-1}
+      # Local Compose has nginx directly in front of the API. Running the API
+      # outside Compose omits this variable and keeps the secure direct default 0.
+      BORA_TRUST_PROXY_HOPS: ${BORA_TRUST_PROXY_HOPS:-1}
     depends_on:
       database:
         condition: service_healthy

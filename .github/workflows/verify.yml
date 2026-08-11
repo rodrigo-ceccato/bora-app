@@ -10,29 +10,65 @@ permissions:
   contents: read
 
 jobs:
-  app:
+  static-security:
+    name: Static and secret checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          node-version: 22
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - run: npm run verify:static
+
+  app:
+    needs: static-security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm test
-      - run: npm run lint
-      - run: npm run build
-      - run: docker compose config
-      - run: npx playwright install --with-deps chromium
+      - run: npm run verify
+      - run: npm run verify:ops
+      - run: npm run test:migrations
+      - name: Install Chromium for the pull-request smoke suite
+        if: github.event_name == 'pull_request'
+        run: npx playwright install --with-deps chromium
+      - name: Install the full browser matrix for main
+        if: github.event_name != 'pull_request'
+        run: npx playwright install --with-deps chromium firefox webkit
       - run: docker compose up -d --build
-      - run: curl --retry 10 --retry-all-errors --retry-delay 1 --fail http://127.0.0.1:8080/api/health
-      - run: npm run test:e2e
-      - name: Upload UI screenshots
+        env:
+          BORA_RATE_LIMIT_SCALE: '100'
+      - run: ./deploy/smoke-release.sh http://127.0.0.1:8080 'CI Compose route'
+      - name: Run the fast Chromium smoke suite
+        if: github.event_name == 'pull_request'
+        run: npm run test:e2e:smoke
+      - name: Run the full browser and touch-device suite
+        if: github.event_name != 'pull_request'
+        run: npm run test:e2e:full
+      - name: Generate SBOMs and scan local release images
+        run: npm run verify:images
+      - name: Upload image SBOMs
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: bora-ui-screenshots
-          path: test-results/**/*.png
+          name: bora-image-sboms
+          path: .artifacts/sbom/*.spdx.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Upload Playwright results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: bora-playwright-results
+          path: |
+            test-results/
+            playwright-report/
           if-no-files-found: warn
           retention-days: 14
       - if: always()

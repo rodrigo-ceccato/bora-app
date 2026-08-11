@@ -150,12 +150,23 @@ bora logs --tail 50 caddy
 bora exec database psql -U bora -d bora
 ```
 
-Back up:
+Create the same checked backup pair used by the timer:
 
 ```bash
-bora exec -T database sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
-  > "bora-backup-$(date +%F).sql"
+sudo systemctl start bora-backup.service
+sudo systemctl start bora-backup-verify.service
 ```
+
+Each completed backup consists of `bora-<UTC timestamp>.sql.gz` plus a
+`bora-<UTC timestamp>.manifest`. The backup script holds an exported
+`REPEATABLE READ` snapshot open while it runs both `pg_dump` and the source row
+counts, so concurrent application writes continue normally but cannot make the
+manifest disagree with the dump. The manifest is published last and records
+the compressed-file SHA-256 plus representative counts. Verification checks
+the checksum, restores into an isolated database, validates the current schema,
+and requires every restored count to equal the exact source snapshot count.
+Backup creation, verification, and retention share a lock so a verifier cannot
+race a partial publication or deletion.
 
 Data lives in the `bora_database` Docker volume and survives `up`, `down`, and
 rebuilds. It does **not** survive `docker compose down -v` — that flag destroys
@@ -172,9 +183,11 @@ Run this once from a current checkout after deploying the operations assets:
 It installs three systemd timers on the VM:
 
 - `bora-backup.timer` creates a compressed SQL dump daily at 03:20 UTC, keeping
-  14 days in `/var/backups/bora` with root-only permissions.
+  14 days of complete dump/manifest pairs in `/var/backups/bora` with root-only
+  permissions.
 - `bora-backup-verify.timer` restores the newest dump into a temporary database
-  every Sunday at 04:15 UTC, verifies migration metadata, then drops it.
+  every Sunday at 04:15 UTC, verifies checksum, migration metadata, columns,
+  and exact source row counts, then drops it.
 - `bora-healthcheck.timer` checks both loopback and the public HTTPS health URL
   every five minutes. Failures are logged at error priority in journald.
 
@@ -193,12 +206,54 @@ The backup directory is intentionally host-local. Before inviting people beyond
 the private pilot, copy it to an encrypted off-host destination and periodically
 practice a restore there.
 
+The forced-failure, corrupt-archive, checksum, and data-loss cases are local
+regression tests:
+
+```bash
+npm run test:ops
+```
+
+## Verification and pilot load smoke
+
+CI runs digest-pinned actionlint, ShellCheck, Hadolint, and Gitleaks tools; fresh
+and representative historical migration upgrades; dependency audits; build
+budgets; browser tests; and Trivy scans of both runtime images. It writes SPDX
+JSON SBOM artifacts for the API and web images. Release image publication also
+attaches BuildKit provenance and SBOM attestations.
+
+For an isolated local/pilot stack, run the bounded synthetic API workload with
+an explicit target:
+
+```bash
+BORA_LOAD_BASE_URL=http://127.0.0.1:8080 npm run load:smoke
+```
+
+Defaults are 6 virtual users, 2 temporary events, and 3 rounds. The pilot gate
+allows at most 1% errors, 400 ms read p95, and 750 ms write p95. Override them
+with `BORA_LOAD_CONCURRENCY`, `BORA_LOAD_EVENTS`, `BORA_LOAD_ROUNDS`,
+`BORA_LOAD_MAX_ERROR_RATE`, `BORA_LOAD_READ_P95_MS`, and
+`BORA_LOAD_WRITE_P95_MS`. The harness creates and best-effort deletes synthetic
+events while exercising voting, organizer edits, polling, presence, My Events,
+rate limiting, row locks, and the database pool.
+
+Remote targets are refused unless
+`BORA_LOAD_ALLOW_REMOTE=I_UNDERSTAND_THIS_CREATES_AND_DELETES_DATA` is also set.
+Use a disposable pilot database: a killed process may prevent best-effort
+cleanup. This smoke is not a production capacity test and does not exercise
+Web Push delivery or reminder timing.
+
 ## Rollback
 
 Push a new annotated stable tag that points to the last good commit. The
 workflow uses the corresponding immutable image digests. Migrations are
-forward-only, so a rollback across a migration needs a new migration that
-reverses it.
+forward-only: the automatic failed-candidate path restores the prior Compose
+and deploy assets, environment, release marker, and immutable image digests,
+but never rewinds the database. Every migration after the initial schema must
+therefore be additive and compatible with the immediately previous API image.
+`npm run test:migrations` rejects common destructive/tightening SQL and verifies
+fresh, idempotent, migration-001, and migration-008 upgrades. Changes that need
+an incompatible schema transition must use a reviewed expand/contract sequence
+across releases.
 
 ## Firewall and cloud networking
 

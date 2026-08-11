@@ -1,0 +1,10 @@
+{
+  "javascript": {
+    "parsedBytes": 1700000,
+    "gzipBytes": 410000
+  },
+  "css": {
+    "parsedBytes": 75000,
+    "gzipBytes": 15000
+  }
+}

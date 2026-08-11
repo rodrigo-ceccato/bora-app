@@ -3,9 +3,12 @@ import { setTimeout as wait } from 'node:timers/promises';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const baseUrl = (process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:8080').replace(/\/$/, '');
+// The full suite deliberately exercises many independent event creations from
+// one browser host. Raise only this disposable stack's limits; production keeps 1.
+const e2eEnvironment = { ...process.env, BORA_RATE_LIMIT_SCALE: '100' };
 
 function run(command, args) {
-  const result = spawnSync(command, args, { env: process.env, stdio: 'inherit' });
+  const result = spawnSync(command, args, { env: e2eEnvironment, stdio: 'inherit' });
   if (result.error) {
     console.error(`Could not run ${command}: ${result.error.message}`);
     process.exit(1);
@@ -44,8 +47,8 @@ if (!healthy) {
   process.exit(1);
 }
 
-console.log('Running Playwright against the local Compose stack...');
-const tests = spawnSync(npmCommand, ['run', 'test:e2e'], { env: process.env, stdio: 'inherit' });
+console.log('Running the full Playwright browser/device matrix against the local Compose stack...');
+const tests = spawnSync(npmCommand, ['run', 'test:e2e:full'], { env: e2eEnvironment, stdio: 'inherit' });
 if (tests.error || tests.status !== 0) {
   console.error('Local E2E checks failed. Recent application logs follow.');
   spawnSync('docker', ['compose', 'logs', '--tail', '80', 'api', 'web'], { env: process.env, stdio: 'inherit' });

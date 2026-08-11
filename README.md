@@ -33,9 +33,14 @@ Administrator tokens are returned only when an event is created, stored as hashe
 This mode stores everything in the current browser:
 
 ```bash
-npm install
+nvm use
+npm ci
 npm run dev
 ```
+
+The supported toolchain is pinned in `.nvmrc` and `package.json` (Node
+22.23.2 with npm 10.9.8). npm warns when a different local runtime is used;
+CI and the Docker build use the pinned versions.
 
 Do not use browser-only mode for testing links on different devices.
 
@@ -74,23 +79,31 @@ Vite proxies `/api` to `http://127.0.0.1:8787`.
 ## Verification
 
 ```bash
-npm test
-npm run test:e2e
+npm run verify
+npm run test:e2e:smoke
+npm run test:e2e:full
 npm run test:e2e:local
-npm run lint
-npm run build
-docker compose config
+npm run verify:ops
+npm run test:migrations
+npm run verify:static
 ```
 
-`npm run test:e2e` uses the Docker stack at `http://127.0.0.1:8080` and checks
-the home page, all creation modes and the results page at 360px, 768px and
-1440px. Set `PLAYWRIGHT_BASE_URL` to target another non-production environment.
+`npm run test:e2e` is an alias for the fast Chromium smoke suite. The full suite
+adds a Pixel touch profile, desktop Firefox, and an iPhone/WebKit touch profile.
+Both use the stack at `http://127.0.0.1:8080`; set `PLAYWRIGHT_BASE_URL` to target
+another non-production environment.
 
 `npm run test:e2e:local` rebuilds and starts the local Compose stack, waits for
-the API health check and then runs the same Playwright suite. The versioned
+the API health check and then runs the full browser/device suite. The versioned
 pre-push hook runs this command automatically before a direct push to `main`;
 `npm install` configures the hook through the `prepare` script. The local stack
 and its database volume are left running after the check.
+
+`npm run verify:all` is the single, intentionally heavy local equivalent of
+the required CI gates: tests, coverage, timezones, lint/typecheck, build
+budgets, dependency/configuration/static security checks, disposable migration
+upgrades, the full Compose E2E matrix, image SBOM generation, and vulnerability
+scans. It requires Docker and locally installed Playwright browsers.
 
 See the [MVP test checklist](docs/mvp-test-checklist.md) before sharing the app.
 
