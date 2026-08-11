@@ -480,9 +480,9 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .device-setting-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 20px; align-items: center; gap: 14px; width: 100%; min-height: 78px; margin: 0; padding: 12px 14px; border: 0; border-bottom: 1px solid #e7ece9; background: transparent; color: #26333d; font: inherit; text-align: left; text-transform: none; cursor: pointer; }
 .device-setting-row:focus-visible { outline: 3px solid #4fa67e; outline-offset: -3px; }
 .device-setting-row:hover { background: #f7fbf9; }
-.device-setting-icon { display: grid; width: 28px; height: 28px; place-items: center; overflow: visible; color: #356b56; }
-.device-setting-icon ion-icon { width: 22px; height: 22px; min-width: 22px; min-height: 22px; overflow: visible; }
-.device-setting-chevron { width: 20px; height: 20px; color: #6b7b85; }
+.device-setting-icon { display: grid; width: 28px; height: 28px; place-items: center; flex: 0 0 28px; overflow: visible; color: #356b56; }
+.device-setting-icon ion-icon { width: 22px; height: 22px; min-width: 22px; min-height: 22px; font-size: 22px; overflow: visible; }
+.device-setting-chevron { display: grid; width: 20px; height: 20px; place-items: center; flex: 0 0 20px; color: #6b7b85; }
 .device-access-copy { display: grid; flex: 1; gap: 3px; min-width: 0; }
 .device-access-copy strong { font-size: .98rem; }
 .device-access-copy small { margin-top: 5px; color: #66717d; font-size: .83rem; line-height: 1.35; white-space: normal; }
@@ -493,9 +493,11 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .agenda-setting-row { border-top: 1px solid #e7ece9; }
 .reminder-preferences { max-width: 520px; margin: 0 auto; }
 .reminder-preferences > p { margin: 0 0 12px; color: #66717d; }
-.reminder-preferences ion-item { --padding-start: 0; --padding-end: 0; --min-height: 72px; }
-.reminder-preferences ion-label strong { display: block; color: #1b2934; font-size: .96rem; }
-.reminder-preferences ion-label p { margin: 4px 0 0; color: #66717d; font-size: .82rem; line-height: 1.35; white-space: normal; }
+.notification-preference { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px; min-height: 88px; padding: 14px 16px; border-bottom: 1px solid #e7ece9; }
+.notification-preference-copy { min-width: 0; }
+.notification-preference-copy strong { display: block; color: #1b2934; font-size: .96rem; }
+.notification-preference-copy p { margin: 4px 0 0; color: #66717d; font-size: .82rem; line-height: 1.35; white-space: normal; }
+.notification-preference ion-toggle { justify-self: end; flex-shrink: 0; margin: 0; }
 .reminder-preferences-modal { --width: min(520px, calc(100vw - 32px)); --height: min(720px, calc(100vh - 64px)); --border-radius: 18px; }
 .destructive-device-action { --color: #a43730; }
 .destructive-device-action { color: #a43730; }

@@ -5,8 +5,6 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
-  IonItem,
-  IonLabel,
   IonModal,
   IonPage,
   IonSpinner,
@@ -20,9 +18,12 @@ import {
 } from "@ionic/react";
 import {
   chevronForwardOutline,
+  downloadOutline,
   notificationsOutline,
+  optionsOutline,
   personOutline,
   phonePortraitOutline,
+  timeOutline,
   trashOutline,
 } from "ionicons/icons";
 import { useEffect, useState } from "react";
@@ -55,6 +56,10 @@ type ExpandedSections = {
   upcoming: boolean;
   created: boolean;
   joined: boolean;
+};
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
 const expansionStorageKey = "bora_my_events_expanded";
@@ -89,6 +94,23 @@ const preferenceOptions: Array<{
     description: "Receba um aviso antes do horário marcado.",
   },
 ];
+
+function isRunningStandalone() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
+function installationInstructions() {
+  const isAppleDevice =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return isAppleDevice
+    ? "No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”."
+    : "Abra o menu do navegador e escolha “Instalar app” ou “Adicionar à tela inicial”.";
+}
 
 function initialExpansion(): ExpandedSections {
   try {
@@ -163,6 +185,9 @@ export default function MyEventsPage() {
   );
   const [expanded, setExpanded] = useState<ExpandedSections>(initialExpansion);
   const [participantName, setParticipantName] = useState(getParticipantName);
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(isRunningStandalone);
   const remindersEnabled = reminderState === "subscribed";
   const remindersUnavailable =
     reminderState === "unsupported" || reminderState === "permission-denied";
@@ -179,6 +204,22 @@ export default function MyEventsPage() {
           );
       })
       .catch(() => setReminderState("unsupported"));
+  }, []);
+  useEffect(() => {
+    const saveInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const markInstalled = () => {
+      setInstalled(true);
+      setInstallPrompt(null);
+    };
+    window.addEventListener("beforeinstallprompt", saveInstallPrompt);
+    window.addEventListener("appinstalled", markInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", saveInstallPrompt);
+      window.removeEventListener("appinstalled", markInstalled);
+    };
   }, []);
   useEffect(() => {
     const update = () => setParticipantName(getParticipantName());
@@ -309,6 +350,20 @@ export default function MyEventsPage() {
         duration: 3000,
       });
     }
+  }
+  async function addToHomeScreen() {
+    if (!installPrompt) {
+      presentAlert({
+        header: "Adicionar à tela inicial",
+        message: installationInstructions(),
+        buttons: ["Entendi"],
+      });
+      return;
+    }
+    await installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    setInstallPrompt(null);
+    if (outcome === "accepted") setInstalled(true);
   }
   function editSavedName() {
     presentAlert({
@@ -572,6 +627,28 @@ export default function MyEventsPage() {
           )}
           <section className="device-access-actions">
             <h2>Neste aparelho</h2>
+            {!installed && (
+              <button
+                type="button"
+                className="device-setting-row"
+                onClick={() => void addToHomeScreen()}
+              >
+                <span className="device-setting-icon">
+                  <IonIcon icon={downloadOutline} aria-hidden="true" />
+                </span>
+                <span className="device-access-copy">
+                  <strong>Adicionar Bora à tela inicial</strong>
+                  <small>
+                    Abra o Bora como um app, com acesso mais rápido neste aparelho.
+                  </small>
+                </span>
+                <IonIcon
+                  className="device-setting-chevron"
+                  icon={chevronForwardOutline}
+                  aria-hidden="true"
+                />
+              </button>
+            )}
             <div className="device-setting-row reminder-setting-row">
               <span className="device-setting-icon">
                 <IonIcon icon={notificationsOutline} aria-hidden="true" />
@@ -603,8 +680,8 @@ export default function MyEventsPage() {
                 className="device-setting-row"
                 onClick={() => setPreferencesOpen(true)}
               >
-                <span className="device-setting-icon" aria-hidden="true">
-                  ⚙
+                <span className="device-setting-icon">
+                  <IonIcon icon={optionsOutline} aria-hidden="true" />
                 </span>
                 <span className="device-access-copy">
                   <strong>Quais avisos receber</strong>
@@ -625,8 +702,8 @@ export default function MyEventsPage() {
               className="device-setting-row"
               onClick={() => router.push("/past-events", "forward")}
             >
-              <span className="device-setting-icon" aria-hidden="true">
-                ◷
+              <span className="device-setting-icon">
+                <IonIcon icon={timeOutline} aria-hidden="true" />
               </span>
               <span className="device-access-copy">
                 <strong>Boras passados</strong>
@@ -717,11 +794,11 @@ export default function MyEventsPage() {
           <section className="reminder-preferences">
             <p>Estas preferências valem apenas neste aparelho.</p>
             {preferenceOptions.map(({ key, label, description }) => (
-              <IonItem key={key}>
-                <IonLabel>
+              <div className="notification-preference" key={key}>
+                <div className="notification-preference-copy">
                   <strong>{label}</strong>
                   <p>{description}</p>
-                </IonLabel>
+                </div>
                 <IonToggle
                   checked={preferences[key]}
                   aria-label={label}
@@ -729,7 +806,7 @@ export default function MyEventsPage() {
                     void changePreference(key, event.detail.checked)
                   }
                 />
-              </IonItem>
+              </div>
             ))}
           </section>
         </IonContent>
