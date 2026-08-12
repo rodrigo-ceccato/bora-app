@@ -78,10 +78,9 @@ test('mais-tarde uses the shared time picker and keeps overnight alternatives', 
   await expect(page.getByRole('button', { name: 'Mostrar madrugada' })).toHaveCount(0);
 
   await page.getByRole('button', { name: /Escolher horário\. Atual:/ }).click();
-  await page.locator('ion-datetime[aria-label="Horário do Bora"]').evaluate((element) => {
-    element.dispatchEvent(new CustomEvent('ionChange', { bubbles: true, composed: true, detail: { value: '2099-08-01T23:00:00' } }));
-  });
-  await page.getByRole('button', { name: 'Pronto' }).click();
+  const desktopTime = page.getByRole('textbox', { name: 'Horário do Bora' });
+  await desktopTime.fill('23:00');
+  await desktopTime.press('Enter');
   await expect(page.locator('.time-chip').filter({ hasText: '23:00' })).toBeVisible();
   await page.getByRole('button', { name: '+1h' }).click();
   await expect(page.locator('.time-chip').filter({ hasText: /00:00 ·/ })).toBeVisible();

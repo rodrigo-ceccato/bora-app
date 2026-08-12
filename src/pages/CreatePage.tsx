@@ -1,10 +1,11 @@
-import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonDatetime, IonHeader, IonInput, IonItem, IonLabel, IonModal, IonNote, IonPage, IonTextarea, IonTitle, IonToolbar, useIonRouter, useIonToast, useIonViewWillEnter } from '@ionic/react';
+import { IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonHeader, IonInput, IonItem, IonLabel, IonModal, IonNote, IonPage, IonTextarea, IonTitle, IonToolbar, useIonRouter, useIonToast, useIonViewWillEnter } from '@ionic/react';
 import { useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { createEvent, getParticipantName, saveParticipantName } from '../lib/store';
 import { localDateKey, toInstantIso } from '../lib/datetime';
 import { uid } from '../lib/schedule';
 import type { BoraMode, ScheduleDay } from '../lib/types';
+import { AdaptiveTimePicker } from '../components/AdaptiveTimePicker';
 
 const modeDetails: Record<BoraMode, { title: string; description: string }> = {
   agora: { title: 'Bora agora', description: 'Combine algo para acontecer agora ou em breve.' },
@@ -186,12 +187,6 @@ export default function CreatePage() {
     setAgoraDate(date);
   }
 
-  function selectAgoraTime(value: string | string[] | null | undefined) {
-    if (typeof value !== 'string') return;
-    const match = value.match(/T(\d{2}:\d{2})/);
-    if (match) updateAgoraTime(match[1]);
-  }
-
   function pickQuickTime(hours: number) {
     const next = new Date();
     next.setHours(next.getHours() + hours);
@@ -234,14 +229,6 @@ export default function CreatePage() {
   function openWeekTimePicker() {
     setTimePickerTarget('week');
     setTimePickerOpen(true);
-  }
-
-  function selectWeekTime(value: string | string[] | null | undefined) {
-    if (typeof value !== 'string') return;
-    const match = value.match(/T(\d{2}:\d{2})/);
-    if (!match) return;
-    setTimeDraft(match[1]);
-    addWeekTime(match[1]);
   }
 
   function updateDay(dayId: string, patch: Partial<ScheduleDay>) {
@@ -453,7 +440,7 @@ export default function CreatePage() {
         <IonHeader><IonToolbar><IonTitle>Escolha o horário</IonTitle><IonButtons slot="end"><IonButton onClick={() => setTimePickerOpen(false)}>Pronto</IonButton></IonButtons></IonToolbar></IonHeader>
         <IonContent className="ion-padding">
           {timePickerTarget === 'agora' && <div className="agora-quick-times" role="group" aria-label="Horários rápidos">{[1, 2, 3].map((hours) => <button ref={hours === 1 ? firstQuickTimeRef : undefined} key={hours} type="button" onClick={() => pickQuickTime(hours)}>Em {hours}h</button>)}</div>}
-          <IonDatetime presentation="time" hourCycle="h23" value={dateTimeValue(timePickerTarget === 'agora' ? agoraDate : weekDate, timePickerTarget === 'agora' ? agoraTime : timeDraft)} aria-label="Horário do Bora" onIonChange={(event) => timePickerTarget === 'agora' ? selectAgoraTime(event.detail.value) : selectWeekTime(event.detail.value)} />
+          <AdaptiveTimePicker date={timePickerTarget === 'agora' ? agoraDate : weekDate} value={timePickerTarget === 'agora' ? agoraTime : timeDraft} label="Horário do Bora" onChange={(time) => timePickerTarget === 'agora' ? updateAgoraTime(time) : (setTimeDraft(time), addWeekTime(time))} onConfirm={() => setTimePickerOpen(false)} />
         </IonContent>
       </IonModal>
     </IonContent>

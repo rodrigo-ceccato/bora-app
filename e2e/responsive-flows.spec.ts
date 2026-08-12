@@ -139,7 +139,7 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   expect(Math.min(minuteDifference, 24 * 60 - minuteDifference)).toBeLessThanOrEqual(1);
   await page.locator('.time-picker-trigger').click();
   await expect(page.getByText('Escolha o horário')).toBeVisible();
-  await expect(page.locator('ion-datetime[presentation="time"]')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Horário do Bora' })).toBeVisible();
   await page.getByRole('button', { name: 'Pronto' }).click();
   await expect(page.getByRole('button', { name: 'Outra data' })).toBeVisible();
   await expectNoHorizontalScroll(page);
