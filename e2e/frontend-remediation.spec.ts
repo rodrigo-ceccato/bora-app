@@ -88,7 +88,7 @@ test('mais-tarde uses the shared time picker and keeps overnight alternatives', 
   await desktopTime.fill('23:00');
   await desktopTime.press('Enter');
   await expect(page.locator('.time-chip').filter({ hasText: '23:00' })).toBeVisible();
-  await page.getByRole('button', { name: 'Daqui 1h' }).click();
+  await page.getByRole('group', { name: 'Adicionar horário relativo' }).getByRole('button', { name: 'Daqui 1h' }).click();
   await expect(page.locator('.time-chip')).toHaveCount(2);
 });
 
@@ -120,7 +120,7 @@ test('desktop relative time actions use the current time', async ({ page }) => {
     time.setHours(time.getHours() + 2);
     return `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
   });
-  await page.getByRole('button', { name: 'Daqui 2h' }).click();
+  await page.getByRole('group', { name: 'Horários relativos' }).getByRole('button', { name: 'Daqui 2h' }).click();
   await expect(page.getByRole('textbox', { name: 'Horário do Bora' })).toHaveValue(expected);
 });
 
