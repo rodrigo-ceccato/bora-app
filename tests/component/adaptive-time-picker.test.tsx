@@ -36,6 +36,22 @@ describe('AdaptiveTimePicker', () => {
     expect(screen.getByRole('option', { name: '23:57' }).getAttribute('aria-selected')).toBe('true');
   });
 
+  it('keeps an arbitrary selected time in its sorted nearby suggestions and marks it visibly', () => {
+    render(<Picker initial="10:50" />);
+    const options = screen.getAllByRole('option');
+    expect(options).toHaveLength(7);
+    expect(options.map((option) => option.textContent?.replace('✓', '').trim())).toEqual(['10:00', '10:15', '10:30', '10:45', '10:50', '11:00', '11:15']);
+    expect(screen.getByRole('option', { name: '10:50' }).textContent).toBe('✓10:50');
+  });
+
+  it('selects the whole value when the desktop field is clicked', () => {
+    render(<Picker initial="10:50" />);
+    const input = screen.getByRole('textbox', { name: 'Horário do Bora' }) as HTMLInputElement;
+    fireEvent.click(input);
+    expect(input.selectionStart).toBe(0);
+    expect(input.selectionEnd).toBe(5);
+  });
+
   it('supports keyboard confirmation and wraps arrow adjustment across midnight', () => {
     const confirm = vi.fn();
     render(<Picker initial="23:50" confirm={confirm} />);

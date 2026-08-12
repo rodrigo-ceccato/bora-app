@@ -158,8 +158,9 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .desktop-time-input-wrap input:focus { outline: 3px solid #77c7aa; outline-offset: 2px; }
 .desktop-time-input-wrap span { color: #17664b; }
 .desktop-time-picker p { margin: 6px 0 9px; color: #66717d; font-size: .78rem; }
-.desktop-time-options { max-height: 218px; overflow: auto; border: 1px solid #d5e0e7; border-radius: 10px; background: #fff; padding: 4px; }
-.desktop-time-options button { display: block; width: 100%; min-height: 34px; border: 0; border-radius: 7px; background: transparent; color: #1b2832; padding: 6px 10px; font: inherit; text-align: left; }
+.desktop-time-options { max-height: 248px; overflow: auto; border: 1px solid #d5e0e7; border-radius: 10px; background: #fff; padding: 4px; }
+.desktop-time-options button { display: flex; align-items: center; gap: 7px; width: 100%; min-height: 34px; border: 0; border-radius: 7px; background: transparent; color: #1b2832; padding: 6px 10px; font: inherit; text-align: left; }
+.desktop-time-options button span { width: 1em; color: #11664d; font-weight: 800; }
 .desktop-time-options button:hover, .desktop-time-options button:focus-visible, .desktop-time-options button.selected { background: #e9f8f1; color: #11664d; outline: none; }
 .week-picker { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 12px 0 6px; }
 .week-picker button { min-height: 58px; border: 1px solid #d6e0e7; border-radius: 12px; background: #fff; color: #3f4d58; font: inherit; }

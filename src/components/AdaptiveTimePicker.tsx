@@ -50,7 +50,7 @@ export function AdaptiveTimePicker({ value, date, onChange, onConfirm, label = '
   const [open, setOpen] = useState(finePointer);
 
   const suggestions = useMemo(() => {
-    const center = Math.round(minutesFor(validTime(draft) ? draft : value) / 15) * 15;
+    const center = Math.round(minutesFor(value) / 15) * 15;
     const nearby = [-3, -2, -1, 0, 1, 2].map((offset) => timeFor(center + offset * 15));
     return validTime(value) && !nearby.includes(value) ? [...nearby, value].sort() : nearby;
   }, [draft, value]);
@@ -102,12 +102,12 @@ export function AdaptiveTimePicker({ value, date, onChange, onConfirm, label = '
   return <div className="desktop-time-picker" aria-label={label}>
     <label htmlFor="desktop-time-input">Horário</label>
     <div className="desktop-time-input-wrap">
-      <input ref={inputRef} id="desktop-time-input" value={draft} inputMode="numeric" placeholder="HH:MM" aria-label={label} aria-describedby="desktop-time-help" onFocus={() => setOpen(true)} onChange={(event) => setDraft(event.target.value)} onBlur={() => { if (!commit(draft)) setDraft(value); }} onKeyDown={onKeyDown} onWheel={onWheel} />
+      <input ref={inputRef} id="desktop-time-input" value={draft} inputMode="numeric" placeholder="HH:MM" aria-label={label} aria-describedby="desktop-time-help" onFocus={() => setOpen(true)} onClick={(event) => event.currentTarget.select()} onChange={(event) => setDraft(event.target.value)} onBlur={() => { if (!commit(draft)) setDraft(value); }} onKeyDown={onKeyDown} onWheel={onWheel} />
       <span aria-hidden="true">⌄</span>
     </div>
-    <p id="desktop-time-help">Use ↑ ↓ ou a roda do mouse para ajustar 15 minutos.</p>
+    <p id="desktop-time-help">↑ ↓ ou roda do mouse: ±15 min</p>
     {open && <div className="desktop-time-options" role="listbox" aria-label="Horários próximos">
-      {suggestions.map((time) => <button ref={time === value ? selectedRef : undefined} key={time} type="button" role="option" aria-selected={time === value} className={time === value ? 'selected' : ''} onClick={() => { commit(time); setOpen(false); }}>{time}</button>)}
+      {suggestions.map((time) => <button ref={time === value ? selectedRef : undefined} key={time} type="button" role="option" aria-selected={time === value} className={time === value ? 'selected' : ''} onClick={() => { commit(time); setOpen(false); }}>{time === value && <span aria-hidden="true">✓</span>}{time}</button>)}
     </div>}
   </div>;
 }
