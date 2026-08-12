@@ -88,7 +88,7 @@ export function AdaptiveTimePicker({ value, date, onChange, onConfirm, onRelativ
     }} />;
   }
 
-  return <div className="desktop-time-picker" aria-label={label}>
+  return <div className="desktop-time-picker desktop-time-picker-content" aria-label={label}>
     <label htmlFor="desktop-time-input">Horário</label>
     <div className="desktop-time-input-wrap">
       <input ref={inputRef} id="desktop-time-input" value={draft} inputMode="numeric" placeholder="HH:MM" aria-label={label} aria-describedby="desktop-time-help" onClick={(event) => event.currentTarget.select()} onChange={(event) => setDraft(event.target.value)} onBlur={() => { if (!commit(draft)) setDraft(value); }} onKeyDown={onKeyDown} onWheel={onWheel} />

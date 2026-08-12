@@ -151,17 +151,21 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .agora-quick-times button:active { background: #e9f8f1; border-color: #16836b; }
 .agora-quick-times button:focus-visible { outline: 3px solid #77c7aa; outline-offset: 2px; }
 .time-picker-modal ion-datetime { width: 100%; max-width: 420px; margin: 0 auto; --background: transparent; }
-.desktop-time-picker { max-width: 360px; margin: 0 auto; }
-.desktop-time-picker > label { display: block; margin-bottom: 6px; color: #587064; font-size: .82rem; font-weight: 700; }
-.desktop-time-input-wrap { display: flex; align-items: center; border: 1px solid #9ccdbb; border-radius: 10px; background: #fff; }
-.desktop-time-input-wrap input { min-width: 0; flex: 1; height: 42px; border: 0; border-radius: 10px; background: transparent; padding: 0 12px; color: #123f30; font: inherit; font-size: 1.15rem; font-weight: 750; letter-spacing: .04em; }
-.desktop-time-input-wrap input:focus { outline: 3px solid #77c7aa; outline-offset: 2px; }
-.desktop-time-picker p { margin: 6px 0 9px; color: #66717d; font-size: .78rem; }
+.desktop-time-picker-content { width: min(100%, 540px); margin: 10px auto 0; }
+.desktop-time-picker > label { display: block; margin-bottom: 6px; color: #4d5963; font-size: .82rem; font-weight: 700; }
+.desktop-time-input-wrap { display: flex; align-items: center; border: 1px solid #c7d3dd; border-radius: 10px; background: #fff; transition: border-color .15s ease, box-shadow .15s ease; }
+.desktop-time-input-wrap:focus-within { border-color: #16836b; box-shadow: 0 0 0 3px rgba(119, 199, 170, .45); }
+.desktop-time-input-wrap input { min-width: 0; flex: 1; height: 42px; border: 0; border-radius: 10px; background: #fff; padding: 0 12px; color: #1b2832; font: inherit; font-size: 1.15rem; font-weight: 750; letter-spacing: .04em; }
+.desktop-time-input-wrap input:focus { outline: none; }
+.desktop-time-picker p { margin: 7px 0 14px; color: #66717d; font-size: .78rem; }
 .desktop-time-adjustments, .desktop-time-relative { display: grid; gap: 8px; }
 .desktop-time-adjustments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.desktop-time-relative { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 8px; }
-.desktop-time-adjustments button, .desktop-time-relative button { min-height: 38px; border: 1px solid #b8d8cc; border-radius: 9px; background: #f2faf6; color: #17664b; padding: 6px 8px; font: inherit; font-size: .86rem; font-weight: 750; }
-.desktop-time-adjustments button:hover, .desktop-time-relative button:hover { background: #e1f4e9; border-color: #16836b; }
+.desktop-time-relative { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 10px; }
+.desktop-time-adjustments button, .desktop-time-relative button { min-height: 38px; border-radius: 9px; padding: 6px 8px; color: #17664b; cursor: pointer; font: inherit; font-size: .86rem; font-weight: 750; transition: background-color .15s ease, border-color .15s ease; }
+.desktop-time-adjustments button { border: 1px solid #d2dce3; background: #fff; }
+.desktop-time-relative button { border: 1px solid #b8d8cc; background: #f2faf6; }
+.desktop-time-adjustments button:hover { border-color: #9ebdb0; background: #f5f8f7; }
+.desktop-time-relative button:hover { border-color: #8acbb0; background: #e1f4e9; }
 .desktop-time-adjustments button:focus-visible, .desktop-time-relative button:focus-visible { outline: 3px solid #77c7aa; outline-offset: 2px; }
 @media (pointer: fine) { .time-picker-modal .agora-quick-times { display: none; } }
 @media (pointer: coarse) {
