@@ -748,7 +748,10 @@ export async function submitMessage(event: BoraEvent, body: string, adminToken?:
 
 export async function deleteMessage(event: BoraEvent, messageId: string, adminToken?: string): Promise<void> {
   if (API_BASE) {
-    await apiRequest<void>(`/events/${encodeURIComponent(event.slug)}/messages/${encodeURIComponent(messageId)}`, { method: 'DELETE' }, adminToken);
+    await apiRequest<void>(`/events/${encodeURIComponent(event.slug)}/messages/${encodeURIComponent(messageId)}`, {
+      method: 'DELETE',
+      headers: { 'x-participant-id': getParticipantId() }
+    }, adminToken);
     return;
   }
   const items = readLocal();

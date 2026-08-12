@@ -31,12 +31,13 @@ async function expectConsistentActionGroup(group: import('@playwright/test').Loc
 }
 
 test('recados stay compact, usable and bounded on phone and desktop', async ({ page }) => {
-  const messages = Array.from({ length: 5 }, (_, index) => ({
+  const messageCount = 12;
+  const messages = Array.from({ length: messageCount }, (_, index) => ({
     id: `message-${index}`,
-    authorName: index === 4 ? 'Nome de participante muito comprido para testar o cabeçalho' : `Pessoa ${index + 1}`,
-    body: index === 4 ? 'M'.repeat(500) : `Recado ${index + 1}`,
-    createdAt: `2099-08-0${index + 1}T1${index}:35:00.000Z`,
-    isOwn: index === 4
+    authorName: index === messageCount - 1 ? 'Nome de participante muito comprido para testar o cabeçalho' : `Pessoa ${index + 1}`,
+    body: index === messageCount - 1 ? 'M'.repeat(500) : `Recado ${index + 1}`,
+    createdAt: `2099-08-${String(index + 1).padStart(2, '0')}T1${index % 10}:35:00.000Z`,
+    isOwn: index === messageCount - 1
   }));
   const event = {
     id: 'recados-event', slug: 'recados-event', mode: 'agora', title: 'Recados compactos', place: 'Praça', threshold: 2,
@@ -53,20 +54,67 @@ test('recados stay compact, usable and bounded on phone and desktop', async ({ p
   }, { localEvent });
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto('/e/recados-event');
-  await expect(page.locator('ion-card-title', { hasText: 'Recados 5' })).toBeVisible();
+  await expect(page.locator('ion-card-title', { hasText: 'Recados 12' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Enviar' })).toBeDisabled();
   await expect(page.getByText('0/500')).toHaveCount(0);
-  await expect(page.locator('.message-item')).toHaveCount(3);
+  await expect(page.locator('.message-item')).toHaveCount(10);
   await expect(page.getByRole('button', { name: 'Ver todos os recados' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Excluir recado de Nome de participante/ })).toBeVisible();
   await expectNoHorizontalScroll(page);
 
-  const composer = page.locator('ion-textarea textarea');
+  const composer = page.locator('ion-textarea textarea:not(.cloned-input)');
+  const finePointer = await page.evaluate(() => window.matchMedia('(pointer: fine)').matches);
+  if (finePointer) await expect(page.getByText('Enter para enviar · Shift+Enter para quebrar linha')).toBeVisible();
+  else await expect(page.getByText('Enter para enviar · Shift+Enter para quebrar linha')).toHaveCount(0);
+  const composerActions = page.locator('.message-composer-actions');
+  const disabledSendBox = await page.getByRole('button', { name: 'Enviar' }).boundingBox();
+  const disabledActionsBox = await composerActions.boundingBox();
   await composer.fill('Um recado novo');
   await expect(page.getByText('14/500')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Enviar' })).toBeEnabled();
+  const enabledSendBox = await page.getByRole('button', { name: 'Enviar' }).boundingBox();
+  const enabledActionsBox = await composerActions.boundingBox();
+  expect(disabledSendBox).not.toBeNull();
+  expect(disabledActionsBox).not.toBeNull();
+  expect(enabledSendBox).not.toBeNull();
+  expect(enabledActionsBox).not.toBeNull();
+  expect(enabledSendBox!.x).toBe(disabledSendBox!.x);
+  if (finePointer) expect(enabledSendBox!.y - enabledActionsBox!.y).toBe(disabledSendBox!.y - disabledActionsBox!.y);
+  await composer.fill('Primeira linha');
+  await composer.press('Shift+Enter');
+  await composer.type('Segunda linha');
+  await expect(composer).toHaveValue('Primeira linha\nSegunda linha');
+  await page.getByRole('button', { name: 'Enviar' }).click();
+  await expect(page.getByText('Primeira linha')).toBeVisible();
+
+  if (finePointer) {
+    await expect(composer).toBeFocused();
+    await composer.fill('Recado enviado com Enter');
+    await composer.press('Enter');
+    await expect(composer).toBeFocused();
+    await expect(composer).toHaveValue('');
+    await expect(page.getByText('Recado enviado com Enter')).toBeVisible();
+
+    await composer.fill('Recado sem duplicar');
+    await composer.press('Enter');
+    await composer.press('Enter');
+    await expect(page.getByText('Recado sem duplicar', { exact: true })).toHaveCount(1);
+
+    await composer.fill('   ');
+    await composer.press('Enter');
+    await expect(composer).toHaveValue('   ');
+    await composer.fill('');
+    await composer.press('Enter');
+    await expect(composer).toHaveValue('');
+  } else {
+    await composer.fill('Recado no celular');
+    await composer.press('Enter');
+    await expect(composer).toHaveValue('Recado no celular\n');
+    await page.getByRole('button', { name: 'Enviar' }).click();
+    await expect(page.getByText('Recado no celular')).toBeVisible();
+  }
   await page.getByRole('button', { name: 'Ver todos os recados' }).click();
-  await expect(page.locator('.message-item')).toHaveCount(5);
+  await expect(page.locator('.message-item')).toHaveCount(finePointer ? 15 : 14);
   await page.setViewportSize({ width: 1280, height: 900 });
   await expectNoHorizontalScroll(page);
 });

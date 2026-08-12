@@ -22,7 +22,23 @@ const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index +
 const overnightScheduleTimes = Array.from({ length: 7 }, (_, index) => `0${index + 1}:00`);
 const maxThreshold = 999;
 const minThreshold = 2;
-const recentMessageCount = 3;
+const recentMessageCount = 10;
+const finePointerQuery = '(pointer: fine)';
+
+function useFinePointer() {
+  const [finePointer, setFinePointer] = useState(() => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(finePointerQuery).matches);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia(finePointerQuery);
+    const update = () => setFinePointer(media.matches);
+    update();
+    media.addEventListener?.('change', update);
+    return () => media.removeEventListener?.('change', update);
+  }, []);
+
+  return finePointer;
+}
 
 function messageDateLabel(value: string) {
   const date = new Date(value);
@@ -116,6 +132,7 @@ export default function EventPage() {
   const [editCalendarOpen, setEditCalendarOpen] = useState(false);
   const [editSubmitted, setEditSubmitted] = useState(false);
   const [copyFallback, setCopyFallback] = useState<CopyFallback | null>(null);
+  const finePointer = useFinePointer();
   const hydratedVote = useRef(false);
   const contentRef = useRef<HTMLIonContentElement>(null);
   const nameInputRef = useRef<HTMLIonInputElement>(null);
@@ -125,6 +142,9 @@ export default function EventPage() {
   const editCalendarInputRef = useRef<HTMLIonInputElement>(null);
   const copyOpenerRef = useRef<HTMLElement | null>(null);
   const copyTextareaRef = useRef<HTMLIonTextareaElement>(null);
+  const messageTextareaRef = useRef<HTMLIonTextareaElement>(null);
+  const messageBodyRef = useRef('');
+  const submittingMessageRef = useRef(false);
 
   const isAdmin = Boolean(data?.isAdmin);
   const wasJustCreated = query.get('created') === '1';
@@ -574,22 +594,36 @@ export default function EventPage() {
   }
 
   async function sendMessage() {
-    if (!data || submittingMessage) return;
-    const body = messageBody.trim();
+    if (!data || submittingMessageRef.current) return false;
+    const body = messageBodyRef.current.trim();
     if (!body) {
       toast({ message: 'Escreva um recado antes de enviar.', color: 'warning', duration: 2200 });
-      return;
+      return false;
     }
+    submittingMessageRef.current = true;
     setSubmittingMessage(true);
+    let sent = false;
     try {
       const message = await submitMessage(data.event, body, isAdmin ? adminToken : undefined);
       setData((current) => current ? { ...current, messages: [...(current.messages || []), message] } : current);
+      messageBodyRef.current = '';
       setMessageBody('');
+      sent = true;
     } catch (error) {
       toast({ message: error instanceof Error ? error.message : 'Não foi possível enviar o recado.', color: 'danger', duration: 2800 });
     } finally {
+      submittingMessageRef.current = false;
       setSubmittingMessage(false);
+      if (sent) window.requestAnimationFrame(() => void messageTextareaRef.current?.setFocus());
     }
+    return sent;
+  }
+
+  function handleMessageKeyDown(event: React.KeyboardEvent<HTMLIonTextareaElement>) {
+    if (!finePointer || event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    if (event.repeat || submittingMessageRef.current || !messageBodyRef.current.trim()) return;
+    void sendMessage();
   }
 
   async function removeMessage(messageId: string) {
@@ -965,12 +999,15 @@ export default function EventPage() {
                 {messages.length === 0 ? <p className="muted">Ainda não tem recados.</p> : (
                   <IonList className="message-list" aria-label="Recados do evento">
                     {visibleMessages.map((message) => (
-                      <IonItem key={message.id} className="message-item">
+                      <IonItem key={message.id} className="message-item" lines="none">
                         <IonLabel>
-                          <div className="message-meta"><h3>{message.authorName}</h3><small>{messageDateLabel(message.createdAt)}</small></div>
-                          <p className="message-body">{message.body}</p>
+                          <div className="message-header">
+                            <h3>{message.authorName}</h3>
+                            <small className="message-time">{messageDateLabel(message.createdAt)}</small>
+                            {(isAdmin || message.isOwn) && <IonButton className="message-delete" fill="clear" color="medium" size="small" aria-label={`Excluir recado de ${message.authorName}`} disabled={removingMessageId === message.id} onClick={() => void removeMessage(message.id)}>{removingMessageId === message.id ? <IonSpinner name="crescent" /> : <IonIcon icon={trashOutline} aria-hidden="true" />}</IonButton>}
+                          </div>
+                          <p className="message-text">{message.body}</p>
                         </IonLabel>
-                        {(isAdmin || message.isOwn) && <IonButton className="message-delete" slot="end" fill="clear" color="medium" size="small" aria-label={`Excluir recado de ${message.authorName}`} disabled={removingMessageId === message.id} onClick={() => void removeMessage(message.id)}>{removingMessageId === message.id ? <IonSpinner name="crescent" /> : <IonIcon icon={trashOutline} aria-hidden="true" />}</IonButton>}
                       </IonItem>
                     ))}
                   </IonList>
@@ -980,8 +1017,14 @@ export default function EventPage() {
                   <p className="muted message-closed-note">{event.votingClosed ? <>As confirmações estão encerradas.<br />Apenas quem já participa deste Bora pode deixar recados.</> : 'Responda a este Bora antes de deixar um recado.'}</p>
                 ) : (
                   <div className="message-composer">
-                    <IonTextarea value={messageBody} maxlength={500} autoGrow aria-label="Escrever um recado" placeholder="Escrever um recado..." onIonInput={(item) => setMessageBody(item.detail.value || '')} disabled={submittingMessage} />
-                    <div className="message-composer-actions">{messageBody.trim().length > 0 && <IonNote className={messageBody.trim().length >= 450 ? 'message-counter near-limit' : 'message-counter'} color={messageBody.trim().length >= 450 ? 'warning' : 'medium'}>{messageBody.trim().length}/500</IonNote>}<IonButton onClick={() => void sendMessage()} disabled={submittingMessage || !messageBody.trim()}>{submittingMessage ? 'Enviando…' : 'Enviar'}</IonButton></div>
+                    <IonTextarea ref={messageTextareaRef} value={messageBody} maxlength={500} autoGrow aria-label="Escrever um recado" placeholder="Escrever um recado..." onIonInput={(item) => { const value = item.detail.value || ''; messageBodyRef.current = value; setMessageBody(value); }} onKeyDown={handleMessageKeyDown} disabled={submittingMessage} />
+                    <div className="message-composer-actions">
+                      <div className="message-composer-meta">
+                        <IonNote className={`${messageBody.trim().length >= 450 ? 'near-limit ' : ''}message-counter${messageBody.trim().length ? '' : ' message-counter-empty'}`} color={messageBody.trim().length >= 450 ? 'warning' : 'medium'}>{messageBody.trim().length ? `${messageBody.trim().length}/500` : ''}</IonNote>
+                        {finePointer && <IonNote className="message-keyboard-hint" color="medium">Enter para enviar · Shift+Enter para quebrar linha</IonNote>}
+                      </div>
+                      <IonButton onClick={() => void sendMessage()} disabled={submittingMessage || !messageBody.trim()}>{submittingMessage ? 'Enviando…' : 'Enviar'}</IonButton>
+                    </div>
                   </div>
                 )}
               </IonCardContent>
