@@ -376,6 +376,12 @@ integration('HTTP API with disposable PostgreSQL', () => {
     expect(await json(response)).toMatchObject({ message: { authorName: 'Ana', body: 'Levo pipoca.', isOwn: true } });
     expect((await databasePool.query('select participant_id, author_name, body from event_messages where event_id = $1', [created.event.id])).rows)
       .toEqual([{ participant_id: participantId, author_name: 'Ana', body: 'Levo pipoca.' }]);
+
+    expect((await request('/me/profile', { method: 'PUT', participantId, body: { name: 'Ana Maria' } })).status).toBe(200);
+    const eventWithRenamedAuthor = await json(await request(`/events/${created.event.slug}`, { participantId }));
+    expect(eventWithRenamedAuthor.messages).toEqual(expect.arrayContaining([
+      expect.objectContaining({ authorName: 'Ana Maria', body: 'Levo pipoca.' })
+    ]));
   });
 
   it('keeps decisions independent from confirmations and enforces participant-only recados', async () => {

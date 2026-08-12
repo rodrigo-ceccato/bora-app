@@ -858,13 +858,27 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .section-heading-row ion-button::part(native) { white-space: normal; }
 
 .messages-card { opacity: .94; }
-.message-list { margin-bottom: 14px; }
-.message-item::part(native) { align-items: flex-start; }
-.message-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.messages-header ion-card-title { align-items: center; display: flex; gap: 8px; }
+.message-count { border-radius: 999px; font-size: .75rem; font-weight: 700; min-width: 24px; padding: 4px 7px; }
+.message-list { margin: 0 0 6px; }
+.message-item { --inner-padding-end: 4px; --padding-start: 0; }
+.message-item::part(native) { align-items: flex-start; min-height: 0; padding: 10px 0; }
+.message-item:not(:last-child)::part(native) { border-bottom: 1px solid var(--ion-color-step-100, #ededed); }
+.message-item ion-label { margin: 0; min-width: 0; }
+.message-meta { align-items: baseline; display: flex; gap: 8px; min-width: 0; }
+.message-meta h3 { color: var(--ion-text-color); font-size: .94rem; font-weight: 700; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.message-meta small { color: var(--ion-color-medium); flex: 0 0 auto; font-size: .76rem; }
+.message-body { color: var(--ion-text-color); font-size: .92rem; line-height: 1.35; margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.message-delete { --padding-end: 6px; --padding-start: 6px; height: 32px; margin: -2px 0 0 4px; min-width: 32px; }
+.message-delete ion-icon { font-size: 18px; }
+.all-messages-button { margin: 2px 0 10px; text-transform: none; }
 .message-composer { border-top: 1px solid var(--ion-color-step-150, #e3e3e3); padding-top: 12px; }
-.message-composer ion-textarea { --background: var(--ion-color-light, #f7f7f7); border-radius: 10px; padding-inline: 10px; }
-.message-composer-actions { align-items: center; display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; }
-.message-composer-actions ion-button { margin: 0; }
+.message-composer ion-textarea { --background: #fff; border: 1px solid var(--ion-color-step-200, #d8d8d8); border-radius: 10px; padding-inline: 10px; }
+.message-composer-actions { align-items: center; display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; min-height: 36px; }
+.message-composer-actions ion-button { margin: 0; text-transform: none; }
+.message-composer-actions ion-button[disabled] { --background: var(--ion-color-step-200, #d9d9d9); --color: var(--ion-color-medium, #68727c); opacity: 1; }
+.message-counter { font-size: .8rem; font-variant-numeric: tabular-nums; }
+.message-counter.near-limit { font-weight: 700; }
 .message-closed-note { margin: 12px 0 0; }
 
 @media (max-width: 960px) {

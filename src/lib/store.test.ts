@@ -124,6 +124,22 @@ describe('resilient browser storage', () => {
     expect(result.created[0]).toMatchObject({ confirmedCount: 1, participantResponse: 'accept' });
   });
 
+  it('keeps valid locally stored recados while discarding malformed ones', async () => {
+    const createdAt = new Date().toISOString();
+    local.setItem('bora_events_v2', JSON.stringify([{
+      event: { id: 'evt_messages', slug: 'recados', mode: 'agora', title: 'Cinema', place: 'Centro', threshold: 2, startsAt: new Date(Date.now() + 60_000).toISOString(), alternatives: [], days: [], votingClosed: false, createdAt },
+      votes: [],
+      messages: [
+        { id: 'message_1', authorName: 'Ana', body: 'Levo pipoca.', createdAt, isOwn: true },
+        { id: 'broken_message', authorName: 'Bia' }
+      ]
+    }]));
+
+    expect((await getEvent('recados'))?.messages).toEqual([
+      { id: 'message_1', authorName: 'Ana', body: 'Levo pipoca.', createdAt, isOwn: true }
+    ]);
+  });
+
   it('rejects parseable partial votes and malformed events without crashing schedule results', async () => {
     local.setItem('bora_events_v2', JSON.stringify([
       {

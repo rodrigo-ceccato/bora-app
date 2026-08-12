@@ -302,6 +302,20 @@ function normalizeStoredVote(value: unknown, eventId: string): BoraVote | null {
   };
 }
 
+function normalizeStoredMessage(value: unknown): BoraMessage | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const message = value as Partial<BoraMessage>;
+  if (typeof message.id !== 'string' || !message.id || typeof message.authorName !== 'string'
+    || typeof message.body !== 'string' || typeof message.createdAt !== 'string') return null;
+  return {
+    id: message.id,
+    authorName: message.authorName.slice(0, 80),
+    body: message.body.slice(0, 500),
+    createdAt: message.createdAt,
+    ...(typeof message.isOwn === 'boolean' ? { isOwn: message.isOwn } : {})
+  };
+}
+
 function normalizeStoredEventWithVotes(value: unknown): EventWithVotes | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const item = value as Partial<EventWithVotes>;
@@ -312,6 +326,7 @@ function normalizeStoredEventWithVotes(value: unknown): EventWithVotes | null {
     votes: item.votes.map((vote) => normalizeStoredVote(vote, event.id))
       .filter((vote): vote is BoraVote => Boolean(vote)),
     ...(normalizeStoredVote(item.ownVote, event.id) ? { ownVote: normalizeStoredVote(item.ownVote, event.id)! } : {}),
+    ...(Array.isArray(item.messages) ? { messages: item.messages.map(normalizeStoredMessage).filter((message): message is BoraMessage => Boolean(message)) } : {}),
     isAdmin: item.isAdmin === true
   };
 }

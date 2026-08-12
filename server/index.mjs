@@ -369,7 +369,7 @@ function mapVote(row, viewerParticipantId = '') {
 function mapMessage(row, viewerParticipantId = '') {
   return {
     id: row.id,
-    authorName: row.author_name,
+    authorName: row.current_author_name || row.author_name,
     body: row.body,
     createdAt: row.created_at?.toISOString?.() || row.created_at,
     isOwn: Boolean(viewerParticipantId && row.participant_id === viewerParticipantId)
@@ -1189,7 +1189,9 @@ export async function route(request, response) {
               left join participant_profiles profile on profile.participant_id = votes.participant_id
               where event_id = $1 and votes.participant_id = $2`, [eventRow.id, viewerParticipantId])
           : Promise.resolve(null),
-        pool.query('select * from event_messages where event_id = $1 order by created_at asc, id asc', [eventRow.id])
+        pool.query(`select event_messages.*, profile.display_name as current_author_name
+          from event_messages left join participant_profiles profile on profile.participant_id = event_messages.participant_id
+          where event_messages.event_id = $1 order by event_messages.created_at asc, event_messages.id asc`, [eventRow.id])
       ]);
       const hasMore = votesResult.rows.length > page.limit;
       const voteRows = votesResult.rows.slice(0, page.limit);

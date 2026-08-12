@@ -30,6 +30,47 @@ async function expectConsistentActionGroup(group: import('@playwright/test').Loc
   }
 }
 
+test('recados stay compact, usable and bounded on phone and desktop', async ({ page }) => {
+  const messages = Array.from({ length: 5 }, (_, index) => ({
+    id: `message-${index}`,
+    authorName: index === 4 ? 'Nome de participante muito comprido para testar o cabeçalho' : `Pessoa ${index + 1}`,
+    body: index === 4 ? 'M'.repeat(500) : `Recado ${index + 1}`,
+    createdAt: `2099-08-0${index + 1}T1${index}:35:00.000Z`,
+    isOwn: index === 4
+  }));
+  const event = {
+    id: 'recados-event', slug: 'recados-event', mode: 'agora', title: 'Recados compactos', place: 'Praça', threshold: 2,
+    startsAt: '2099-08-20T21:00:00.000Z', alternatives: [], days: [], createdByName: 'Ana', votingClosed: false, revision: 0, createdAt: '2099-08-01T12:00:00.000Z'
+  };
+  const localEvent = { event, votes: [{ id: 'vote-1', eventId: event.id, participantId: 'recados-participant', voterName: 'Ana', response: 'accept', preferredOptions: [], availability: {}, createdAt: event.createdAt, isOwn: true }], ownVote: { id: 'vote-1', eventId: event.id, participantId: 'recados-participant', voterName: 'Ana', response: 'accept', preferredOptions: [], availability: {}, createdAt: event.createdAt, isOwn: true }, messages };
+
+  await page.route('**/api/events/recados-event**', (route) => route.fulfill({ json: { ...localEvent, messagesClosed: false, isAdmin: false } }));
+  await page.goto('/');
+  await page.evaluate(({ localEvent: savedEvent }) => {
+    localStorage.setItem('bora_participant_id', 'recados-participant');
+    localStorage.setItem('bora_participant_name', 'Ana');
+    localStorage.setItem('bora_events_v2', JSON.stringify([savedEvent]));
+  }, { localEvent });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto('/e/recados-event');
+  await expect(page.locator('ion-card-title', { hasText: 'Recados 5' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Enviar' })).toBeDisabled();
+  await expect(page.getByText('0/500')).toHaveCount(0);
+  await expect(page.locator('.message-item')).toHaveCount(3);
+  await expect(page.getByRole('button', { name: 'Ver todos os recados' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Excluir recado de Nome de participante/ })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+
+  const composer = page.locator('ion-textarea textarea');
+  await composer.fill('Um recado novo');
+  await expect(page.getByText('14/500')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Enviar' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Ver todos os recados' }).click();
+  await expect(page.locator('.message-item')).toHaveCount(5);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expectNoHorizontalScroll(page);
+});
+
 test('home toolbar gives greetings the remaining space before ellipsizing', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const cases = [

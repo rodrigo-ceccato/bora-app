@@ -1,7 +1,7 @@
 import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCheckbox, IonContent, IonDatetime, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonList, IonModal, IonNote, IonPage, IonSpinner, IonTextarea, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast, useIonViewDidEnter } from '@ionic/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { logoWhatsapp } from 'ionicons/icons';
+import { logoWhatsapp, trashOutline } from 'ionicons/icons';
 import { ApiRequestError, deleteEvent, deleteMessage, getEvent, getMoreEventVotes, getParticipantId, getParticipantName, saveParticipantName, submitMessage, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
 import { responseLabel } from '../lib/schedule';
 import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
@@ -21,6 +21,22 @@ const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index +
 const overnightScheduleTimes = Array.from({ length: 7 }, (_, index) => `0${index + 1}:00`);
 const maxThreshold = 999;
 const minThreshold = 2;
+const recentMessageCount = 3;
+
+function messageDateLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const today = new Date();
+  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  if (day === todayDay) return `Hoje, ${time}`;
+  if (day === todayDay - 86_400_000) return `Ontem, ${time}`;
+  const parts = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short' }).formatToParts(date);
+  const dayPart = parts.find((part) => part.type === 'day')?.value || '';
+  const monthPart = (parts.find((part) => part.type === 'month')?.value || '').replace('.', '');
+  return `${dayPart} ${monthPart}., ${time}`;
+}
 
 function agoraDateTime(date: string, time: string) {
   return `${date}T${time}:00`;
@@ -85,6 +101,7 @@ export default function EventPage() {
   const [messageBody, setMessageBody] = useState('');
   const [submittingMessage, setSubmittingMessage] = useState(false);
   const [removingMessageId, setRemovingMessageId] = useState<string | null>(null);
+  const [showAllMessages, setShowAllMessages] = useState(false);
   const [voteValidationError, setVoteValidationError] = useState<'name' | 'options' | null>(null);
   const [voteSubmitted, setVoteSubmitted] = useState(false);
   const [editingVote, setEditingVote] = useState(false);
@@ -172,6 +189,19 @@ export default function EventPage() {
       unsubscribe?.();
     };
   }, [slug, adminToken, loadAttempt]);
+
+  useEffect(() => {
+    const updateOwnMessageNames = () => {
+      const currentName = getParticipantName();
+      if (!currentName) return;
+      setData((current) => current ? {
+        ...current,
+        messages: current.messages?.map((message) => message.isOwn ? { ...message, authorName: currentName } : message)
+      } : current);
+    };
+    window.addEventListener('bora:participant-name-updated', updateOwnMessageNames);
+    return () => window.removeEventListener('bora:participant-name-updated', updateOwnMessageNames);
+  }, []);
 
   const counts = useMemo(() => {
     if (data?.voteSummary) return data.voteSummary.responses;
@@ -624,6 +654,8 @@ export default function EventPage() {
   const ownVote = data.ownVote || votes.find((vote) => vote.isOwn || vote.participantId === getParticipantId());
   const showVoteConfirmation = !isAdmin && !editingVote && Boolean(voteSubmitted || ownVote);
   const canPostMessage = isAdmin || Boolean(ownVote);
+  const messages = data?.messages || [];
+  const visibleMessages = showAllMessages ? messages : messages.slice(-recentMessageCount);
   const confirmationProgress = thresholdProgressPercentage(counts.accept, event.threshold);
   const editWeekDate = editEvent?.startsAt?.slice(0, 10) || '';
   const editScheduleValid = editEvent ? validEditableSchedule(editEvent, Boolean(overnightEditWeekDates[editWeekDate])) : true;
@@ -919,28 +951,28 @@ export default function EventPage() {
             </IonCard>}
 
             {(!isAdmin || adminSection === 'overview') && <IonCard className="messages-card">
-              <IonCardHeader><IonCardTitle>Recados</IonCardTitle></IonCardHeader>
+              <IonCardHeader className="messages-header"><IonCardTitle>Recados <IonBadge className="message-count" color="medium">{messages.length}</IonBadge></IonCardTitle></IonCardHeader>
               <IonCardContent>
-                {(data.messages || []).length === 0 ? <p className="muted">Ainda não tem recados.</p> : (
+                {messages.length === 0 ? <p className="muted">Ainda não tem recados.</p> : (
                   <IonList className="message-list" aria-label="Recados do evento">
-                    {(data.messages || []).map((message) => (
+                    {visibleMessages.map((message) => (
                       <IonItem key={message.id} className="message-item">
                         <IonLabel>
-                          <h3>{message.authorName}</h3>
+                          <div className="message-meta"><h3>{message.authorName}</h3><small>{messageDateLabel(message.createdAt)}</small></div>
                           <p className="message-body">{message.body}</p>
-                          <small>{new Date(message.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</small>
                         </IonLabel>
-                        {(isAdmin || message.isOwn) && <IonButton slot="end" fill="clear" color="medium" size="small" aria-label={`Excluir recado de ${message.authorName}`} disabled={removingMessageId === message.id} onClick={() => void removeMessage(message.id)}>{removingMessageId === message.id ? 'Removendo…' : 'Excluir'}</IonButton>}
+                        {(isAdmin || message.isOwn) && <IonButton className="message-delete" slot="end" fill="clear" color="medium" size="small" aria-label={`Excluir recado de ${message.authorName}`} disabled={removingMessageId === message.id} onClick={() => void removeMessage(message.id)}>{removingMessageId === message.id ? <IonSpinner name="crescent" /> : <IonIcon icon={trashOutline} aria-hidden="true" />}</IonButton>}
                       </IonItem>
                     ))}
                   </IonList>
                 )}
+                {messages.length > recentMessageCount && <IonButton className="all-messages-button" fill="clear" size="small" onClick={() => setShowAllMessages((current) => !current)}>{showAllMessages ? 'Mostrar recados recentes' : 'Ver todos os recados'}</IonButton>}
                 {data.messagesClosed ? <p className="muted message-closed-note">Este Bora já aconteceu. Os recados continuam disponíveis para leitura.</p> : !canPostMessage ? (
                   <p className="muted message-closed-note">{event.votingClosed ? <>As confirmações estão encerradas.<br />Apenas quem já participa deste Bora pode deixar recados.</> : 'Responda a este Bora antes de deixar um recado.'}</p>
                 ) : (
                   <div className="message-composer">
                     <IonTextarea value={messageBody} maxlength={500} autoGrow aria-label="Escrever um recado" placeholder="Escrever um recado..." onIonInput={(item) => setMessageBody(item.detail.value || '')} disabled={submittingMessage} />
-                    <div className="message-composer-actions"><IonNote color="medium">{messageBody.trim().length}/500</IonNote><IonButton onClick={() => void sendMessage()} disabled={submittingMessage || !messageBody.trim()}>{submittingMessage ? 'Enviando…' : 'Enviar'}</IonButton></div>
+                    <div className="message-composer-actions">{messageBody.trim().length > 0 && <IonNote className={messageBody.trim().length >= 450 ? 'message-counter near-limit' : 'message-counter'} color={messageBody.trim().length >= 450 ? 'warning' : 'medium'}>{messageBody.trim().length}/500</IonNote>}<IonButton onClick={() => void sendMessage()} disabled={submittingMessage || !messageBody.trim()}>{submittingMessage ? 'Enviando…' : 'Enviar'}</IonButton></div>
                   </div>
                 )}
               </IonCardContent>
