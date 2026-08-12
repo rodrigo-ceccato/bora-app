@@ -62,6 +62,7 @@ function inheritedContextOptions(testInfo: TestInfo): BrowserContextOptions {
 
 test('agora time picker offers relative quick times that close the modal', async ({ page }) => {
   await page.goto('/create?mode=agora');
+  test.skip(await page.evaluate(() => window.matchMedia('(pointer: fine)').matches), 'Relative quick times are touch controls; desktop offers the same actions beside the input.');
   await page.locator('.time-picker-trigger').click();
   await expect(page.getByRole('button', { name: 'Daqui 1h' })).toBeVisible();
   await page.getByRole('button', { name: 'Daqui 1h' }).click();

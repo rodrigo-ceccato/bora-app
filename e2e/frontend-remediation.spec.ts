@@ -79,6 +79,10 @@ test('mais-tarde uses the shared time picker and keeps overnight alternatives', 
 
   await page.getByRole('button', { name: /Escolher horário\. Atual:/ }).click();
   const desktopTime = page.getByRole('textbox', { name: 'Horário do Bora' });
+  if (!(await desktopTime.isVisible())) {
+    await expect(page.locator('ion-datetime[presentation="time"]')).toBeVisible();
+    return;
+  }
   await desktopTime.fill('23:00');
   await desktopTime.press('Enter');
   await expect(page.locator('.time-chip').filter({ hasText: '23:00' })).toBeVisible();
@@ -88,6 +92,7 @@ test('mais-tarde uses the shared time picker and keeps overnight alternatives', 
 
 test('desktop time picker accepts arbitrary input and uses quarter-hour adjustments', async ({ page }) => {
   await page.goto('/create?mode=agora');
+  test.skip(!(await page.evaluate(() => window.matchMedia('(pointer: fine)').matches)), 'The exact-time input is a desktop control.');
   await page.locator('.time-picker-trigger').click();
   const time = page.getByRole('textbox', { name: 'Horário do Bora' });
   await time.fill('13:33');
@@ -106,6 +111,7 @@ test('desktop time picker accepts arbitrary input and uses quarter-hour adjustme
 
 test('desktop relative time actions use the current time', async ({ page }) => {
   await page.goto('/create?mode=agora');
+  test.skip(!(await page.evaluate(() => window.matchMedia('(pointer: fine)').matches)), 'Relative actions are rendered beside the desktop input.');
   await page.locator('.time-picker-trigger').click();
   const expected = await page.evaluate(() => {
     const time = new Date();

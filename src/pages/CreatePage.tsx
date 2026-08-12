@@ -434,7 +434,11 @@ export default function CreatePage() {
         <IonHeader><IonToolbar><IonTitle>{mode === 'agora' ? 'Alterar data' : 'Escolher outra data'}</IonTitle><IonButtons slot="end"><IonButton onClick={() => setCalendarOpen(false)}>Fechar</IonButton></IonButtons></IonToolbar></IonHeader>
         <IonContent className="ion-padding"><IonItem><IonLabel position="stacked">Data</IonLabel><IonInput ref={calendarInputRef} type="date" aria-label="Data do Bora" min={today} value={mode === 'agora' ? agoraDate : weekDate} onIonInput={(event) => { const date = event.detail.value || (mode === 'agora' ? agoraDate : weekDate); if (mode === 'agora') updateAgoraDate(date); else selectWeekDate(date); setCalendarOpen(false); }} /></IonItem></IonContent>
       </IonModal>
-      <IonModal isOpen={timePickerOpen} onDidPresent={() => timePickerTarget === 'agora' ? firstQuickTimeRef.current?.focus() : undefined} onDidDismiss={() => { setTimePickerOpen(false); window.requestAnimationFrame(() => (timePickerTarget === 'agora' ? timeOpenerRef : weekTimeOpenerRef).current?.focus()); }} className="time-picker-modal">
+      <IonModal isOpen={timePickerOpen} onDidPresent={() => {
+        const desktopInput = document.querySelector<HTMLInputElement>('ion-modal.time-picker-modal.show-modal input[aria-label="Horário do Bora"]');
+        if (desktopInput) desktopInput.focus();
+        else if (timePickerTarget === 'agora') firstQuickTimeRef.current?.focus();
+      }} onDidDismiss={() => { setTimePickerOpen(false); window.requestAnimationFrame(() => (timePickerTarget === 'agora' ? timeOpenerRef : weekTimeOpenerRef).current?.focus()); }} className="time-picker-modal">
         <IonHeader><IonToolbar><IonTitle>Escolha o horário</IonTitle><IonButtons slot="end"><IonButton onClick={() => setTimePickerOpen(false)}>Pronto</IonButton></IonButtons></IonToolbar></IonHeader>
         <IonContent className="ion-padding time-picker-content">
           <div className="time-picker-control-block">

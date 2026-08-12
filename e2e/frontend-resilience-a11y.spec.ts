@@ -75,9 +75,12 @@ test('keyboard flow enters creation and modal focus returns after Escape', async
   const timeOpener = page.getByRole('button', { name: /Escolher horário/ });
   await tabTo(page, timeOpener);
   await page.keyboard.press('Enter');
-  const firstQuickTime = page.getByRole('button', { name: 'Daqui 1h' });
-  await expect(firstQuickTime).toBeVisible();
-  await expectFocused(firstQuickTime);
+  const desktopTime = page.getByRole('textbox', { name: 'Horário do Bora' });
+  const timeControl = await desktopTime.isVisible()
+    ? desktopTime
+    : page.getByRole('button', { name: 'Daqui 1h' });
+  await expect(timeControl).toBeVisible();
+  await expectFocused(timeControl);
   await page.keyboard.press('Escape');
   await expect(page.locator('ion-modal.show-modal')).toHaveCount(0);
   await expectFocused(timeOpener);
