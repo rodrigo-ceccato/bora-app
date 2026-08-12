@@ -65,7 +65,7 @@ async function openRecoveryTransfer(page: Page, events: ReturnType<typeof adminE
   await expect(page.getByRole('heading', { name: 'Link completo criado' })).toBeVisible();
 }
 
-test('keyboard flow enters creation and modal focus returns after Escape', async ({ page }) => {
+test('keyboard flow enters creation and modal focus returns after Escape', async ({ page }, testInfo) => {
   await page.goto('/home');
   const agoraLink = page.getByRole('link', { name: /Bora agora/ });
   await tabTo(page, agoraLink);
@@ -76,9 +76,8 @@ test('keyboard flow enters creation and modal focus returns after Escape', async
   await tabTo(page, timeOpener);
   await page.keyboard.press('Enter');
   const desktopTime = page.getByRole('textbox', { name: 'Horário do Bora' });
-  const timeControl = await desktopTime.isVisible()
-    ? desktopTime
-    : page.getByRole('button', { name: 'Daqui 1h' });
+  const quickTime = page.getByRole('button', { name: 'Daqui 1h' });
+  const timeControl = testInfo.project.name.includes('touch') ? quickTime : desktopTime;
   await expect(timeControl).toBeVisible();
   await expectFocused(timeControl);
   await page.keyboard.press('Escape');

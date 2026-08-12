@@ -65,7 +65,7 @@ test('creation fields have names and Local remains usable at 320px', async ({ pa
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
 
-test('mais-tarde uses the shared time picker and keeps overnight alternatives', async ({ page }) => {
+test('mais-tarde uses the shared time picker and keeps overnight alternatives', async ({ page }, testInfo) => {
   await page.goto('/create?mode=mais-tarde');
   await expect(page.locator('.week-picker button[aria-pressed="true"]')).toHaveCount(1);
 
@@ -79,10 +79,12 @@ test('mais-tarde uses the shared time picker and keeps overnight alternatives', 
 
   await page.getByRole('button', { name: /Escolher horário\. Atual:/ }).click();
   const desktopTime = page.getByRole('textbox', { name: 'Horário do Bora' });
-  if (!(await desktopTime.isVisible())) {
-    await expect(page.locator('ion-datetime[presentation="time"]')).toBeVisible();
+  const touchTime = page.locator('ion-datetime[presentation="time"]');
+  if (testInfo.project.name.includes('touch')) {
+    await expect(touchTime).toBeVisible();
     return;
   }
+  await expect(desktopTime).toBeVisible();
   await desktopTime.fill('23:00');
   await desktopTime.press('Enter');
   await expect(page.locator('.time-chip').filter({ hasText: '23:00' })).toBeVisible();

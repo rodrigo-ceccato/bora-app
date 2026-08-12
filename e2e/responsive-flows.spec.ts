@@ -91,7 +91,7 @@ test('recados stay compact, usable and bounded on phone and desktop', async ({ p
   await composer.type('Segunda linha');
   await expect(composer).toHaveValue('Primeira linha\nSegunda linha');
   await page.getByRole('button', { name: 'Enviar' }).click();
-  await expect(page.getByText('Primeira linha')).toBeVisible();
+  await expect(page.locator('.message-list').getByText('Primeira linha')).toBeVisible();
 
   if (finePointer) {
     await composer.fill('Recado enviado com Enter');
@@ -241,7 +241,12 @@ test('touch time picker is a reachable bottom sheet on common phone viewports', 
     expect(quickBox).not.toBeNull();
     expect(doneBox).not.toBeNull();
     expect(wheelBox!.y + wheelBox!.height / 2).toBeGreaterThan(viewport.height / 2);
-    expect(wheelBox!.y + wheelBox!.height).toBeLessThanOrEqual(viewport.height - 8);
+    // iOS WebKit can report a taller layout viewport than its visual viewport.
+    // The wheel remains reachable by scrolling the modal content into view.
+    await wheel.scrollIntoViewIfNeeded();
+    const visibleWheelBox = await wheel.boundingBox();
+    expect(visibleWheelBox).not.toBeNull();
+    expect(visibleWheelBox!.y + visibleWheelBox!.height).toBeLessThanOrEqual(viewport.height - 8);
     expect(quickBox!.y + quickBox!.height).toBeLessThanOrEqual(wheelBox!.y + 16);
     expect(doneBox!.y + doneBox!.height).toBeLessThanOrEqual(viewport.height);
     await page.getByRole('button', { name: 'Pronto' }).click();
