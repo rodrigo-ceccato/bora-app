@@ -165,6 +165,33 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expect(page).toHaveURL(/\/my-events$/);
 });
 
+test('touch time picker is a reachable bottom sheet on common phone viewports', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes('touch'), 'This layout is only used with a coarse pointer.');
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 375, height: 667 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/create?mode=agora');
+    await page.locator('.time-picker-trigger').click();
+
+    const wheel = page.locator('ion-datetime[aria-label="Horário do Bora"]');
+    const quickActions = page.getByRole('group', { name: 'Horários rápidos' });
+    const done = page.getByRole('button', { name: 'Pronto' });
+    await expect(wheel).toBeVisible();
+    await expect(quickActions).toBeVisible();
+    await expect(done).toBeVisible();
+
+    const [wheelBox, quickBox, doneBox] = await Promise.all([wheel.boundingBox(), quickActions.boundingBox(), done.boundingBox()]);
+    expect(wheelBox).not.toBeNull();
+    expect(quickBox).not.toBeNull();
+    expect(doneBox).not.toBeNull();
+    expect(wheelBox!.y + wheelBox!.height / 2).toBeGreaterThan(viewport.height / 2);
+    expect(wheelBox!.y + wheelBox!.height).toBeLessThanOrEqual(viewport.height - 8);
+    expect(quickBox!.y + quickBox!.height).toBeLessThanOrEqual(wheelBox!.y + 16);
+    expect(doneBox!.y + doneBox!.height).toBeLessThanOrEqual(viewport.height);
+    await page.getByRole('button', { name: 'Pronto' }).click();
+  }
+});
+
 test('device-transfer links restore the saved participant name', async ({ page }) => {
   await installClipboard(page);
   await page.route('**/api/me/recovery-link', (route) => route.fulfill({ json: { recoveryToken: 'name-transfer-token' } }));

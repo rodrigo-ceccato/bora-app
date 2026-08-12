@@ -438,9 +438,11 @@ export default function CreatePage() {
       </IonModal>
       <IonModal isOpen={timePickerOpen} onDidPresent={() => timePickerTarget === 'agora' ? firstQuickTimeRef.current?.focus() : undefined} onDidDismiss={() => { setTimePickerOpen(false); window.requestAnimationFrame(() => (timePickerTarget === 'agora' ? timeOpenerRef : weekTimeOpenerRef).current?.focus()); }} className="time-picker-modal">
         <IonHeader><IonToolbar><IonTitle>Escolha o horário</IonTitle><IonButtons slot="end"><IonButton onClick={() => setTimePickerOpen(false)}>Pronto</IonButton></IonButtons></IonToolbar></IonHeader>
-        <IonContent className="ion-padding">
-          {timePickerTarget === 'agora' && <div className="agora-quick-times" role="group" aria-label="Horários rápidos">{[1, 2, 3].map((hours) => <button ref={hours === 1 ? firstQuickTimeRef : undefined} key={hours} type="button" onClick={() => pickQuickTime(hours)}>Em {hours}h</button>)}</div>}
-          <AdaptiveTimePicker date={timePickerTarget === 'agora' ? agoraDate : weekDate} value={timePickerTarget === 'agora' ? agoraTime : timeDraft} label="Horário do Bora" onChange={(time) => timePickerTarget === 'agora' ? updateAgoraTime(time) : (setTimeDraft(time), addWeekTime(time))} onConfirm={() => setTimePickerOpen(false)} />
+        <IonContent className="ion-padding time-picker-content">
+          <div className="time-picker-control-block">
+            {timePickerTarget === 'agora' && <div className="agora-quick-times" role="group" aria-label="Horários rápidos">{[1, 2, 3].map((hours) => <button ref={hours === 1 ? firstQuickTimeRef : undefined} key={hours} type="button" onClick={() => pickQuickTime(hours)}>Em {hours}h</button>)}</div>}
+            <AdaptiveTimePicker date={timePickerTarget === 'agora' ? agoraDate : weekDate} value={timePickerTarget === 'agora' ? agoraTime : timeDraft} label="Horário do Bora" onChange={(time) => timePickerTarget === 'agora' ? updateAgoraTime(time) : (setTimeDraft(time), addWeekTime(time))} onConfirm={() => setTimePickerOpen(false)} />
+          </div>
         </IonContent>
       </IonModal>
     </IonContent>
