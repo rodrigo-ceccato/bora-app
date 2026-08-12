@@ -187,12 +187,12 @@ export default function CreatePage() {
     setAgoraDate(date);
   }
 
-  function pickQuickTime(hours: number) {
+  function pickQuickTime(hours: number, closePicker = true) {
     const next = new Date();
     next.setHours(next.getHours() + hours);
     setAgoraDate(localDateKey(next));
     setAgoraTime(`${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`);
-    setTimePickerOpen(false);
+    if (closePicker) setTimePickerOpen(false);
   }
 
   function addWeekTime(time = timeDraft, date = weekDate) {
@@ -217,13 +217,11 @@ export default function CreatePage() {
   }
 
   function addRelativeWeekTime(hours: number) {
-    if (!validTimeValue(timeDraft)) {
-      toast({ message: 'Escolha um horário válido primeiro.', color: 'warning', duration: 2400 });
-      return;
-    }
-    const [hour, minute] = timeDraft.split(':').map(Number);
-    const totalMinutes = hour * 60 + minute + hours * 60;
-    addWeekTime(`${String(Math.floor((totalMinutes % (24 * 60)) / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`, addDaysToDate(weekDate, Math.floor(totalMinutes / (24 * 60))));
+    const next = new Date();
+    next.setHours(next.getHours() + hours);
+    const time = `${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`;
+    setTimeDraft(time);
+    addWeekTime(time, localDateKey(next));
   }
 
   function openWeekTimePicker() {
@@ -401,7 +399,7 @@ export default function CreatePage() {
             <IonButton ref={calendarOpenerRef} fill="clear" size="small" onClick={() => setCalendarOpen(true)}>Escolher outra data</IonButton>
             <h2>Escolha os horários</h2>
             <button ref={weekTimeOpenerRef} type="button" className="time-picker-trigger" onClick={openWeekTimePicker} aria-haspopup="dialog" aria-label={`Escolher horário. Atual: ${timeDraft}`}><span>Horário</span><strong>{timeDraft}</strong><span aria-hidden="true">⌄</span></button>
-            <div className="quick-times" role="group" aria-label="Adicionar horário relativo">{[1, 2, 3].map((hours) => <button key={hours} type="button" onClick={() => addRelativeWeekTime(hours)}>+{hours}h</button>)}</div>
+            <div className="quick-times" role="group" aria-label="Adicionar horário relativo">{[1, 2, 3].map((hours) => <button key={hours} type="button" onClick={() => addRelativeWeekTime(hours)}>Daqui {hours}h</button>)}</div>
             <div className="week-suggestions"><span>Sugestões</span><div className="time-chip-grid compact" role="group" aria-label="Horários sugeridos">{['18:00', '19:00', '20:00', '21:00', '22:00'].map((time) => {
               const selected = weekAlternatives.some((alternative) => alternative.date === weekDate && alternative.time === time);
               return <button key={time} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => selected ? setWeekAlternatives((current) => current.filter((alternative) => !(alternative.date === weekDate && alternative.time === time))) : addWeekTime(time)}>{time}</button>;
@@ -440,8 +438,8 @@ export default function CreatePage() {
         <IonHeader><IonToolbar><IonTitle>Escolha o horário</IonTitle><IonButtons slot="end"><IonButton onClick={() => setTimePickerOpen(false)}>Pronto</IonButton></IonButtons></IonToolbar></IonHeader>
         <IonContent className="ion-padding time-picker-content">
           <div className="time-picker-control-block">
-            {timePickerTarget === 'agora' && <div className="agora-quick-times" role="group" aria-label="Horários rápidos">{[1, 2, 3].map((hours) => <button ref={hours === 1 ? firstQuickTimeRef : undefined} key={hours} type="button" onClick={() => pickQuickTime(hours)}>Em {hours}h</button>)}</div>}
-            <AdaptiveTimePicker date={timePickerTarget === 'agora' ? agoraDate : weekDate} value={timePickerTarget === 'agora' ? agoraTime : timeDraft} label="Horário do Bora" onChange={(time) => timePickerTarget === 'agora' ? updateAgoraTime(time) : (setTimeDraft(time), addWeekTime(time))} onConfirm={() => setTimePickerOpen(false)} />
+            {timePickerTarget === 'agora' && <div className="agora-quick-times" role="group" aria-label="Horários rápidos">{[1, 2, 3].map((hours) => <button ref={hours === 1 ? firstQuickTimeRef : undefined} key={hours} type="button" onClick={() => pickQuickTime(hours)}>Daqui {hours}h</button>)}</div>}
+            <AdaptiveTimePicker date={timePickerTarget === 'agora' ? agoraDate : weekDate} value={timePickerTarget === 'agora' ? agoraTime : timeDraft} label="Horário do Bora" onChange={(time) => timePickerTarget === 'agora' ? updateAgoraTime(time) : (setTimeDraft(time), addWeekTime(time))} onConfirm={() => setTimePickerOpen(false)} onRelative={(hours) => timePickerTarget === 'agora' ? pickQuickTime(hours, false) : addRelativeWeekTime(hours)} />
           </div>
         </IonContent>
       </IonModal>

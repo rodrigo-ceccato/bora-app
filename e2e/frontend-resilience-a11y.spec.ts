@@ -75,7 +75,7 @@ test('keyboard flow enters creation and modal focus returns after Escape', async
   const timeOpener = page.getByRole('button', { name: /Escolher horário/ });
   await tabTo(page, timeOpener);
   await page.keyboard.press('Enter');
-  const firstQuickTime = page.getByRole('button', { name: 'Em 1h' });
+  const firstQuickTime = page.getByRole('button', { name: 'Daqui 1h' });
   await expect(firstQuickTime).toBeVisible();
   await expectFocused(firstQuickTime);
   await page.keyboard.press('Escape');

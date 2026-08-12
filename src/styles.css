@@ -153,15 +153,17 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .time-picker-modal ion-datetime { width: 100%; max-width: 420px; margin: 0 auto; --background: transparent; }
 .desktop-time-picker { max-width: 360px; margin: 0 auto; }
 .desktop-time-picker > label { display: block; margin-bottom: 6px; color: #587064; font-size: .82rem; font-weight: 700; }
-.desktop-time-input-wrap { display: flex; align-items: center; border: 1px solid #9ccdbb; border-radius: 10px; background: #fff; padding-right: 12px; }
+.desktop-time-input-wrap { display: flex; align-items: center; border: 1px solid #9ccdbb; border-radius: 10px; background: #fff; }
 .desktop-time-input-wrap input { min-width: 0; flex: 1; height: 42px; border: 0; border-radius: 10px; background: transparent; padding: 0 12px; color: #123f30; font: inherit; font-size: 1.15rem; font-weight: 750; letter-spacing: .04em; }
 .desktop-time-input-wrap input:focus { outline: 3px solid #77c7aa; outline-offset: 2px; }
-.desktop-time-input-wrap span { color: #17664b; }
 .desktop-time-picker p { margin: 6px 0 9px; color: #66717d; font-size: .78rem; }
-.desktop-time-options { max-height: 248px; overflow: auto; border: 1px solid #d5e0e7; border-radius: 10px; background: #fff; padding: 4px; }
-.desktop-time-options button { display: flex; align-items: center; gap: 7px; width: 100%; min-height: 34px; border: 0; border-radius: 7px; background: transparent; color: #1b2832; padding: 6px 10px; font: inherit; text-align: left; }
-.desktop-time-options button span { width: 1em; color: #11664d; font-weight: 800; }
-.desktop-time-options button:hover, .desktop-time-options button:focus-visible, .desktop-time-options button.selected { background: #e9f8f1; color: #11664d; outline: none; }
+.desktop-time-adjustments, .desktop-time-relative { display: grid; gap: 8px; }
+.desktop-time-adjustments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.desktop-time-relative { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 8px; }
+.desktop-time-adjustments button, .desktop-time-relative button { min-height: 38px; border: 1px solid #b8d8cc; border-radius: 9px; background: #f2faf6; color: #17664b; padding: 6px 8px; font: inherit; font-size: .86rem; font-weight: 750; }
+.desktop-time-adjustments button:hover, .desktop-time-relative button:hover { background: #e1f4e9; border-color: #16836b; }
+.desktop-time-adjustments button:focus-visible, .desktop-time-relative button:focus-visible { outline: 3px solid #77c7aa; outline-offset: 2px; }
+@media (pointer: fine) { .time-picker-modal .agora-quick-times { display: none; } }
 @media (pointer: coarse) {
   .time-picker-modal { --width: 100%; --height: min(590px, calc(100dvh - 24px)); --max-height: calc(100dvh - 12px); --border-radius: 22px 22px 0 0; align-items: flex-end; }
   .time-picker-modal::part(content) { border-radius: 22px 22px 0 0; }

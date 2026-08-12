@@ -331,6 +331,14 @@ export default function EventPage() {
     updateEdit({ startsAt: value });
   }
 
+  function updateEditRelativeTime(hours: number) {
+    const next = new Date();
+    next.setHours(next.getHours() + hours);
+    const value = `${localDateKey(next)}T${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}:00`;
+    if (editEvent?.mode === 'mais-tarde') updateEditMoreLaterStart(value);
+    else updateEdit({ startsAt: value });
+  }
+
   function toggleEditWeekOvernightTimes() {
     const date = editEvent?.startsAt?.slice(0, 10);
     if (!date) return;
@@ -1028,10 +1036,10 @@ export default function EventPage() {
                     <button type="button" className={editAgoraDay() === tomorrowKey ? 'selected' : ''} aria-pressed={editAgoraDay() === tomorrowKey} onClick={() => updateEditAgoraDay(tomorrowKey)}>Amanhã</button>
                   </div>
                   <div className="agora-date-summary"><p className="schedule-summary">{(editAgoraDay() === localDateKey() ? 'Hoje' : editAgoraDay() === tomorrowKey ? 'Amanhã' : resultDateLabel(editAgoraDay(), true))} às {pickerTime(editEvent.startsAt)}</p><IonButton fill="clear" size="small" onClick={() => { editCalendarOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setEditCalendarOpen(true); }}>Outra data</IonButton></div>
-                  <AdaptiveTimePicker date={editAgoraDay()} value={pickerTime(editEvent.startsAt)} label="Horário do Bora" onChange={(time) => updateEditAgoraTime(`${editAgoraDay()}T${time}:00`)} />
+                  <AdaptiveTimePicker date={editAgoraDay()} value={pickerTime(editEvent.startsAt)} label="Horário do Bora" onChange={(time) => updateEditAgoraTime(`${editAgoraDay()}T${time}:00`)} onRelative={updateEditRelativeTime} />
                   {editAgoraDay() === localDateKey() && !futureAgoraTime(localDateKey(), pickerTime(editEvent.startsAt)) && <IonNote className="field-error" color="danger">Escolha um horário futuro para hoje.</IonNote>}
                 </section>}
-                {editEvent.mode === 'mais-tarde' && (() => { const start = editEvent.startsAt || `${localDateKey()}T18:00:00`; return <section className="schedule-section"><h2>Escolha o dia e horário</h2><IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" value={start.slice(0, 10)} aria-label="Data e horário principal" onIonInput={(item) => updateEditMoreLaterStart(`${item.detail.value || start.slice(0, 10)}T${pickerTime(start)}:00`)} /></IonItem><AdaptiveTimePicker date={start.slice(0, 10)} value={pickerTime(start)} label="Horário do Bora" onChange={(time) => updateEditMoreLaterStart(`${start.slice(0, 10)}T${time}:00`)} /><IonButton fill="clear" size="small" onClick={toggleEditWeekOvernightTimes} aria-expanded={Boolean(overnightEditWeekDates[editWeekDate])} aria-controls="edit-week-overnight-note">{overnightEditWeekDates[editWeekDate] ? 'Ocultar madrugada' : 'Mostrar madrugada'}</IonButton>{overnightEditWeekDates[editWeekDate] && <p id="edit-week-overnight-note" className="muted">Horários entre 01:00 e 07:00 liberados para este dia.</p>}</section>; })()}
+                {editEvent.mode === 'mais-tarde' && (() => { const start = editEvent.startsAt || `${localDateKey()}T18:00:00`; return <section className="schedule-section"><h2>Escolha o dia e horário</h2><IonItem><IonLabel position="stacked">Data</IonLabel><IonInput type="date" value={start.slice(0, 10)} aria-label="Data e horário principal" onIonInput={(item) => updateEditMoreLaterStart(`${item.detail.value || start.slice(0, 10)}T${pickerTime(start)}:00`)} /></IonItem><AdaptiveTimePicker date={start.slice(0, 10)} value={pickerTime(start)} label="Horário do Bora" onChange={(time) => updateEditMoreLaterStart(`${start.slice(0, 10)}T${time}:00`)} onRelative={updateEditRelativeTime} /><IonButton fill="clear" size="small" onClick={toggleEditWeekOvernightTimes} aria-expanded={Boolean(overnightEditWeekDates[editWeekDate])} aria-controls="edit-week-overnight-note">{overnightEditWeekDates[editWeekDate] ? 'Ocultar madrugada' : 'Mostrar madrugada'}</IonButton>{overnightEditWeekDates[editWeekDate] && <p id="edit-week-overnight-note" className="muted">Horários entre 01:00 e 07:00 liberados para este dia.</p>}</section>; })()}
 
                 {editEvent.mode === 'marcar' && (
                   <section className="schedule-section mark-section" aria-labelledby="edit-schedule-title">

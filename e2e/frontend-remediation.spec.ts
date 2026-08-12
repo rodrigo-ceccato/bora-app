@@ -82,8 +82,38 @@ test('mais-tarde uses the shared time picker and keeps overnight alternatives', 
   await desktopTime.fill('23:00');
   await desktopTime.press('Enter');
   await expect(page.locator('.time-chip').filter({ hasText: '23:00' })).toBeVisible();
-  await page.getByRole('button', { name: '+1h' }).click();
-  await expect(page.locator('.time-chip').filter({ hasText: /00:00 ·/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Daqui 1h' }).click();
+  await expect(page.locator('.time-chip')).toHaveCount(2);
+});
+
+test('desktop time picker accepts arbitrary input and uses quarter-hour adjustments', async ({ page }) => {
+  await page.goto('/create?mode=agora');
+  await page.locator('.time-picker-trigger').click();
+  const time = page.getByRole('textbox', { name: 'Horário do Bora' });
+  await time.fill('13:33');
+  await time.blur();
+  await expect(time).toHaveValue('13:33');
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await page.getByRole('button', { name: '+15 min' }).click();
+  await expect(time).toHaveValue('13:45');
+  await page.getByRole('button', { name: '-15 min' }).click();
+  await expect(time).toHaveValue('13:30');
+  await time.fill('23:50');
+  await time.blur();
+  await page.getByRole('button', { name: '+15 min' }).click();
+  await expect(time).toHaveValue('00:00');
+});
+
+test('desktop relative time actions use the current time', async ({ page }) => {
+  await page.goto('/create?mode=agora');
+  await page.locator('.time-picker-trigger').click();
+  const expected = await page.evaluate(() => {
+    const time = new Date();
+    time.setHours(time.getHours() + 2);
+    return `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
+  });
+  await page.getByRole('button', { name: 'Daqui 2h' }).click();
+  await expect(page.getByRole('textbox', { name: 'Horário do Bora' })).toHaveValue(expected);
 });
 
 test('event loading distinguishes network, server, and missing-event failures', async ({ page }) => {

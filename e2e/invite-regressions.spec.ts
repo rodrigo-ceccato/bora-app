@@ -60,11 +60,11 @@ function inheritedContextOptions(testInfo: TestInfo): BrowserContextOptions {
   };
 }
 
-test('agora time picker offers quick times that close the modal', async ({ page }) => {
+test('agora time picker offers relative quick times that close the modal', async ({ page }) => {
   await page.goto('/create?mode=agora');
   await page.locator('.time-picker-trigger').click();
-  await expect(page.getByRole('button', { name: 'Em 1h' })).toBeVisible();
-  await page.getByRole('button', { name: 'Em 1h' }).click();
+  await expect(page.getByRole('button', { name: 'Daqui 1h' })).toBeVisible();
+  await page.getByRole('button', { name: 'Daqui 1h' }).click();
   await expect(page.getByText('Escolha o horário')).not.toBeVisible();
   await expect(page.locator('.agora-date-summary .schedule-summary')).toBeVisible();
 });

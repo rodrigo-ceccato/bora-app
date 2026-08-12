@@ -1,5 +1,5 @@
 import { IonDatetime } from '@ionic/react';
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type WheelEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type WheelEvent } from 'react';
 
 const finePointerQuery = '(pointer: fine)';
 
@@ -36,36 +36,23 @@ function useFinePointer() {
   return finePointer;
 }
 
-export function AdaptiveTimePicker({ value, date, onChange, onConfirm, label = 'Horário do Bora' }: {
+export function AdaptiveTimePicker({ value, date, onChange, onConfirm, onRelative, label = 'Horário do Bora' }: {
   value: string;
   date?: string;
   onChange: (time: string) => void;
   onConfirm?: () => void;
+  onRelative?: (hours: number) => void;
   label?: string;
 }) {
   const finePointer = useFinePointer();
   const inputRef = useRef<HTMLInputElement>(null);
-  const selectedRef = useRef<HTMLButtonElement>(null);
   const [draft, setDraft] = useState(value);
-  const [open, setOpen] = useState(finePointer);
-
-  const suggestions = useMemo(() => {
-    const center = Math.round(minutesFor(value) / 15) * 15;
-    const nearby = [-3, -2, -1, 0, 1, 2].map((offset) => timeFor(center + offset * 15));
-    return validTime(value) && !nearby.includes(value) ? [...nearby, value].sort() : nearby;
-  }, [draft, value]);
 
   useEffect(() => setDraft(value), [value]);
   useEffect(() => {
     if (!finePointer) return;
-    setOpen(true);
     inputRef.current?.focus();
   }, [finePointer]);
-
-  useEffect(() => {
-    if (!finePointer || !open) return;
-    selectedRef.current?.scrollIntoView?.({ block: 'nearest' });
-  }, [finePointer, open, suggestions]);
 
   function commit(next: string) {
     if (!validTime(next)) return false;
@@ -74,22 +61,24 @@ export function AdaptiveTimePicker({ value, date, onChange, onConfirm, label = '
     return true;
   }
 
-  function adjust(delta: number) {
+  function adjust(direction: 1 | -1) {
     const source = validTime(draft) ? draft : value;
-    commit(timeFor(minutesFor(source) + delta));
+    const minutes = minutesFor(source);
+    const quarter = direction === 1 ? Math.ceil(minutes / 15) * 15 : Math.floor(minutes / 15) * 15;
+    commit(timeFor(quarter === minutes ? quarter + direction * 15 : quarter));
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'ArrowUp') { event.preventDefault(); adjust(15); }
-    else if (event.key === 'ArrowDown') { event.preventDefault(); adjust(-15); }
-    else if (event.key === 'Enter' && commit(draft)) { event.preventDefault(); setOpen(false); onConfirm?.(); }
-    else if (event.key === 'Escape') { event.preventDefault(); setDraft(value); setOpen(false); onConfirm?.(); }
+    if (event.key === 'ArrowUp') { event.preventDefault(); adjust(1); }
+    else if (event.key === 'ArrowDown') { event.preventDefault(); adjust(-1); }
+    else if (event.key === 'Enter' && commit(draft)) { event.preventDefault(); onConfirm?.(); }
+    else if (event.key === 'Escape') { event.preventDefault(); setDraft(value); onConfirm?.(); }
   }
 
   function onWheel(event: WheelEvent<HTMLInputElement>) {
     if (document.activeElement !== event.currentTarget) return;
     event.preventDefault();
-    adjust(event.deltaY < 0 ? 15 : -15);
+    adjust(event.deltaY < 0 ? 1 : -1);
   }
 
   if (!finePointer) {
@@ -102,12 +91,10 @@ export function AdaptiveTimePicker({ value, date, onChange, onConfirm, label = '
   return <div className="desktop-time-picker" aria-label={label}>
     <label htmlFor="desktop-time-input">Horário</label>
     <div className="desktop-time-input-wrap">
-      <input ref={inputRef} id="desktop-time-input" value={draft} inputMode="numeric" placeholder="HH:MM" aria-label={label} aria-describedby="desktop-time-help" onFocus={() => setOpen(true)} onClick={(event) => event.currentTarget.select()} onChange={(event) => setDraft(event.target.value)} onBlur={() => { if (!commit(draft)) setDraft(value); }} onKeyDown={onKeyDown} onWheel={onWheel} />
-      <span aria-hidden="true">⌄</span>
+      <input ref={inputRef} id="desktop-time-input" value={draft} inputMode="numeric" placeholder="HH:MM" aria-label={label} aria-describedby="desktop-time-help" onClick={(event) => event.currentTarget.select()} onChange={(event) => setDraft(event.target.value)} onBlur={() => { if (!commit(draft)) setDraft(value); }} onKeyDown={onKeyDown} onWheel={onWheel} />
     </div>
-    <p id="desktop-time-help">↑ ↓ ou roda do mouse: ±15 min</p>
-    {open && <div className="desktop-time-options" role="listbox" aria-label="Horários próximos">
-      {suggestions.map((time) => <button ref={time === value ? selectedRef : undefined} key={time} type="button" role="option" aria-selected={time === value} className={time === value ? 'selected' : ''} onClick={() => { commit(time); setOpen(false); }}>{time === value && <span aria-hidden="true">✓</span>}{time}</button>)}
-    </div>}
+    <p id="desktop-time-help">Digite o horário ou use os ajustes rápidos. “Daqui” usa a hora atual.</p>
+    <div className="desktop-time-adjustments" role="group" aria-label="Ajustes de 15 minutos"><button type="button" onClick={() => adjust(-1)}>-15 min</button><button type="button" onClick={() => adjust(1)}>+15 min</button></div>
+    {onRelative && <div className="desktop-time-relative" role="group" aria-label="Horários relativos">{[1, 2, 3].map((hours) => <button key={hours} type="button" onClick={() => onRelative(hours)}>Daqui {hours}h</button>)}</div>}
   </div>;
 }
