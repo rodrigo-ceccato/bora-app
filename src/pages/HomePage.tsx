@@ -41,8 +41,10 @@ export default function HomePage() {
     <IonContent className="ion-padding hero-bg">
       <section className="hero">
         <span className="hero-kicker">Combine sem complicação</span>
-        <h1>Bora marcar?</h1>
-        <img className="bora-share-symbol" src="/bora-share.svg" alt="Símbolo de compartilhamento Bora" />
+        <div className="hero-title-row">
+          <h1>Bora marcar?</h1>
+          <img className="bora-share-symbol" src="/bora-share-hero.svg" alt="Símbolo de compartilhamento Bora" />
+        </div>
         <p>Crie um convite, envie o link e faça o rolê acontecer. Ninguém precisa criar conta para participar.</p>
         <nav className="home-mode-actions" aria-label="Escolha o tipo de Bora">
           {actions.map((action) => <IonButton key={action.mode} fill="clear" routerLink={`/create?mode=${action.mode}`} className="home-mode-card">
