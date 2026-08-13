@@ -3,6 +3,7 @@ import {
   clearDeviceAuthentication,
   collectEventVotePages,
   createEvent,
+  eventHasOccurred,
   getEvent,
   getParticipantId,
   getParticipantName,
@@ -34,6 +35,17 @@ class FakeStorage implements Storage {
     this.values.set(key, String(value));
   }
 }
+
+describe('past Bora closure', () => {
+  it('prevents offline vote changes once the scheduled start has passed', () => {
+    const event = {
+      id: 'past', slug: 'past', mode: 'agora' as const, title: 'Cinema', place: 'Centro', threshold: 2,
+      startsAt: '2026-08-03T21:00:00.000Z', alternatives: [], days: [], votingClosed: false, createdAt: '2026-08-01T00:00:00.000Z'
+    };
+    expect(eventHasOccurred(event, new Date('2026-08-03T21:00:00.000Z').getTime())).toBe(true);
+    expect(eventHasOccurred(event, new Date('2026-08-03T20:59:59.999Z').getTime())).toBe(false);
+  });
+});
 
 let local: FakeStorage;
 let session: FakeStorage;

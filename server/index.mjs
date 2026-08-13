@@ -335,13 +335,18 @@ function mapEvent(row) {
   };
 }
 
-function messagesClosed(row) {
-  if (row.starts_at && new Date(row.starts_at).getTime() <= Date.now()) return true;
+export function eventHasOccurred(row, now = Date.now()) {
+  const start = eventStartAt(row);
+  if (start && start.getTime() <= now) return true;
   if (row.mode === 'marcar' && Array.isArray(row.days) && row.days.length) {
     const latestDay = row.days.map((day) => day?.date).filter(Boolean).sort().at(-1);
     return Boolean(latestDay && latestDay < new Date().toISOString().slice(0, 10));
   }
   return false;
+}
+
+function messagesClosed(row) {
+  return eventHasOccurred(row);
 }
 
 function mapEventSummary(row) {
@@ -1259,6 +1264,7 @@ export async function route(request, response) {
         const eventRow = locked.rows[0];
         if (!eventRow) throw httpError(404, 'Evento não encontrado.');
         if (eventRow.voting_closed) throw httpError(409, 'A votação deste Bora foi encerrada.');
+        if (eventHasOccurred(eventRow)) throw httpError(409, 'Este Bora já aconteceu; não é mais possível alterar votos.');
         const event = mapEvent(eventRow);
         const vote = validateVote(voteBody, event);
         const acceptedBefore = await client.query("select count(*)::int as count from votes where event_id = $1 and response = 'accept'", [event.id]);

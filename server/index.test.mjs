@@ -7,6 +7,7 @@ import {
   creatorVoteSchedule,
   deletionNotificationPlan,
   dueReminderQuery,
+  eventHasOccurred,
   eventStartAt,
   eventUpdateNotificationPlan,
   pushPreferencesResponse,
@@ -284,6 +285,19 @@ describe('future schedule parity', () => {
       days: [{ id: 'dst_day', label: 'domingo', date: '2026-03-08', slots: ['02:30'] }]
     });
     expect(() => validateFutureSchedule(event, { now: 0 })).toThrow('não existe no fuso horário');
+  });
+});
+
+describe('past Bora closure', () => {
+  it('treats a Bora as over once its scheduled start has passed', () => {
+    expect(eventHasOccurred({ mode: 'agora', starts_at: '2026-08-03T21:00:00.000Z' }, new Date('2026-08-03T21:00:00.000Z').getTime())).toBe(true);
+    expect(eventHasOccurred({ mode: 'agora', starts_at: '2026-08-03T21:00:00.000Z' }, new Date('2026-08-03T20:59:59.999Z').getTime())).toBe(false);
+  });
+
+  it('closes a decided scheduling Bora at its selected time', () => {
+    expect(eventHasOccurred({
+      mode: 'mais-tarde', starts_at: '2026-08-03T18:00:00.000Z', decided_option: '2026-08-03T21:00:00.000Z'
+    }, new Date('2026-08-03T21:00:00.000Z').getTime())).toBe(true);
   });
 });
 

@@ -17,13 +17,18 @@ let lastProfileRefreshAt = 0;
 
 export type StoragePersistence = 'persistent' | 'session' | 'memory';
 
-function eventMessagesClosed(event: BoraEvent) {
-  if (event.startsAt && new Date(event.startsAt).getTime() <= Date.now()) return true;
+export function eventHasOccurred(event: BoraEvent, now = Date.now()) {
+  const start = event.mode === 'mais-tarde' && event.decidedOption ? event.decidedOption : event.startsAt;
+  if (start && new Date(start).getTime() <= now) return true;
   if (event.mode === 'marcar' && event.days.length) {
     const latestDay = event.days.map((day) => day.date).sort().at(-1);
     return Boolean(latestDay && latestDay < new Date().toISOString().slice(0, 10));
   }
   return false;
+}
+
+function eventMessagesClosed(event: BoraEvent) {
+  return eventHasOccurred(event);
 }
 
 export class ApiRequestError extends Error {
@@ -696,6 +701,7 @@ export async function submitVote(
   voteInput: Omit<BoraVote, 'id' | 'eventId' | 'participantId' | 'createdAt'>
 ): Promise<BoraVote> {
   if (event.votingClosed) throw new Error('A votação deste Bora foi encerrada.');
+  if (eventHasOccurred(event)) throw new Error('Este Bora já aconteceu; não é mais possível alterar votos.');
   const participantId = getParticipantId();
 
   if (API_BASE) {

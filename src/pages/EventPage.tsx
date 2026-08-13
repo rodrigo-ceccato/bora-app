@@ -2,7 +2,7 @@ import { IonBackButton, IonBadge, IonButton, IonButtons, IonCard, IonCardContent
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { logoWhatsapp, trashOutline } from 'ionicons/icons';
-import { ApiRequestError, deleteEvent, deleteMessage, getEvent, getMoreEventVotes, getParticipantId, getParticipantName, saveParticipantName, submitMessage, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
+import { ApiRequestError, deleteEvent, deleteMessage, eventHasOccurred, getEvent, getMoreEventVotes, getParticipantId, getParticipantName, saveParticipantName, submitMessage, subscribeToEvent, submitVote, updateEvent } from '../lib/store';
 import { responseLabel } from '../lib/schedule';
 import { localDateKey, toInstantIso, toPickerValue } from '../lib/datetime';
 import { eventOptions, optionLabel } from '../lib/options';
@@ -475,8 +475,8 @@ export default function EventPage() {
 
   async function vote(response: VoteResponse) {
     if (!data) return;
-    if (data.event.votingClosed) {
-      toast({ message: 'Esta votação foi encerrada.', color: 'warning', duration: 2200 });
+    if (data.event.votingClosed || eventHasOccurred(data.event)) {
+      toast({ message: data.event.votingClosed ? 'Esta votação foi encerrada.' : 'Este Bora já aconteceu; os votos não podem mais ser alterados.', color: 'warning', duration: 2600 });
       return;
     }
     if (!name.trim()) {
@@ -693,6 +693,7 @@ export default function EventPage() {
   }
 
   const { event, votes } = data;
+  const votingUnavailable = event.votingClosed || eventHasOccurred(event);
   const preferredTimeOptions = event.mode === 'mais-tarde' ? eventOptions(event) : [];
   const ownVote = data.ownVote || votes.find((vote) => vote.isOwn || vote.participantId === getParticipantId());
   const showVoteConfirmation = !isAdmin && !editingVote && Boolean(voteSubmitted || ownVote);
@@ -843,11 +844,12 @@ export default function EventPage() {
                       )}
 
                       <div className="vote-actions" aria-label="Registrar voto">
-                        <IonButton className="response-yes" disabled={event.votingClosed || submittingVote} onClick={() => void vote('accept')}><span><b aria-hidden="true">🙌</b>{submittingVote ? 'Salvando...' : 'Posso'}</span></IonButton>
-                        <IonButton className="response-maybe" fill="outline" disabled={event.votingClosed || submittingVote} onClick={() => void vote('maybe')}><span><b aria-hidden="true">🤔</b>Talvez</span></IonButton>
-                        <IonButton className="response-no" fill="clear" disabled={event.votingClosed || submittingVote} onClick={() => void vote('decline')}><span><b aria-hidden="true">😔</b>Não posso</span></IonButton>
+                        <IonButton className="response-yes" disabled={votingUnavailable || submittingVote} onClick={() => void vote('accept')}><span><b aria-hidden="true">🙌</b>{submittingVote ? 'Salvando...' : 'Posso'}</span></IonButton>
+                        <IonButton className="response-maybe" fill="outline" disabled={votingUnavailable || submittingVote} onClick={() => void vote('maybe')}><span><b aria-hidden="true">🤔</b>Talvez</span></IonButton>
+                        <IonButton className="response-no" fill="clear" disabled={votingUnavailable || submittingVote} onClick={() => void vote('decline')}><span><b aria-hidden="true">😔</b>Não posso</span></IonButton>
                       </div>
                       {event.votingClosed && <p className="closed-message">As confirmações foram encerradas pelo organizador.</p>}
+                      {!event.votingClosed && eventHasOccurred(event) && <p className="closed-message">Este Bora já aconteceu; os votos estão encerrados.</p>}
                     </>
                   )}
                 </IonCardContent>

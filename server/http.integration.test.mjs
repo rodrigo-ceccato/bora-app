@@ -339,6 +339,21 @@ integration('HTTP API with disposable PostgreSQL', () => {
     expect((await request(`/events/${doomed.event.slug}`)).status).toBe(404);
   });
 
+  it('rejects vote changes after a Bora has started', async () => {
+    const created = await createEvent('participant_past_creator');
+    await databasePool.query(
+      "update events set starts_at = now() - interval '1 minute' where id = $1",
+      [created.event.id]
+    );
+
+    const response = await request(`/events/${created.event.slug}/votes`, {
+      method: 'POST', body: voteBody('participant_past_guest', 'Bia')
+    });
+    expect(response.status).toBe(409);
+    expect((await json(response)).error).toContain('já aconteceu');
+    expect((await databasePool.query('select count(*)::int as count from votes where event_id = $1', [created.event.id])).rows[0].count).toBe(1);
+  });
+
   it('creator receives notification when second person confirms a 2-person Bora', async () => {
     const creator = 'creator';
     const guest = 'guest';
