@@ -115,7 +115,7 @@ test('recados stay compact, usable and bounded on phone and desktop', async ({ p
     await composer.press('Enter');
     await expect(composer).toHaveValue('Recado no celular\n');
     await page.getByRole('button', { name: 'Enviar' }).click();
-    await expect(page.getByText('Recado no celular')).toBeVisible();
+    await expect(page.locator('.message-list').getByText('Recado no celular', { exact: true })).toBeVisible();
   }
   await page.getByRole('button', { name: 'Ver todos os recados' }).click();
   await expect.poll(() => page.locator('.message-item').count()).toBeGreaterThanOrEqual(messageCount + 2);
