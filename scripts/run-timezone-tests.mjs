@@ -5,6 +5,7 @@ const zones = ['UTC', 'America/Sao_Paulo', 'America/New_York'];
 const vitest = fileURLToPath(new URL('../node_modules/vitest/vitest.mjs', import.meta.url));
 const dateTests = [
   'src/lib/calendar.test.ts',
+  'src/lib/activity.test.ts',
   'src/lib/datetime.test.ts',
   'src/lib/invite.test.ts',
   'src/lib/options.test.ts',
