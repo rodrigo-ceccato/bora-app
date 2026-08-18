@@ -93,6 +93,36 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .mode-card-copy small { color: #61707a; font-size: .88rem; line-height: 1.35; }
 .mode-card-arrow { color: #17664b; font-size: 1.5rem; font-weight: 600; }
 
+.home-activity { max-width: 760px; margin: 0 auto 24px; }
+.home-activity-heading { display: flex; min-height: 36px; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.home-activity-heading h2 { margin: 0; color: #26343d; font-size: 1.15rem; letter-spacing: -.01em; }
+.home-activity-all { min-height: 36px; margin: 0; --padding-start: 10px; --padding-end: 10px; --color: #17664b; text-transform: none; font-weight: 700; }
+.home-activity-empty { margin: 4px 0 0; color: #69757d; font-size: .92rem; }
+.home-activity-list { display: grid; gap: 12px; }
+.home-activity-group { overflow: hidden; border: 1px solid #e0e8e4; border-radius: 13px; background: rgba(255, 255, 255, .78); }
+.home-activity-event { display: flex; width: 100%; min-width: 0; align-items: center; gap: 11px; padding: 13px 14px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.home-activity-event:hover, .home-activity-child-open:hover { background: #f5faf7; }
+.home-activity-event:focus-visible, .home-activity-child-open:focus-visible, .home-activity-dismiss:focus-visible { position: relative; z-index: 1; outline: 3px solid #4fa67e; outline-offset: -3px; }
+.home-activity-event-icon { flex: 0 0 auto; align-self: flex-start; margin-top: 2px; color: #39735f; font-size: 19px; }
+.home-activity-event-copy { display: grid; min-width: 0; gap: 2px; line-height: 1.25; }
+.home-activity-event-copy strong { color: #355e50; font-size: .86rem; font-weight: 750; }
+.home-activity-event-copy > span { overflow: hidden; color: #26343d; font-size: .96rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.home-activity-event-copy small { color: #78828a; font-size: .78rem; }
+.home-activity-chevron { flex: 0 0 auto; margin-left: auto; color: #87928d; font-size: 16px; }
+.home-activity-children { margin-left: 43px; border-top: 1px solid #e8eeeb; }
+.home-activity-child { display: flex; min-width: 0; }
+.home-activity-child + .home-activity-child { border-top: 1px solid #edf1ef; }
+.home-activity-child-open { display: flex; flex: 1 1 auto; min-width: 0; align-items: center; gap: 8px; padding: 9px 4px 9px 10px; border: 0; background: transparent; color: #56656c; font-size: .82rem; font-weight: 650; text-align: left; cursor: pointer; }
+.home-activity-child-open ion-icon { flex: 0 0 auto; color: #628174; font-size: 16px; }
+.home-activity-child-open span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-activity-dismiss { display: grid; flex: 0 0 44px; width: 44px; min-height: 44px; place-items: center; align-self: stretch; padding: 0; border: 0; background: transparent; color: #929a96; cursor: pointer; }
+.home-activity-dismiss:hover { background: #f1f6f3; color: #344f44; }
+.home-activity-dismiss ion-icon { font-size: 15px; }
+@media (hover: hover) and (pointer: fine) {
+  .home-activity-dismiss { opacity: 0; }
+  .home-activity-child:hover .home-activity-dismiss, .home-activity-child:focus-within .home-activity-dismiss { opacity: 1; }
+}
+
 .form-page ion-card, .event-layout { max-width: 760px; margin-left: auto; margin-right: auto; }
 .form-page { --padding-top: 24px; }
 .create-card { max-width: 680px !important; }

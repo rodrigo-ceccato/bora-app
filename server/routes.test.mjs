@@ -14,12 +14,12 @@ function adminHash(token) {
   return createHash('sha256').update(token).digest('hex');
 }
 
-function request(method, url, token, body) {
+function request(method, url, token, body, participantId) {
   const stream = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))]);
   return Object.assign(stream, {
     method,
     url,
-    headers: { authorization: `Bearer ${token}` },
+    headers: { authorization: `Bearer ${token}`, ...(participantId ? { 'x-participant-id': participantId } : {}) },
     socket: { remoteAddress: '127.0.0.1' }
   });
 }
@@ -69,7 +69,7 @@ describe('transactional event mutations', () => {
     ]);
   });
 
-  it('checks the revision and refreshes the creator vote inside the locked PATCH transaction', async () => {
+  it('checks the revision, attributes activity to the active administrator, and supports legacy events', async () => {
     const queries = [];
     const current = {
       id: 'evt_1', slug: 'cinema', mode: 'mais-tarde', title: 'Cinema', place: 'Centro', description: '',
@@ -97,7 +97,7 @@ describe('transactional event mutations', () => {
       days: [], createdByName: 'Ana', votingClosed: false, revision: 4
     };
 
-    await route(request('PATCH', '/api/events/cinema', 'secret', event), output);
+    await route(request('PATCH', '/api/events/cinema', 'secret', event, 'participant_bia'), output);
 
     expect(output.status).toBe(200);
     const eventUpdate = queries.find(({ sql }) => sql.includes('update events set'));
@@ -113,6 +113,15 @@ describe('transactional event mutations', () => {
       '2099-08-03T21:00:00.000Z': true,
       '2099-08-03T22:00:00.000Z': true
     });
+    const activityInsert = queries.find(({ sql }) => sql.includes('insert into event_activities'));
+    expect(activityInsert.values.slice(1)).toEqual(['evt_1', 'event_changed', 'participant_bia', 'participant_bia']);
+
+    current.created_by_participant_id = null;
+    const legacyOutput = response();
+    await route(request('PATCH', '/api/events/cinema', 'secret', event), legacyOutput);
+    expect(legacyOutput.status).toBe(200);
+    const activityInserts = queries.filter(({ sql }) => sql.includes('insert into event_activities'));
+    expect(activityInserts.at(-1).values.slice(1)).toEqual(['evt_1', 'event_changed', 'system', 'system']);
     expect(queries.map(({ sql }) => sql)).toEqual(expect.arrayContaining(['begin', 'commit']));
   });
 });

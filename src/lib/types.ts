@@ -100,3 +100,28 @@ export interface EventDraft {
   createdByName?: string;
   notifyCreatorOnVote?: boolean;
 }
+
+export type ActivityKind = 'votes' | 'messages' | 'event_changed' | 'final_selected' | 'threshold_reached';
+
+export interface HomeActivityItem {
+  id: string;
+  activityKeys: string[];
+  kind: ActivityKind;
+  primaryMessage: string;
+  occurredAt: string;
+}
+
+export interface HomeActivityGroup {
+  id: string;
+  slug: string;
+  eventName: string;
+  occurredAt: string;
+  startsAt?: string;
+  upcomingActivityKey?: string;
+  activities: HomeActivityItem[];
+}
+
+export interface HomeActivityFeed {
+  items: HomeActivityGroup[];
+  hasMore: boolean;
+}

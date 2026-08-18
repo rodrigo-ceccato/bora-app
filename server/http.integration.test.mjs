@@ -182,6 +182,7 @@ function voteBody(participantId, voterName, response = 'accept') {
 async function resetData() {
   await writeFile(pushTransportLog, '');
   await databasePool.query(`truncate table
+    participant_activity_state, event_activities,
     push_notifications, push_subscriptions, participant_recovery_tokens, participant_profiles,
     participant_presence, votes, events restart identity cascade`);
 }
@@ -381,22 +382,44 @@ integration('HTTP API with disposable PostgreSQL', () => {
       .toEqual(expect.arrayContaining([expect.objectContaining({ kind: expect.stringMatching(/^vote-/) }), expect.objectContaining({ kind: expect.stringMatching(/^threshold-reached-/) })]));
   });
 
-  it('accepts a board message from the same participant identity that created the Bora', async () => {
-    const participantId = 'message_creator';
-    const created = await createEvent(participantId, { title: 'Mural' });
-    const response = await request(`/events/${created.event.slug}/messages`, {
-      method: 'POST', participantId, body: { authorName: 'Ana', body: 'Levo pipoca.' }
-    });
-    expect(response.status).toBe(201);
-    expect(await json(response)).toMatchObject({ message: { authorName: 'Ana', body: 'Levo pipoca.', isOwn: true } });
-    expect((await databasePool.query('select participant_id, author_name, body from event_messages where event_id = $1', [created.event.id])).rows)
-      .toEqual([{ participant_id: participantId, author_name: 'Ana', body: 'Levo pipoca.' }]);
+  it('keeps a board message and its activity in the same lifecycle', async () => {
+    const messageApi = await startApi();
+    const previousBase = apiBase;
+    apiBase = messageApi.base;
+    try {
+      const participantId = 'message_creator';
+      const created = await createEvent(participantId, { title: 'Mural' });
+      const response = await request(`/events/${created.event.slug}/messages`, {
+        method: 'POST', participantId, body: { authorName: 'Ana', body: 'Levo pipoca.' }
+      });
+      expect(response.status).toBe(201);
+      const { message } = await json(response);
+      expect(message).toMatchObject({ authorName: 'Ana', body: 'Levo pipoca.', isOwn: true });
+      expect((await databasePool.query('select participant_id, author_name, body from event_messages where event_id = $1', [created.event.id])).rows)
+        .toEqual([{ participant_id: participantId, author_name: 'Ana', body: 'Levo pipoca.' }]);
 
-    expect((await request('/me/profile', { method: 'PUT', participantId, body: { name: 'Ana Maria' } })).status).toBe(200);
-    const eventWithRenamedAuthor = await json(await request(`/events/${created.event.slug}`, { participantId }));
-    expect(eventWithRenamedAuthor.messages).toEqual(expect.arrayContaining([
-      expect.objectContaining({ authorName: 'Ana Maria', body: 'Levo pipoca.' })
-    ]));
+      expect((await request('/me/profile', { method: 'PUT', participantId, body: { name: 'Ana Maria' } })).status).toBe(200);
+      const eventWithRenamedAuthor = await json(await request(`/events/${created.event.slug}`, { participantId }));
+      expect(eventWithRenamedAuthor.messages).toEqual(expect.arrayContaining([
+        expect.objectContaining({ authorName: 'Ana Maria', body: 'Levo pipoca.' })
+      ]));
+      expect((await databasePool.query(
+        "select id from event_activities where event_id = $1 and kind = 'message' and aggregation_key = $2",
+        [created.event.id, message.id]
+      )).rowCount).toBe(1);
+
+      expect((await request(`/events/${created.event.slug}/messages/${message.id}`, {
+        method: 'DELETE', participantId
+      })).status).toBe(204);
+      expect((await databasePool.query('select id from event_messages where id = $1', [message.id])).rowCount).toBe(0);
+      expect((await databasePool.query(
+        "select id from event_activities where event_id = $1 and kind = 'message' and aggregation_key = $2",
+        [created.event.id, message.id]
+      )).rowCount).toBe(0);
+    } finally {
+      apiBase = previousBase;
+      await messageApi.stop();
+    }
   });
 
   it('keeps decisions independent from confirmations and enforces participant-only recados', async () => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertEventRevision,
   assertPatchMode,
+  buildHomeActivityFeed,
   coarsenPresenceCount,
   createRateLimiter,
   creatorVoteSchedule,
@@ -27,6 +28,58 @@ import {
   withUniqueSlug,
   zonedDateTimeToDate
 } from './index.mjs';
+
+describe('Home activity feed', () => {
+  const base = { event_id: 'evt_1', slug: 'cinema', title: 'Cinema amanhã' };
+
+  it('aggregates repeated votes and messages for the same event', () => {
+    const feed = buildHomeActivityFeed([
+      { ...base, id: 'vote_1', kind: 'vote', updated_at: '2026-08-18T12:00:00Z' },
+      { ...base, id: 'vote_2', kind: 'vote', updated_at: '2026-08-18T13:00:00Z' },
+      { ...base, id: 'vote_3', kind: 'vote', updated_at: '2026-08-18T14:00:00Z' },
+      { ...base, id: 'message_1', kind: 'message', updated_at: '2026-08-18T15:00:00Z' },
+      { ...base, id: 'message_2', kind: 'message', updated_at: '2026-08-18T16:00:00Z' }
+    ], []);
+    expect(feed.items).toHaveLength(1);
+    expect(feed.items[0]).toMatchObject({ eventName: 'Cinema amanhã' });
+    expect(feed.items[0].activities).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: 'votes', primaryMessage: '3 novas respostas' }),
+      expect.objectContaining({ kind: 'messages', primaryMessage: '2 novos recados' })
+    ]));
+  });
+
+  it('represents event changes and final-time selection separately', () => {
+    const feed = buildHomeActivityFeed([
+      { ...base, id: 'change', kind: 'event_changed', updated_at: '2026-08-18T12:00:00Z' },
+      { ...base, id: 'final', kind: 'final_selected', updated_at: '2026-08-18T13:00:00Z' }
+    ], []);
+    expect(feed.items[0].activities.map(({ kind, primaryMessage }) => ({ kind, primaryMessage }))).toEqual([
+      { kind: 'final_selected', primaryMessage: 'Data e horário definidos' },
+      { kind: 'event_changed', primaryMessage: 'Data, horário ou local alterado' }
+    ]);
+  });
+
+  it('prioritizes one upcoming Bora and caps Home at three event groups with hasMore', () => {
+    const activities = ['message', 'vote', 'threshold_reached'].map((kind, index) => ({
+      ...base, event_id: `evt_${index}`, id: `a_${index}`, kind, updated_at: `2026-08-18T1${index}:00:00Z`
+    }));
+    const upcoming = [{ ...base, event_id: 'upcoming', activity_key: 'upcoming:1', reminder_starts_at: '2026-08-18T20:00:00Z' }];
+    const feed = buildHomeActivityFeed(activities, upcoming);
+    expect(feed.items).toHaveLength(3);
+    expect(feed.items[0]).toMatchObject({ id: 'upcoming', startsAt: '2026-08-18T20:00:00Z' });
+    expect(feed.hasMore).toBe(true);
+  });
+
+  it('does not count child activities as separate Home slots', () => {
+    const activities = ['message', 'vote', 'threshold_reached'].map((kind, index) => ({
+      ...base, id: `a_${index}`, kind, updated_at: `2026-08-18T1${index}:00:00Z`
+    }));
+    const feed = buildHomeActivityFeed(activities, []);
+    expect(feed.items).toHaveLength(1);
+    expect(feed.items[0].activities).toHaveLength(3);
+    expect(feed.hasMore).toBe(false);
+  });
+});
 
 const eventInput = {
   mode: 'mais-tarde', title: 'Cinema', place: 'Centro', description: '', threshold: 2,

@@ -1,7 +1,10 @@
 import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, useIonViewWillEnter } from '@ionic/react';
-import { useEffect, useState, type ReactNode } from 'react';
-import { calendarOutline } from 'ionicons/icons';
-import { getParticipantName, refreshParticipantProfile } from '../lib/store';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useHistory } from 'react-router-dom';
+import { calendarOutline, chatbubbleEllipsesOutline, checkmarkCircleOutline, chevronForwardOutline, closeOutline, createOutline, peopleOutline, ribbonOutline } from 'ionicons/icons';
+import { getParticipantName, listAdminEvents, listHomeActivity, refreshParticipantProfile, updateActivityState } from '../lib/store';
+import type { ActivityKind, HomeActivityGroup, HomeActivityItem } from '../lib/types';
+import { upcomingActivityCopy } from '../lib/activity';
 
 type Mode = 'agora' | 'mais-tarde' | 'marcar';
 
@@ -20,15 +23,89 @@ const actions: Array<{ mode: Mode; title: string; description: string }> = [
   { mode: 'marcar', title: 'Bora marcar', description: 'Compare dias e horários com a turma.' }
 ];
 
+const activityIcons: Record<ActivityKind, string> = {
+  votes: peopleOutline,
+  messages: chatbubbleEllipsesOutline,
+  event_changed: createOutline,
+  final_selected: checkmarkCircleOutline,
+  threshold_reached: ribbonOutline
+};
+
 export default function HomePage() {
   const [name, setName] = useState(getParticipantName);
+  const [activityGroups, setActivityGroups] = useState<HomeActivityGroup[]>([]);
+  const [hasMoreActivity, setHasMoreActivity] = useState(false);
+  const [loadingAllActivity, setLoadingAllActivity] = useState(false);
+  const history = useHistory();
+  const adminTokens = new Map(listAdminEvents().map((event) => [event.slug, event.adminToken]));
+  const activityRequestGeneration = useRef(0);
+  const refreshActivity = useCallback(async () => {
+    const requestGeneration = ++activityRequestGeneration.current;
+    setLoadingAllActivity(false);
+    try {
+      const feed = await listHomeActivity();
+      if (requestGeneration !== activityRequestGeneration.current) return;
+      setActivityGroups(feed.items);
+      setHasMoreActivity(feed.hasMore);
+    } catch {
+      if (requestGeneration !== activityRequestGeneration.current) return;
+      setActivityGroups([]);
+      setHasMoreActivity(false);
+    }
+  }, []);
   useEffect(() => {
     const updateName = () => setName(getParticipantName());
     window.addEventListener('bora:participant-name-updated', updateName);
     window.addEventListener('storage', updateName);
     return () => { window.removeEventListener('bora:participant-name-updated', updateName); window.removeEventListener('storage', updateName); };
   }, []);
-  useIonViewWillEnter(() => { void refreshParticipantProfile(); });
+  useIonViewWillEnter(() => { void refreshParticipantProfile(); void refreshActivity(); });
+  const invalidateActivityRequests = () => {
+    activityRequestGeneration.current += 1;
+    setLoadingAllActivity(false);
+  };
+  const removeChildActivity = (groupId: string, activityId: string) => {
+    setActivityGroups((current) => current.flatMap((group) => {
+      if (group.id !== groupId) return [group];
+      const activities = group.activities.filter((activity) => activity.id !== activityId);
+      return activities.length > 0 || group.startsAt ? [{ ...group, activities }] : [];
+    }));
+  };
+  const openGroup = (group: HomeActivityGroup) => {
+    if (group.upcomingActivityKey) {
+      invalidateActivityRequests();
+      void updateActivityState([group.upcomingActivityKey], 'read').catch(() => undefined);
+    }
+    const adminToken = adminTokens.get(group.slug);
+    history.push(`/e/${encodeURIComponent(group.slug)}${adminToken ? `?admin=${encodeURIComponent(adminToken)}` : ''}`);
+  };
+  const openActivity = (group: HomeActivityGroup, activity: HomeActivityItem) => {
+    invalidateActivityRequests();
+    removeChildActivity(group.id, activity.id);
+    void updateActivityState(activity.activityKeys, 'read').catch(() => void refreshActivity());
+    const anchor = activity.kind === 'messages' ? '#recados' : activity.kind === 'votes' ? '#respostas' : '';
+    const adminToken = adminTokens.get(group.slug);
+    history.push(`/e/${encodeURIComponent(group.slug)}${adminToken ? `?admin=${encodeURIComponent(adminToken)}` : ''}${anchor}`);
+  };
+  const dismissActivity = (group: HomeActivityGroup, activity: HomeActivityItem) => {
+    invalidateActivityRequests();
+    removeChildActivity(group.id, activity.id);
+    void updateActivityState(activity.activityKeys, 'dismiss').catch(() => void refreshActivity());
+  };
+  const showAllActivity = async () => {
+    const requestGeneration = ++activityRequestGeneration.current;
+    setLoadingAllActivity(true);
+    try {
+      const feed = await listHomeActivity(true);
+      if (requestGeneration !== activityRequestGeneration.current) return;
+      setActivityGroups(feed.items);
+      setHasMoreActivity(feed.hasMore);
+    } catch {
+      // Keep the current preview available if the expanded request fails.
+    } finally {
+      if (requestGeneration === activityRequestGeneration.current) setLoadingAllActivity(false);
+    }
+  };
   const firstName = name.trim().split(/\s+/)[0] || '';
   const title = firstName ? `Bora, ${firstName}?` : 'Bora?';
   return <IonPage>
@@ -53,6 +130,41 @@ export default function HomePage() {
             <span className="mode-card-arrow" aria-hidden="true">→</span>
           </IonButton>)}
         </nav>
+      </section>
+      <section className="home-activity" aria-labelledby="home-activity-title">
+        <div className="home-activity-heading">
+          <h2 id="home-activity-title">Novidades</h2>
+          {hasMoreActivity && <IonButton fill="clear" size="small" className="home-activity-all" disabled={loadingAllActivity} onClick={() => void showAllActivity()}>{loadingAllActivity ? 'Carregando…' : 'Ver todas'}</IonButton>}
+        </div>
+        {activityGroups.length === 0 ? <p className="home-activity-empty">Nada novo por aqui.</p> : (
+          <div className="home-activity-list">
+            {activityGroups.map((group) => {
+              const upcomingCopy = group.startsAt ? upcomingActivityCopy(group.startsAt) : undefined;
+              return <article className="home-activity-group" key={group.id}>
+                <button type="button" className="home-activity-event" onClick={() => openGroup(group)} aria-label={`Abrir ${group.eventName}`}>
+                  <IonIcon icon={calendarOutline} aria-hidden="true" className="home-activity-event-icon" />
+                  <span className="home-activity-event-copy">
+                    {upcomingCopy && <strong>{upcomingCopy.primaryMessage}</strong>}
+                    <span>{group.eventName}</span>
+                    {upcomingCopy?.secondaryMessage && <small>{upcomingCopy.secondaryMessage}</small>}
+                  </span>
+                  <IonIcon icon={chevronForwardOutline} aria-hidden="true" className="home-activity-chevron" />
+                </button>
+                {group.activities.length > 0 && <div className="home-activity-children" aria-label={`Atividades de ${group.eventName}`}>
+                  {group.activities.map((activity) => <div className="home-activity-child" key={activity.id}>
+                    <button type="button" className="home-activity-child-open" onClick={() => openActivity(group, activity)} aria-label={`${activity.primaryMessage} em ${group.eventName}`}>
+                      <IonIcon icon={activityIcons[activity.kind]} aria-hidden="true" />
+                      <span>{activity.primaryMessage}</span>
+                    </button>
+                    <button type="button" className="home-activity-dismiss" aria-label={`Dispensar ${activity.primaryMessage} de ${group.eventName}`} onClick={() => dismissActivity(group, activity)}>
+                      <IonIcon icon={closeOutline} aria-hidden="true" />
+                    </button>
+                  </div>)}
+                </div>}
+              </article>;
+            })}
+          </div>
+        )}
       </section>
     </IonContent>
   </IonPage>;

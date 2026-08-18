@@ -14,10 +14,6 @@ import { AdaptiveTimePicker } from '../components/AdaptiveTimePicker';
 
 type CopyFallback = { text: string; kind: 'invite' | 'organizer' };
 
-function useQuery() {
-  return new URLSearchParams(useLocation().search);
-}
-
 const scheduleTimes = Array.from({ length: 16 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`);
 const overnightScheduleTimes = Array.from({ length: 7 }, (_, index) => `0${index + 1}:00`);
 const maxThreshold = 999;
@@ -100,7 +96,8 @@ function validEditableSchedule(event: BoraEvent, earlyMoreLaterEnabled = false) 
 
 export default function EventPage() {
   const { slug } = useParams<{ slug: string }>();
-  const query = useQuery();
+  const location = useLocation();
+  const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const [toast] = useIonToast();
   const [presentAlert] = useIonAlert();
   const router = useIonRouter();
@@ -160,6 +157,20 @@ export default function EventPage() {
     const frame = window.requestAnimationFrame(() => { void contentRef.current?.scrollToTop(0); });
     return () => window.cancelAnimationFrame(frame);
   }, [wasJustCreated, data?.event.id]);
+
+  useEffect(() => {
+    if (!data?.event.id || !['#recados', '#respostas'].includes(location.hash)) return;
+    if (isAdmin && adminSection !== 'overview') {
+      setAdminSection('overview');
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      const target = contentRef.current?.querySelector<HTMLElement>(location.hash);
+      target?.focus({ preventScroll: true });
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [adminSection, data?.event.id, isAdmin, location.hash]);
 
   useEffect(() => {
     let active = true;
@@ -967,7 +978,7 @@ export default function EventPage() {
               </IonCard>
             )}
 
-            {(!isAdmin || adminSection === 'overview') && <IonCard className="votes-card">
+            {(!isAdmin || adminSection === 'overview') && <IonCard id="respostas" tabIndex={-1} className="votes-card">
               <IonCardHeader>
                 <IonCardTitle>Quem respondeu</IonCardTitle>
                 <div className="count-row" aria-label="Resumo dos votos">
@@ -995,7 +1006,7 @@ export default function EventPage() {
               </IonCardContent>
             </IonCard>}
 
-            {(!isAdmin || adminSection === 'overview') && <IonCard className="messages-card">
+            {(!isAdmin || adminSection === 'overview') && <IonCard id="recados" tabIndex={-1} className="messages-card">
               <IonCardHeader className="messages-header"><IonCardTitle>Recados <IonBadge className="message-count" color="medium">{messages.length}</IonBadge></IonCardTitle></IonCardHeader>
               <IonCardContent>
                 {messages.length === 0 ? <p className="muted">Ainda não tem recados.</p> : (

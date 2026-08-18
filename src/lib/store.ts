@@ -1,4 +1,4 @@
-import type { BoraEvent, BoraMessage, BoraVote, EventDraft, EventSummary, EventWithVotes } from './types';
+import type { BoraEvent, BoraMessage, BoraVote, EventDraft, EventSummary, EventWithVotes, HomeActivityFeed } from './types';
 import { slugify, uid } from './schedule';
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -8,6 +8,7 @@ const PARTICIPANT_NAME_KEY = 'bora_participant_name';
 const ADMIN_EVENTS_KEY = 'bora_admin_events';
 const MAX_EVENT_VOTES = 2000;
 const DEFAULT_VOTE_PAGE_SIZE = 200;
+const ACTIVITY_STATE_BATCH_SIZE = 100;
 const SESSION_OVERRIDE_PREFIX = 'bora_storage_override:';
 const SESSION_TOMBSTONE_PREFIX = 'bora_storage_deleted:';
 let pendingParticipantName: string | null = null;
@@ -523,6 +524,27 @@ export async function listMyEvents(): Promise<MyEvents> {
   };
 }
 
+export async function listHomeActivity(showAll = false): Promise<HomeActivityFeed> {
+  if (!API_BASE || !hasRegisteredParticipant()) return { items: [], hasMore: false };
+  const query = showAll ? '?all=true' : '';
+  return apiRequest<HomeActivityFeed>(`/me/activity${query}`, {
+    headers: { 'x-participant-id': getParticipantId() }
+  });
+}
+
+export async function updateActivityState(activityKeys: string[], action: 'read' | 'dismiss') {
+  if (!API_BASE || !hasRegisteredParticipant() || activityKeys.length === 0) return;
+  const participantId = getParticipantId();
+  const uniqueActivityKeys = [...new Set(activityKeys)];
+  for (let index = 0; index < uniqueActivityKeys.length; index += ACTIVITY_STATE_BATCH_SIZE) {
+    await apiRequest<void>('/me/activity-state', {
+      method: 'PUT',
+      headers: { 'x-participant-id': participantId },
+      body: JSON.stringify({ activityKeys: uniqueActivityKeys.slice(index, index + ACTIVITY_STATE_BATCH_SIZE), action })
+    });
+  }
+}
+
 export async function createRecoveryLink(includeAdminAccess = true): Promise<string> {
   const result = await apiRequest<{ recoveryToken: string }>('/me/recovery-link', {
     method: 'POST', headers: { 'x-participant-id': getParticipantId() }
@@ -773,6 +795,7 @@ export async function updateEvent(adminToken: string, event: BoraEvent): Promise
   if (API_BASE) {
     const result = await apiRequest<{ event: BoraEvent }>(`/events/${encodeURIComponent(event.slug)}`, {
       method: 'PATCH',
+      headers: { 'x-participant-id': getParticipantId() },
       body: JSON.stringify(event)
     }, adminToken);
     return result.event;

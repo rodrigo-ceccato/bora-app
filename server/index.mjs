@@ -748,6 +748,106 @@ export function eventUpdateNotificationPlan(current, updated) {
   return changed ? [{ audience: 'participants', preference: 'changes', kind: `changed-${randomBytes(8).toString('hex')}`, title: `Bora alterado: ${updated.title}`, body: `Confira a nova data, horário ou local em ${updated.place}.` }] : [];
 }
 
+async function recordEventActivity(client, eventId, kind, actorParticipantId, aggregationKey = actorParticipantId) {
+  const activityId = uid('activity');
+  const saved = await client.query(
+    `insert into event_activities (id, event_id, kind, actor_participant_id, aggregation_key)
+     values ($1,$2,$3,$4,$5)
+     on conflict (event_id, kind, aggregation_key) do update set updated_at=now()
+     returning id`,
+    [activityId, eventId, kind, actorParticipantId, aggregationKey]
+  );
+  // A later action from the same person is new information. Clear only that
+  // source action, leaving read/dismissed state for the rest of an aggregate intact.
+  await client.query('delete from participant_activity_state where activity_key = $1', [`activity:${saved.rows[0]?.id || activityId}`]);
+}
+
+function iso(value) {
+  return value?.toISOString?.() || String(value);
+}
+
+export function buildHomeActivityFeed(activityRows, upcomingRows, limit = 3) {
+  const groupedActivities = new Map();
+  for (const row of activityRows) {
+    const groupKey = `${row.event_id}:${row.kind}`;
+    const current = groupedActivities.get(groupKey) || { ...row, activityKeys: [] };
+    current.activityKeys.push(`activity:${row.id}`);
+    if (new Date(row.updated_at).getTime() > new Date(current.updated_at).getTime()) current.updated_at = row.updated_at;
+    groupedActivities.set(groupKey, current);
+  }
+  const messages = {
+    event_changed: () => 'Data, horário ou local alterado',
+    final_selected: () => 'Data e horário definidos',
+    threshold_reached: () => 'Mínimo de confirmações atingido',
+    vote: (count) => `${count} ${count === 1 ? 'nova resposta' : 'novas respostas'}`,
+    message: (count) => `${count} ${count === 1 ? 'novo recado' : 'novos recados'}`
+  };
+  const priorities = { upcoming: 0, final_selected: 1, event_changed: 1, messages: 2, votes: 3, threshold_reached: 4 };
+  /** @type {Map<string, any>} */
+  const eventGroups = new Map();
+  for (const row of groupedActivities.values()) {
+    const kind = row.kind === 'vote' ? 'votes' : row.kind === 'message' ? 'messages' : row.kind;
+    const group = eventGroups.get(row.event_id) || {
+      id: row.event_id,
+      slug: row.slug,
+      eventName: row.title,
+      occurredAt: iso(row.updated_at),
+      activities: [],
+      priority: priorities[kind]
+    };
+    group.activities.push({
+      id: `${kind}:${row.event_id}`,
+      activityKeys: row.activityKeys,
+      kind,
+      primaryMessage: messages[row.kind](row.activityKeys.length),
+      occurredAt: iso(row.updated_at),
+      priority: priorities[kind]
+    });
+    group.priority = Math.min(group.priority, priorities[kind]);
+    if (new Date(row.updated_at).getTime() > new Date(group.occurredAt).getTime()) group.occurredAt = iso(row.updated_at);
+    eventGroups.set(row.event_id, group);
+  }
+  for (const row of upcomingRows) {
+    const group = eventGroups.get(row.event_id) || {
+      id: row.event_id,
+      slug: row.slug,
+      eventName: row.title,
+      occurredAt: iso(row.reminder_starts_at),
+      activities: []
+    };
+    group.startsAt = iso(row.reminder_starts_at);
+    group.upcomingActivityKey = row.activity_key;
+    group.priority = priorities.upcoming;
+    eventGroups.set(row.event_id, group);
+  }
+  const groups = [...eventGroups.values()];
+  for (const group of groups) {
+    group.activities.sort((left, right) => left.priority - right.priority
+      || new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime());
+    group.activities = group.activities.map((activity) => {
+      const publicActivity = { ...activity };
+      delete publicActivity.priority;
+      return publicActivity;
+    });
+  }
+  groups.sort((left, right) => {
+    const priority = left.priority - right.priority;
+    if (priority) return priority;
+    if (left.startsAt && right.startsAt) {
+      return new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime();
+    }
+    return new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime();
+  });
+  return {
+    items: groups.slice(0, limit).map((group) => {
+      const publicGroup = { ...group };
+      delete publicGroup.priority;
+      return publicGroup;
+    }),
+    hasMore: groups.length > limit
+  };
+}
+
 export function deletionNotificationPlan(event, now = Date.now()) {
   const startsAt = eventStartAt(event)?.getTime();
   return startsAt && startsAt > now
@@ -1012,6 +1112,94 @@ export async function route(request, response) {
     return send(response, 204);
   }
 
+  if (request.method === 'GET' && url.pathname === '/api/me/activity') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const showAllActivity = url.searchParams.get('all') === 'true';
+    const activityLimit = showAllActivity ? Number.MAX_SAFE_INTEGER : 3;
+    const [activities, upcoming] = await Promise.all([
+      pool.query(
+        `with eligible_activity as (
+           select activity.*, events.slug, events.title
+           from event_activities activity
+           join events on events.id = activity.event_id
+           left join participant_activity_state state
+             on state.participant_id = $1 and state.activity_key = 'activity:' || activity.id
+           where activity.updated_at >= now() - interval '14 days'
+             and activity.actor_participant_id <> $1
+             and state.read_at is null and state.dismissed_at is null
+             and (
+               events.created_by_participant_id = $1
+               or exists (
+                 select 1 from votes membership
+                 where membership.event_id = events.id and membership.participant_id = $1
+                   and membership.created_at <= activity.updated_at
+               )
+             )
+             and (activity.kind <> 'vote' or events.created_by_participant_id = $1)
+         ), selected_events as (
+           select event_id
+           from eligible_activity
+           group by event_id
+           order by min(case kind
+             when 'final_selected' then 1 when 'event_changed' then 1
+             when 'message' then 2 when 'vote' then 3 else 4 end),
+             max(updated_at) desc
+           limit $2
+         )
+         select activity.*
+         from eligible_activity activity
+         join selected_events selected on selected.event_id = activity.event_id
+         order by activity.updated_at desc`,
+        [participantId, showAllActivity ? null : activityLimit + 1]
+      ),
+      pool.query(
+        `select events.id as event_id, events.slug, events.title, events.reminder_starts_at,
+                'upcoming:' || events.id || ':' || extract(epoch from events.reminder_starts_at)::text as activity_key
+         from events
+         left join participant_activity_state state
+           on state.participant_id = $1
+          and state.activity_key = 'upcoming:' || events.id || ':' || extract(epoch from events.reminder_starts_at)::text
+         where events.reminder_starts_at > now()
+           and events.reminder_starts_at <= now() + interval '3 days'
+           and state.dismissed_at is null
+           and (events.created_by_participant_id = $1 or exists (
+             select 1 from votes membership
+             where membership.event_id = events.id and membership.participant_id = $1
+           ))
+         order by events.reminder_starts_at asc
+         limit $2`,
+        [participantId, showAllActivity ? null : activityLimit + 1]
+      )
+    ]);
+    return send(response, 200, buildHomeActivityFeed(activities.rows, upcoming.rows, activityLimit));
+  }
+
+  if (request.method === 'PUT' && url.pathname === '/api/me/activity-state') {
+    const participantId = text(request.headers['x-participant-id'], 100, true);
+    const input = await readJson(request);
+    const action = input.action === 'read' || input.action === 'dismiss' ? input.action : '';
+    if (!action || !Array.isArray(input.activityKeys) || input.activityKeys.length === 0 || input.activityKeys.length > 100) {
+      throw httpError(400, 'Estado de atividade inválido.');
+    }
+    const activityKeys = [...new Set(input.activityKeys.map((key) => text(key, 200, true)))];
+    if (action === 'read') {
+      await pool.query(
+        `insert into participant_activity_state (participant_id, activity_key, read_at)
+         select $1, key, now() from unnest($2::text[]) key
+         on conflict (participant_id, activity_key) do update set read_at=now()`,
+        [participantId, activityKeys]
+      );
+    } else {
+      await pool.query(
+        `insert into participant_activity_state (participant_id, activity_key, dismissed_at)
+         select $1, key, now() from unnest($2::text[]) key
+         on conflict (participant_id, activity_key) do update set dismissed_at=now()`,
+        [participantId, activityKeys]
+      );
+    }
+    return send(response, 204);
+  }
+
   if (request.method === 'GET' && url.pathname === '/api/me/events') {
     const participantId = text(request.headers['x-participant-id'], 100, true);
     const [created, joined] = await Promise.all([
@@ -1238,6 +1426,7 @@ export async function route(request, response) {
           'insert into event_messages (id, event_id, participant_id, author_name, body) values ($1,$2,$3,$4,$5) returning *',
           [uid('message'), eventRow.id, participantId, input.authorName, input.body]
         );
+        await recordEventActivity(client, eventRow.id, 'message', participantId, saved.rows[0].id);
         return { eventRow, message: saved.rows[0] };
       });
       runInBackground(sendMessagePush(result.eventRow, result.message), 'Message notification');
@@ -1249,10 +1438,24 @@ export async function route(request, response) {
       const messageId = text(parts[4], 100, true);
       const eventRow = await findEvent(slug);
       const isAdmin = tokenMatches(bearerToken(request), eventRow.admin_token_hash);
-      const removed = await pool.query(
-        `delete from event_messages where id = $1 and event_id = $2 and ($3 or participant_id = $4) returning id`,
-        [messageId, eventRow.id, isAdmin, participantId]
-      );
+      const removed = await withTransaction(async (client) => {
+        const deletedMessage = await client.query(
+          `delete from event_messages where id = $1 and event_id = $2 and ($3 or participant_id = $4) returning id`,
+          [messageId, eventRow.id, isAdmin, participantId]
+        );
+        if (!deletedMessage.rowCount) return deletedMessage;
+        await client.query(
+          `with deleted_activity as (
+             delete from event_activities
+             where event_id = $1 and kind = 'message' and aggregation_key = $2
+             returning id
+           )
+           delete from participant_activity_state
+           where activity_key in (select 'activity:' || id from deleted_activity)`,
+          [eventRow.id, messageId]
+        );
+        return deletedMessage;
+      });
       if (!removed.rowCount) throw httpError(403, 'Você não pode remover este recado.');
       return send(response, 204);
     }
@@ -1283,6 +1486,10 @@ export async function route(request, response) {
             JSON.stringify(vote.preferredOptions), JSON.stringify(vote.availability)]
         );
         const accepted = await client.query("select count(*)::int as count from votes where event_id = $1 and response = 'accept'", [event.id]);
+        await recordEventActivity(client, event.id, 'vote', vote.participantId);
+        if (acceptedBefore.rows[0].count < event.threshold && accepted.rows[0].count >= event.threshold) {
+          await recordEventActivity(client, event.id, 'threshold_reached', vote.participantId);
+        }
         return { eventRow, vote, saved: saved.rows[0], acceptedCount: accepted.rows[0].count, previousAcceptedCount: acceptedBefore.rows[0].count };
       });
       for (const notification of voteNotificationPlan(result.eventRow, { ...result.vote, id: result.saved.id }, result.acceptedCount, `${randomBytes(8).toString('hex')}-${result.saved.id}`, result.previousAcceptedCount)) {
@@ -1300,6 +1507,7 @@ export async function route(request, response) {
         if (!tokenMatches(bearerToken(request), current.admin_token_hash)) {
           throw httpError(403, 'Link de administrador inválido.');
         }
+        const actorParticipantId = text(request.headers['x-participant-id'], 100) || current.created_by_participant_id || 'system';
         assertPatchMode(current, patchBody);
         assertEventRevision(current, patchBody);
         const legacyAlternatives = (current.alternatives || []).filter((value) => Number.isNaN(Date.parse(value)));
@@ -1397,6 +1605,12 @@ export async function route(request, response) {
               [dayId, slot, current.id]
             );
           }
+        }
+        const updateActivity = eventUpdateNotificationPlan(current, saved.rows[0]);
+        if (updateActivity.length) {
+          await recordEventActivity(client, current.id,
+            !current.decided_option && saved.rows[0].decided_option ? 'final_selected' : 'event_changed',
+            actorParticipantId);
         }
         return { current, updated: saved.rows[0] };
       });
