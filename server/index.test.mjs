@@ -352,6 +352,25 @@ describe('past Bora closure', () => {
       mode: 'mais-tarde', starts_at: '2026-08-03T18:00:00.000Z', decided_option: '2026-08-03T21:00:00.000Z'
     }, new Date('2026-08-03T21:00:00.000Z').getTime())).toBe(true);
   });
+
+  it('keeps an undecided week poll open until every offered time has passed', () => {
+    const poll = {
+      mode: 'mais-tarde', starts_at: '2026-08-03T18:00:00.000Z',
+      alternatives: ['2026-08-03T21:00:00.000Z']
+    };
+    expect(eventHasOccurred(poll, new Date('2026-08-03T20:00:00.000Z').getTime())).toBe(false);
+    expect(eventHasOccurred(poll, new Date('2026-08-03T21:00:00.000Z').getTime())).toBe(true);
+  });
+
+  it('keeps an undecided schedule poll open until its final slot has passed', () => {
+    const poll = {
+      mode: 'marcar', event_timezone: 'America/Sao_Paulo', days: [
+        { id: 'terca', date: '2026-08-04', slots: ['18:00', '21:00'] }
+      ]
+    };
+    expect(eventHasOccurred(poll, new Date('2026-08-04T23:00:00.000Z').getTime())).toBe(false);
+    expect(eventHasOccurred(poll, new Date('2026-08-05T00:00:00.000Z').getTime())).toBe(true);
+  });
 });
 
 describe('push targeting', () => {

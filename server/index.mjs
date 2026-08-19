@@ -336,13 +336,23 @@ function mapEvent(row) {
 }
 
 export function eventHasOccurred(row, now = Date.now()) {
-  const start = eventStartAt(row);
+  const decided = row.decided_option || row.decidedOption;
+  const start = row.mode === 'agora' || decided ? eventStartAt(row) : null;
   if (start && start.getTime() <= now) return true;
-  if (row.mode === 'marcar' && Array.isArray(row.days) && row.days.length) {
-    const latestDay = row.days.map((day) => day?.date).filter(Boolean).sort().at(-1);
-    return Boolean(latestDay && latestDay < new Date().toISOString().slice(0, 10));
-  }
-  return false;
+  if (decided) return false;
+
+  const offeredTimes = row.mode === 'mais-tarde'
+    ? [row.starts_at || row.startsAt, ...(row.alternatives || [])].map((option) => new Date(option).getTime())
+    : row.mode === 'marcar'
+      ? (row.days || []).flatMap((day) => day.slots.map((slot) => {
+        const timeZone = row.event_timezone || row.timeZone;
+        return timeZone
+          ? zonedDateTimeToDate(day.date, slot, timeZone)?.getTime()
+          : new Date(`${day.date}T${slot}:00`).getTime();
+      }))
+      : [];
+  const validTimes = offeredTimes.filter((time) => Number.isFinite(time));
+  return validTimes.length > 0 && validTimes.every((time) => time <= now);
 }
 
 function messagesClosed(row) {

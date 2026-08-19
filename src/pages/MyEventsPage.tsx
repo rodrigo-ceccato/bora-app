@@ -41,6 +41,7 @@ import {
 } from "../lib/push";
 import {
   clearDeviceAuthentication,
+  eventHasOccurred,
   getParticipantName,
   listAdminEvents,
   listMyEvents,
@@ -281,10 +282,7 @@ export default function MyEventsPage() {
     listAdminEvents().map((event) => [event.slug, event.adminToken]),
   );
   const active = (items: EventListItem[]) =>
-    items.filter(({ event }) => {
-      const time = eventTime(event);
-      return time === undefined || time >= Date.now();
-    });
+    items.filter(({ event }) => !eventHasOccurred(event));
   const upcoming = [...events.created, ...events.joined]
     .filter(({ event }, index, all) => {
       const time = eventTime(event);

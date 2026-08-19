@@ -325,6 +325,59 @@ test('upcoming cards do not call a Talvez response confirmed', async ({ page }) 
   await expect(card).not.toContainText('Você confirmou');
 });
 
+test('Participo omits an open marcar poll once every offered slot has passed', async ({ page }) => {
+  const event = futureEvent({
+    id: 'expired-open-poll',
+    slug: 'expired-open-poll',
+    mode: 'marcar',
+    title: 'Horários que já passaram',
+    startsAt: undefined,
+    days: [{
+      id: 'day-1',
+      label: 'Terça-feira',
+      date: '2000-01-04',
+      slots: ['18:00', '21:00'],
+    }],
+    timeZone: 'America/Sao_Paulo',
+  });
+  await page.route('**/api/me/events', (route) =>
+    route.fulfill({ json: { created: [], joined: [event] } }),
+  );
+
+  await page.goto('/my-events');
+
+  const joined = page.locator('#my-events-joined').locator('..');
+  await expect(joined).toContainText(
+    'Os Boras em que você responder aparecerão aqui.',
+  );
+  await expect(joined).not.toContainText('Horários que já passaram');
+});
+
+test('Boras passados includes an open marcar poll once every offered slot has passed', async ({ page }) => {
+  const event = futureEvent({
+    id: 'expired-archive-poll',
+    slug: 'expired-archive-poll',
+    mode: 'marcar',
+    title: 'Fumar',
+    startsAt: undefined,
+    days: [{
+      id: 'day-1',
+      label: 'Terça-feira',
+      date: '2000-01-04',
+      slots: ['18:00', '21:00'],
+    }],
+    timeZone: 'America/Sao_Paulo',
+  });
+  await page.route('**/api/me/events', (route) =>
+    route.fulfill({ json: { created: [], joined: [event] } }),
+  );
+
+  await page.goto('/past-events');
+
+  const card = page.locator('.my-event-card').filter({ hasText: 'Fumar' });
+  await expect(card).toContainText('Opções encerradas');
+});
+
 test('recovery keeps the current identity when Push rebinding fails', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, 'PushManager', { configurable: true, value: class PushManager {} });

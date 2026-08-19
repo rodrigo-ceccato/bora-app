@@ -1,4 +1,5 @@
 import type { BoraEvent, BoraMessage, BoraVote, EventDraft, EventSummary, EventWithVotes, HomeActivityFeed } from './types';
+import { calendarZonedDateTime } from './calendar';
 import { slugify, uid } from './schedule';
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -18,14 +19,40 @@ let lastProfileRefreshAt = 0;
 
 export type StoragePersistence = 'persistent' | 'session' | 'memory';
 
-export function eventHasOccurred(event: BoraEvent, now = Date.now()) {
-  const start = event.mode === 'mais-tarde' && event.decidedOption ? event.decidedOption : event.startsAt;
-  if (start && new Date(start).getTime() <= now) return true;
-  if (event.mode === 'marcar' && event.days.length) {
-    const latestDay = event.days.map((day) => day.date).sort().at(-1);
-    return Boolean(latestDay && latestDay < new Date().toISOString().slice(0, 10));
+function eventOptionTimes(event: BoraEvent) {
+  if (event.mode === 'agora' || event.mode === 'mais-tarde') {
+    const options = event.mode === 'agora' || event.decidedOption
+      ? [event.mode === 'agora' ? event.startsAt : event.decidedOption]
+      : [event.startsAt, ...event.alternatives];
+    return options
+      .map((option) => new Date(option || '').getTime())
+      .filter((time) => !Number.isNaN(time));
   }
-  return false;
+
+  const selectedOptions = event.decidedOption
+    ? [event.decidedOption]
+    : event.days.flatMap((day) => day.slots.map((slot) => `${day.id}:${slot}`));
+  return selectedOptions.map((option) => {
+    const [dayId, slot] = option.match(/^(.+):(\d{2}:\d{2})$/)?.slice(1) || [];
+    const day = event.days.find((item) => item.id === dayId);
+    if (!day || !slot) return Number.NaN;
+    const startsAt = event.timeZone
+      ? calendarZonedDateTime(day.date, slot, event.timeZone)
+      : new Date(`${day.date}T${slot}:00`);
+    return startsAt?.getTime() ?? Number.NaN;
+  }).filter((time) => !Number.isNaN(time));
+}
+
+/** The chosen date, or the last offered date for an undecided poll. */
+export function eventArchiveTime(event: BoraEvent) {
+  const times = eventOptionTimes(event);
+  if (!times.length) return undefined;
+  return event.mode === 'agora' || event.decidedOption ? times[0] : Math.max(...times);
+}
+
+export function eventHasOccurred(event: BoraEvent, now = Date.now()) {
+  const archiveTime = eventArchiveTime(event);
+  return archiveTime !== undefined && archiveTime <= now;
 }
 
 function eventMessagesClosed(event: BoraEvent) {

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearDeviceAuthentication,
+  eventArchiveTime,
   collectEventVotePages,
   createEvent,
   eventHasOccurred,
@@ -44,6 +45,34 @@ describe('past Bora closure', () => {
     };
     expect(eventHasOccurred(event, new Date('2026-08-03T21:00:00.000Z').getTime())).toBe(true);
     expect(eventHasOccurred(event, new Date('2026-08-03T20:59:59.999Z').getTime())).toBe(false);
+  });
+
+  it('closes an undecided week poll only after all offered times have passed', () => {
+    const event = {
+      id: 'week-poll', slug: 'week-poll', mode: 'mais-tarde' as const, title: 'Cinema', place: 'Centro', threshold: 2,
+      startsAt: '2026-08-03T18:00:00.000Z', alternatives: ['2026-08-03T21:00:00.000Z'], days: [], votingClosed: false, createdAt: '2026-08-01T00:00:00.000Z'
+    };
+    expect(eventHasOccurred(event, new Date('2026-08-03T20:00:00.000Z').getTime())).toBe(false);
+    expect(eventHasOccurred(event, new Date('2026-08-03T21:00:00.000Z').getTime())).toBe(true);
+  });
+
+  it('closes an undecided Bora marcar once every offered slot has passed', () => {
+    const event = {
+      id: 'mark-poll', slug: 'mark-poll', mode: 'marcar' as const, title: 'Cinema', place: 'Centro', threshold: 2,
+      alternatives: [], days: [{ id: 'terca', label: 'Terça', date: '2026-08-04', slots: ['18:00', '21:00'] }],
+      timeZone: 'America/Sao_Paulo', votingClosed: false, createdAt: '2026-08-01T00:00:00.000Z'
+    };
+    expect(eventHasOccurred(event, new Date('2026-08-04T23:59:59.999Z').getTime())).toBe(false);
+    expect(eventHasOccurred(event, new Date('2026-08-05T00:00:00.000Z').getTime())).toBe(true);
+  });
+
+  it('archives an expired undecided Bora marcar at its last offered slot', () => {
+    const event = {
+      id: 'mark-poll', slug: 'mark-poll', mode: 'marcar' as const, title: 'Cinema', place: 'Centro', threshold: 2,
+      alternatives: [], days: [{ id: 'terca', label: 'Terça', date: '2026-08-04', slots: ['18:00', '21:00'] }],
+      timeZone: 'America/Sao_Paulo', votingClosed: false, createdAt: '2026-08-01T00:00:00.000Z'
+    };
+    expect(eventArchiveTime(event)).toBe(new Date('2026-08-05T00:00:00.000Z').getTime());
   });
 });
 
