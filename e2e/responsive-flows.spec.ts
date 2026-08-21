@@ -171,9 +171,12 @@ test('home and every creation mode are usable at this viewport', async ({ page }
   await expect(page.getByRole('heading', { name: 'Bora marcar?' })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Símbolo de compartilhamento Bora' })).toBeVisible();
   await expect(page.locator('.home-mode-card')).toHaveCount(3);
-  await expect(page.getByText('Bora agora', { exact: true })).toBeVisible();
+  await expect(page.getByText('Bora Agora', { exact: true })).toBeVisible();
+  await expect(page.getByText('Para sair hoje, proposta com horário fixo.', { exact: true })).toBeVisible();
   await expect(page.getByText('Bora essa semana', { exact: true })).toBeVisible();
+  await expect(page.getByText('Escolha um dia, convidados votam no horário.', { exact: true })).toBeVisible();
   await expect(page.getByText('Bora marcar', { exact: true })).toBeVisible();
+  await expect(page.getByText('Proponha datas, convidados votam em dias e horários.', { exact: true })).toBeVisible();
   await expectNoHorizontalScroll(page);
 
   await page.goto('/create?mode=agora');

@@ -67,7 +67,7 @@ async function openRecoveryTransfer(page: Page, events: ReturnType<typeof adminE
 
 test('keyboard flow enters creation and modal focus returns after Escape', async ({ page }, testInfo) => {
   await page.goto('/home');
-  const agoraLink = page.getByRole('link', { name: /Bora agora/ });
+  const agoraLink = page.getByRole('link', { name: /Bora Agora/ });
   await tabTo(page, agoraLink);
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/create\?mode=agora/);

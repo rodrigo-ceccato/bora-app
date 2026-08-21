@@ -30,7 +30,7 @@ async function tomorrowDate(page: Page) {
 
 test('home actions stay actionable and unknown routes have a Portuguese fallback', async ({ page }) => {
   await page.goto('/home');
-  await expect(page.getByRole('link', { name: /Bora agora/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Bora Agora/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Bora essa semana/ })).toBeVisible();
   await expect(page.locator('.home-mode-card[role="listitem"]')).toHaveCount(0);
 

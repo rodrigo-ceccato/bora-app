@@ -18,9 +18,9 @@ function ModeIcon({ mode }: { mode: Mode }) {
 }
 
 const actions: Array<{ mode: Mode; title: string; description: string }> = [
-  { mode: 'agora', title: 'Bora agora', description: 'Veja quem topa sair hoje.' },
-  { mode: 'mais-tarde', title: 'Bora essa semana', description: 'Encontre um horário que funcione.' },
-  { mode: 'marcar', title: 'Bora marcar', description: 'Compare dias e horários com a turma.' }
+  { mode: 'agora', title: 'Bora Agora', description: 'Para sair hoje, proposta com horário fixo.' },
+  { mode: 'mais-tarde', title: 'Bora essa semana', description: 'Escolha um dia, convidados votam no horário.' },
+  { mode: 'marcar', title: 'Bora marcar', description: 'Proponha datas, convidados votam em dias e horários.' }
 ];
 
 const activityIcons: Record<ActivityKind, string> = {
