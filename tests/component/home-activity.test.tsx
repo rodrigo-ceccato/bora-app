@@ -138,20 +138,30 @@ describe('Novidades on Home', () => {
     expect(screen.queryByText('Ver todas')).toBeNull();
   });
 
-  it('opens Recados directly and marks only that child activity as read', async () => {
+  it('opens Recados directly and marks the event activity group as read', async () => {
     store.listHomeActivity.mockResolvedValue({ items: [activityGroup], hasMore: false });
     renderHome();
     fireEvent.click(await screen.findByRole('button', { name: /2 novos recados em Almoço/ }));
     expect(currentPath).toBe('/e/almoco-aniversario#recados');
-    expect(store.updateActivityState).toHaveBeenCalledWith(['activity:message_1'], 'read');
+    expect(store.updateActivityState).toHaveBeenCalledWith(['activity:message_1', 'activity:vote_1'], 'read');
+    expect(screen.queryByText('1 nova resposta')).toBeNull();
   });
 
-  it('opens Respostas directly from its child activity', async () => {
+  it('opens Respostas directly and clears the rest of the event activity group', async () => {
     store.listHomeActivity.mockResolvedValue({ items: [activityGroup], hasMore: false });
     renderHome();
     fireEvent.click(await screen.findByRole('button', { name: /1 nova resposta em Almoço/ }));
     expect(currentPath).toBe('/e/almoco-aniversario#respostas');
-    expect(store.updateActivityState).toHaveBeenCalledWith(['activity:vote_1'], 'read');
+    expect(store.updateActivityState).toHaveBeenCalledWith(['activity:message_1', 'activity:vote_1'], 'read');
+    expect(screen.queryByText('2 novos recados')).toBeNull();
+  });
+
+  it('offers a group dismissal for past Boras and dismisses every activity in it', async () => {
+    store.listHomeActivity.mockResolvedValue({ items: [{ ...activityGroup, isPast: true }], hasMore: false });
+    renderHome();
+    fireEvent.click(await screen.findByRole('button', { name: /Dispensar Bora Almoço/ }));
+    expect(store.updateActivityState).toHaveBeenCalledWith(['activity:message_1', 'activity:vote_1'], 'dismiss');
+    expect(screen.queryByText('Almoço de Aniversário T-zinho')).toBeNull();
   });
 
   it('preserves saved organizer access when opening activity links', async () => {

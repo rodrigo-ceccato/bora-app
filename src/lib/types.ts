@@ -118,6 +118,7 @@ export interface HomeActivityGroup {
   occurredAt: string;
   startsAt?: string;
   upcomingActivityKey?: string;
+  isPast?: boolean;
   activities: HomeActivityItem[];
 }
 

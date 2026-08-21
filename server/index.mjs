@@ -802,6 +802,7 @@ export function buildHomeActivityFeed(activityRows, upcomingRows, limit = 3) {
       slug: row.slug,
       eventName: row.title,
       occurredAt: iso(row.updated_at),
+      isPast: row.event_starts_at ? new Date(row.event_starts_at).getTime() <= Date.now() : false,
       activities: [],
       priority: priorities[kind]
     };
@@ -1129,7 +1130,7 @@ export async function route(request, response) {
     const [activities, upcoming] = await Promise.all([
       pool.query(
         `with eligible_activity as (
-           select activity.*, events.slug, events.title
+           select activity.*, events.slug, events.title, events.reminder_starts_at as event_starts_at
            from event_activities activity
            join events on events.id = activity.event_id
            left join participant_activity_state state

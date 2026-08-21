@@ -79,6 +79,14 @@ describe('Home activity feed', () => {
     expect(feed.items[0].activities).toHaveLength(3);
     expect(feed.hasMore).toBe(false);
   });
+
+  it('marks activity groups for past Boras as dismissible', () => {
+    const feed = buildHomeActivityFeed([{
+      ...base, id: 'message_1', kind: 'message', updated_at: '2026-08-18T12:00:00Z',
+      event_starts_at: '2020-08-18T12:00:00Z'
+    }], []);
+    expect(feed.items[0]).toMatchObject({ isPast: true });
+  });
 });
 
 const eventInput = {

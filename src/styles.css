@@ -100,7 +100,8 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .home-activity-empty { margin: 4px 0 0; color: #69757d; font-size: .92rem; }
 .home-activity-list { display: grid; gap: 12px; }
 .home-activity-group { overflow: hidden; border: 1px solid #e0e8e4; border-radius: 13px; background: rgba(255, 255, 255, .78); }
-.home-activity-event { display: flex; width: 100%; min-width: 0; align-items: center; gap: 11px; padding: 13px 14px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.home-activity-event-row { display: flex; min-width: 0; }
+.home-activity-event { display: flex; flex: 1 1 auto; width: 100%; min-width: 0; align-items: center; gap: 11px; padding: 13px 14px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .home-activity-event:hover, .home-activity-child-open:hover { background: #f5faf7; }
 .home-activity-event:focus-visible, .home-activity-child-open:focus-visible, .home-activity-dismiss:focus-visible { position: relative; z-index: 1; outline: 3px solid #4fa67e; outline-offset: -3px; }
 .home-activity-event-icon { flex: 0 0 auto; align-self: flex-start; margin-top: 2px; color: #39735f; font-size: 19px; }
@@ -118,9 +119,10 @@ h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: 3px solid #4fa6
 .home-activity-dismiss { display: grid; flex: 0 0 44px; width: 44px; min-height: 44px; place-items: center; align-self: stretch; padding: 0; border: 0; background: transparent; color: #929a96; cursor: pointer; }
 .home-activity-dismiss:hover { background: #f1f6f3; color: #344f44; }
 .home-activity-dismiss ion-icon { font-size: 15px; }
+.home-activity-event-dismiss { min-height: auto; }
 @media (hover: hover) and (pointer: fine) {
   .home-activity-dismiss { opacity: 0; }
-  .home-activity-child:hover .home-activity-dismiss, .home-activity-child:focus-within .home-activity-dismiss { opacity: 1; }
+  .home-activity-child:hover .home-activity-dismiss, .home-activity-child:focus-within .home-activity-dismiss, .home-activity-event-row:hover .home-activity-event-dismiss, .home-activity-event-row:focus-within .home-activity-event-dismiss { opacity: 1; }
 }
 
 .form-page ion-card, .event-layout { max-width: 760px; margin-left: auto; margin-right: auto; }

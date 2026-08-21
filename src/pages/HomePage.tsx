@@ -71,18 +71,28 @@ export default function HomePage() {
       return activities.length > 0 || group.startsAt ? [{ ...group, activities }] : [];
     }));
   };
+  const clearGroupActivities = (group: HomeActivityGroup) => {
+    setActivityGroups((current) => current.flatMap((item) => {
+      if (item.id !== group.id) return [item];
+      return item.upcomingActivityKey ? [{ ...item, activities: [] }] : [];
+    }));
+  };
+  const groupActivityKeys = (group: HomeActivityGroup) => group.activities.flatMap((activity) => activity.activityKeys);
   const openGroup = (group: HomeActivityGroup) => {
-    if (group.upcomingActivityKey) {
+    const activityKeys = groupActivityKeys(group);
+    const keysToRead = group.upcomingActivityKey ? [...activityKeys, group.upcomingActivityKey] : activityKeys;
+    if (keysToRead.length > 0) {
       invalidateActivityRequests();
-      void updateActivityState([group.upcomingActivityKey], 'read').catch(() => undefined);
+      clearGroupActivities(group);
+      void updateActivityState(keysToRead, 'read').catch(() => void refreshActivity());
     }
     const adminToken = adminTokens.get(group.slug);
     history.push(`/e/${encodeURIComponent(group.slug)}${adminToken ? `?admin=${encodeURIComponent(adminToken)}` : ''}`);
   };
   const openActivity = (group: HomeActivityGroup, activity: HomeActivityItem) => {
     invalidateActivityRequests();
-    removeChildActivity(group.id, activity.id);
-    void updateActivityState(activity.activityKeys, 'read').catch(() => void refreshActivity());
+    clearGroupActivities(group);
+    void updateActivityState(groupActivityKeys(group), 'read').catch(() => void refreshActivity());
     const anchor = activity.kind === 'messages' ? '#recados' : activity.kind === 'votes' ? '#respostas' : '';
     const adminToken = adminTokens.get(group.slug);
     history.push(`/e/${encodeURIComponent(group.slug)}${adminToken ? `?admin=${encodeURIComponent(adminToken)}` : ''}${anchor}`);
@@ -91,6 +101,13 @@ export default function HomePage() {
     invalidateActivityRequests();
     removeChildActivity(group.id, activity.id);
     void updateActivityState(activity.activityKeys, 'dismiss').catch(() => void refreshActivity());
+  };
+  const dismissGroup = (group: HomeActivityGroup) => {
+    const activityKeys = groupActivityKeys(group);
+    if (activityKeys.length === 0) return;
+    invalidateActivityRequests();
+    clearGroupActivities(group);
+    void updateActivityState(activityKeys, 'dismiss').catch(() => void refreshActivity());
   };
   const showAllActivity = async () => {
     const requestGeneration = ++activityRequestGeneration.current;
@@ -141,15 +158,20 @@ export default function HomePage() {
             {activityGroups.map((group) => {
               const upcomingCopy = group.startsAt ? upcomingActivityCopy(group.startsAt) : undefined;
               return <article className="home-activity-group" key={group.id}>
-                <button type="button" className="home-activity-event" onClick={() => openGroup(group)} aria-label={`Abrir ${group.eventName}`}>
-                  <IonIcon icon={calendarOutline} aria-hidden="true" className="home-activity-event-icon" />
-                  <span className="home-activity-event-copy">
-                    {upcomingCopy && <strong>{upcomingCopy.primaryMessage}</strong>}
-                    <span>{group.eventName}</span>
-                    {upcomingCopy?.secondaryMessage && <small>{upcomingCopy.secondaryMessage}</small>}
-                  </span>
-                  <IonIcon icon={chevronForwardOutline} aria-hidden="true" className="home-activity-chevron" />
-                </button>
+                <div className="home-activity-event-row">
+                  <button type="button" className="home-activity-event" onClick={() => openGroup(group)} aria-label={`Abrir ${group.eventName}`}>
+                    <IonIcon icon={calendarOutline} aria-hidden="true" className="home-activity-event-icon" />
+                    <span className="home-activity-event-copy">
+                      {upcomingCopy && <strong>{upcomingCopy.primaryMessage}</strong>}
+                      <span>{group.eventName}</span>
+                      {upcomingCopy?.secondaryMessage && <small>{upcomingCopy.secondaryMessage}</small>}
+                    </span>
+                    <IonIcon icon={chevronForwardOutline} aria-hidden="true" className="home-activity-chevron" />
+                  </button>
+                  {group.isPast && group.activities.length > 0 && <button type="button" className="home-activity-dismiss home-activity-event-dismiss" aria-label={`Dispensar Bora ${group.eventName}`} onClick={() => dismissGroup(group)}>
+                    <IonIcon icon={closeOutline} aria-hidden="true" />
+                  </button>}
+                </div>
                 {group.activities.length > 0 && <div className="home-activity-children" aria-label={`Atividades de ${group.eventName}`}>
                   {group.activities.map((activity) => <div className="home-activity-child" key={activity.id}>
                     <button type="button" className="home-activity-child-open" onClick={() => openActivity(group, activity)} aria-label={`${activity.primaryMessage} em ${group.eventName}`}>
